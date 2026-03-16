@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../api/axios';
 import { PageHeader, Table, StatusBadge, FilterBar, EmptyState, Modal, PageSpinner } from '../../components/common';
+import { FiCalendar, FiCheck, FiX } from '../../components/common/icons';
 import toast from 'react-hot-toast';
 
 export default function LeaveManagement() {
@@ -61,7 +62,7 @@ export default function LeaveManagement() {
             ))}
           </Table>
         )}
-        {!loading && leaves.length === 0 && <EmptyState message="No leave requests" icon="📅" />}
+        {!loading && leaves.length === 0 && <EmptyState message="No leave requests" icon={<FiCalendar />} />}
       </div>
 
       <Modal open={!!selected} onClose={() => setSelected(null)} title="Review Leave Request">
@@ -69,7 +70,7 @@ export default function LeaveManagement() {
           <div className="space-y-4">
             <div className="bg-gray-50 p-3 rounded-lg text-sm space-y-1">
               <p><span className="text-gray-500">Student:</span> <strong>{selected.student?.firstName} {selected.student?.lastName}</strong></p>
-              <p><span className="text-gray-500">Period:</span> {new Date(selected.fromDate).toLocaleDateString('en-IN')} – {new Date(selected.toDate).toLocaleDateString('en-IN')} ({selected.noOfDays} days)</p>
+              <p><span className="text-gray-500">Period:</span> {new Date(selected.fromDate).toLocaleDateString('en-IN')} - {new Date(selected.toDate).toLocaleDateString('en-IN')} ({selected.noOfDays} days)</p>
               <p><span className="text-gray-500">Reason:</span> {selected.reason}</p>
             </div>
             <div>
@@ -77,8 +78,8 @@ export default function LeaveManagement() {
               <textarea className="input" rows={3} value={remark} onChange={e => setRemark(e.target.value)} placeholder="Add remarks..." />
             </div>
             <div className="flex gap-3">
-              <button onClick={() => handleAction(selected._id, 'approved')} className="btn-success flex-1">✓ Approve</button>
-              <button onClick={() => handleAction(selected._id, 'rejected')} className="btn-danger flex-1">✗ Reject</button>
+              <button onClick={() => handleAction(selected._id, 'approved')} className="btn-success flex-1 flex items-center justify-center gap-2"><FiCheck /> Approve</button>
+              <button onClick={() => handleAction(selected._id, 'rejected')} className="btn-danger flex-1 flex items-center justify-center gap-2"><FiX /> Reject</button>
             </div>
           </div>
         )}

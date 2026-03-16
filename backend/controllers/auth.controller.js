@@ -1,16 +1,19 @@
-const User = require('../models/User.model');
-const Student = require('../models/Student.model');
-const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
+import User from '../models/User.model.js';
+import Student from '../models/Student.model.js';
+import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 
 const generateToken = (id, role) =>
   jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE || '7d' });
 
 // @POST /api/auth/login
-exports.login = async (req, res) => {
+export const login = async (req, res) => {
   try {
-    const { phone, password, role } = req.body;
-    const user = await User.findOne({ phone }).populate('studentRef');
+    const { identifier, phone, password, role } = req.body;
+    const loginValue = (identifier || phone || '').trim();
+    const user = await User.findOne({
+      $or: [{ phone: loginValue }, { email: loginValue.toLowerCase() }],
+    }).populate('studentRef');
     if (!user || !(await user.matchPassword(password)))
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     if (!user.isActive)
@@ -33,7 +36,7 @@ exports.login = async (req, res) => {
 };
 
 // @POST /api/auth/register  (Super Admin creates users)
-exports.register = async (req, res) => {
+export const register = async (req, res) => {
   try {
     const { name, phone, email, password, role, staffId, department } = req.body;
     const exists = await User.findOne({ phone });
@@ -47,7 +50,7 @@ exports.register = async (req, res) => {
 };
 
 // @GET /api/auth/me
-exports.getMe = async (req, res) => {
+export const getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password').populate('studentRef');
     res.json({ success: true, user });
@@ -57,7 +60,7 @@ exports.getMe = async (req, res) => {
 };
 
 // @PUT /api/auth/change-password
-exports.changePassword = async (req, res) => {
+export const changePassword = async (req, res) => {
   try {
     const { oldPassword, newPassword } = req.body;
     const user = await User.findById(req.user.id);
@@ -72,7 +75,7 @@ exports.changePassword = async (req, res) => {
 };
 
 // @GET /api/auth/users
-exports.getAllUsers = async (req, res) => {
+export const getAllUsers = async (req, res) => {
   try {
     const users = await User.find({ role: { $ne: 'student' } }).select('-password').sort('-createdAt');
     res.json({ success: true, users });
@@ -82,7 +85,7 @@ exports.getAllUsers = async (req, res) => {
 };
 
 // @PUT /api/auth/users/:id/toggle
-exports.toggleUser = async (req, res) => {
+export const toggleUser = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
@@ -92,4 +95,13 @@ exports.toggleUser = async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
+};
+
+export default {
+  login,
+  register,
+  getMe,
+  changePassword,
+  getAllUsers,
+  toggleUser,
 };

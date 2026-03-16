@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../api/axios';
 import { PageHeader, Table, StatusBadge, FilterBar, EmptyState, Modal, PageSpinner, StatCard, Pagination } from '../../components/common';
+import { FiAlertOctagon, FiBell, FiCheckCircle, FiClock, FiCreditCard, FiDollarSign, FiLogOut, FiPackage, FiTarget, FiTrendingDown, FiUsers } from '../../components/common/icons';
 import toast from 'react-hot-toast';
 
 // ─── OUTPASS ──────────────────────────────────────────────────────────────────
@@ -56,7 +57,7 @@ export function OutpassManagement() {
             ))}
           </Table>
         )}
-        {!loading && list.length === 0 && <EmptyState message="No outpass requests" icon="🚪" />}
+        {!loading && list.length === 0 && <EmptyState message="No outpass requests" icon={<FiLogOut />} />}
       </div>
       <Modal open={!!selected} onClose={() => setSelected(null)} title="Review Outpass">
         {selected && (
@@ -117,7 +118,7 @@ export function CheckInOut() {
               <input className="input flex-1" placeholder="Registration No" value={form.studentRegNo} onChange={e => setForm(f => ({ ...f, studentRegNo: e.target.value }))} />
               <button onClick={findStudent} className="btn-secondary text-sm px-3">Find</button>
             </div>
-            {studentId && <p className="text-xs text-green-600 font-medium">✓ Student found</p>}
+            {studentId && <p className="text-xs text-green-600 font-medium flex items-center gap-1"><FiCheckCircle /> Student found</p>}
             <select className="input" value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
               <option value="check_in">Check In</option>
               <option value="check_out">Check Out</option>
@@ -206,7 +207,7 @@ export function PaymentsAdmin() {
             ))}
           </Table>
         )}
-        {!loading && payments.length === 0 && <EmptyState message="No payments found" icon="💳" />}
+        {!loading && payments.length === 0 && <EmptyState message="No payments found" icon={<FiCreditCard />} />}
         <Pagination page={page} pages={Math.ceil(total / 20)} onPage={setPage} />
       </div>
       <Modal open={showManual} onClose={() => setShowManual(false)} title="Manual Payment Entry">
@@ -254,10 +255,10 @@ export function FeesList() {
     <div>
       <PageHeader title="Fees List" />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard icon="💰" label="Total Billed" value={fmt(summary.totalBilled)} color="blue" />
-        <StatCard icon="✅" label="Collected" value={fmt(summary.totalCollected)} color="green" />
-        <StatCard icon="⏳" label="Pending Dues" value={fmt(summary.totalDue)} color="yellow" />
-        <StatCard icon="🔴" label="Overdue" value={summary.overdueCount || 0} color="red" />
+        <StatCard icon={<FiDollarSign />} label="Total Billed" value={fmt(summary.totalBilled)} color="blue" />
+        <StatCard icon={<FiCheckCircle />} label="Collected" value={fmt(summary.totalCollected)} color="green" />
+        <StatCard icon={<FiClock />} label="Pending Dues" value={fmt(summary.totalDue)} color="yellow" />
+        <StatCard icon={<FiAlertOctagon />} label="Overdue" value={summary.overdueCount || 0} color="red" />
       </div>
       <div className="card">
         <FilterBar>
@@ -328,7 +329,7 @@ export function InventoryPage() {
             ))}
           </Table>
         )}
-        {!loading && items.length === 0 && <EmptyState message="No inventory items" icon="📦" />}
+        {!loading && items.length === 0 && <EmptyState message="No inventory items" icon={<FiPackage />} />}
       </div>
       <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add Inventory Item">
         <form onSubmit={addItem} className="space-y-3">
@@ -404,7 +405,7 @@ export function ExpensePage() {
             ))}
           </Table>
         )}
-        {!loading && expenses.length === 0 && <EmptyState message="No expenses recorded" icon="💸" />}
+        {!loading && expenses.length === 0 && <EmptyState message="No expenses recorded" icon={<FiTrendingDown />} />}
       </div>
       <Modal open={show} onClose={() => setShow(false)} title="Add Expense">
         <form onSubmit={add} className="space-y-3">
@@ -461,7 +462,7 @@ export function CircularsAdmin() {
             <p className="text-xs text-gray-400">{new Date(c.publishDate).toLocaleDateString('en-IN')} • {c.audience?.join(', ')}</p>
           </div>
         ))}
-        {circulars.length === 0 && <EmptyState message="No circulars published" icon="📢" />}
+        {circulars.length === 0 && <EmptyState message="No circulars published" icon={<FiBell />} />}
       </div>
       <Modal open={show} onClose={() => setShow(false)} title="Publish Circular" size="lg">
         <form onSubmit={add} className="space-y-4">
@@ -670,7 +671,7 @@ export function StaffManagement() {
             <td className="table-cell"><span className={s.isActive ? 'badge-green' : 'badge-red'}>{s.isActive ? 'Active' : 'Inactive'}</span></td>
           </tr>)}
         </Table>
-        {staff.length === 0 && <EmptyState message="No staff members" icon="👥" />}
+        {staff.length === 0 && <EmptyState message="No staff members" icon={<FiUsers />} />}
       </div>
       <Modal open={show} onClose={() => setShow(false)} title="Add Staff Member">
         <form onSubmit={add} className="space-y-3">
@@ -721,7 +722,7 @@ export function CoursesPage() {
             <p className="text-sm text-gray-400 mt-1">{c.duration} years • {c.semesters} semesters</p>
           </div>
         ))}
-        {courses.length === 0 && <EmptyState message="No courses yet" icon="🎯" />}
+        {courses.length === 0 && <EmptyState message="No courses yet" icon={<FiTarget />} />}
       </div>
       <Modal open={show} onClose={() => setShow(false)} title="Add Course">
         <form onSubmit={add} className="space-y-3">

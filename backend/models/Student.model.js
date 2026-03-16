@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
-const { v4: uuidv4 } = require('uuid');
+import mongoose from 'mongoose';
+import { v4 as uuidv4 } from 'uuid';
 
 const studentSchema = new mongoose.Schema({
   regNo: {
@@ -76,4 +76,4 @@ studentSchema.virtual('fullName').get(function() {
   return `${this.firstName} ${this.lastName}`;
 });
 
-module.exports = mongoose.model('Student', studentSchema);
+export default mongoose.model('Student', studentSchema);

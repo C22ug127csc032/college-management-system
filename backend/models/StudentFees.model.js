@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const studentFeesSchema = new mongoose.Schema({
   student:      { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
@@ -37,4 +37,4 @@ studentFeesSchema.pre('save', function(next) {
   next();
 });
 
-module.exports = mongoose.model('StudentFees', studentFeesSchema);
+export default mongoose.model('StudentFees', studentFeesSchema);

@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const paymentSchema = new mongoose.Schema({
   student:       { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
@@ -42,4 +42,4 @@ paymentSchema.pre('save', async function(next) {
   next();
 });
 
-module.exports = mongoose.model('Payment', paymentSchema);
+export default mongoose.model('Payment', paymentSchema);

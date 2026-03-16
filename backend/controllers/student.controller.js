@@ -1,12 +1,13 @@
-const Student = require('../models/Student.model');
-const User = require('../models/User.model');
-const Ledger = require('../models/Ledger.model');
-const { sendSMS, sendEmail } = require('../utils/notifications');
-const multer = require('multer');
-const path = require('path');
+import Student from '../models/Student.model.js';
+import User from '../models/User.model.js';
+import Ledger from '../models/Ledger.model.js';
+import utils_notifications from '../utils/notifications.js';
+const { sendSMS, sendEmail } = utils_notifications;
+import multer from 'multer';
+import path from 'path';
 
 // @GET /api/students
-exports.getAllStudents = async (req, res) => {
+export const getAllStudents = async (req, res) => {
   try {
     const { course, status, search, academicYear, page = 1, limit = 20 } = req.query;
     const query = {};
@@ -34,7 +35,7 @@ exports.getAllStudents = async (req, res) => {
 };
 
 // @GET /api/students/:id
-exports.getStudent = async (req, res) => {
+export const getStudent = async (req, res) => {
   try {
     const student = await Student.findById(req.params.id).populate('course', 'name code department');
     if (!student) return res.status(404).json({ success: false, message: 'Student not found' });
@@ -45,7 +46,7 @@ exports.getStudent = async (req, res) => {
 };
 
 // @POST /api/students
-exports.createStudent = async (req, res) => {
+export const createStudent = async (req, res) => {
   try {
     const data = req.body;
     if (req.file) data.photo = `/uploads/${req.file.filename}`;
@@ -75,7 +76,7 @@ exports.createStudent = async (req, res) => {
 };
 
 // @PUT /api/students/:id
-exports.updateStudent = async (req, res) => {
+export const updateStudent = async (req, res) => {
   try {
     const data = req.body;
     if (req.file) data.photo = `/uploads/${req.file.filename}`;
@@ -89,7 +90,7 @@ exports.updateStudent = async (req, res) => {
 };
 
 // @DELETE /api/students/:id
-exports.deleteStudent = async (req, res) => {
+export const deleteStudent = async (req, res) => {
   try {
     const student = await Student.findByIdAndUpdate(req.params.id, { status: 'inactive' }, { new: true });
     if (!student) return res.status(404).json({ success: false, message: 'Student not found' });
@@ -100,7 +101,7 @@ exports.deleteStudent = async (req, res) => {
 };
 
 // @GET /api/students/:id/ledger
-exports.getStudentLedger = async (req, res) => {
+export const getStudentLedger = async (req, res) => {
   try {
     const { startDate, endDate, category, page = 1, limit = 30 } = req.query;
     const query = { student: req.params.id };
@@ -123,7 +124,7 @@ exports.getStudentLedger = async (req, res) => {
 };
 
 // @GET /api/students/reg/:regNo
-exports.getStudentByRegNo = async (req, res) => {
+export const getStudentByRegNo = async (req, res) => {
   try {
     const student = await Student.findOne({ regNo: req.params.regNo }).populate('course', 'name code');
     if (!student) return res.status(404).json({ success: false, message: 'Student not found' });
@@ -134,7 +135,7 @@ exports.getStudentByRegNo = async (req, res) => {
 };
 
 // @GET /api/students/stats/summary
-exports.getStudentStats = async (req, res) => {
+export const getStudentStats = async (req, res) => {
   try {
     const total = await Student.countDocuments();
     const active = await Student.countDocuments({ status: 'active' });
@@ -146,4 +147,15 @@ exports.getStudentStats = async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
+};
+
+export default {
+  getAllStudents,
+  getStudent,
+  createStudent,
+  updateStudent,
+  deleteStudent,
+  getStudentLedger,
+  getStudentByRegNo,
+  getStudentStats,
 };

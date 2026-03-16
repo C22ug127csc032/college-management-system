@@ -1,8 +1,9 @@
 // routes/checkin.routes.js
-const express = require('express');
+import express from 'express';
 const r1 = express.Router();
-const c1 = require('../controllers/checkin.controller');
-const { protect, hostelStaff } = require('../middleware/auth.middleware');
+import c1 from '../controllers/checkin.controller.js';
+import middleware_auth_middleware from '../middleware/auth.middleware.js';
+const { protect, hostelStaff } = middleware_auth_middleware;
 r1.post('/', protect, c1.record);
 r1.get('/', protect, c1.getRecords);
-module.exports = r1;
+export default r1;

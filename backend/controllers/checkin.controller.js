@@ -1,8 +1,9 @@
-const CheckIn = require('../models/CheckIn.model');
-const Student = require('../models/Student.model');
-const { sendSMS } = require('../utils/notifications');
+import CheckIn from '../models/CheckIn.model.js';
+import Student from '../models/Student.model.js';
+import utils_notifications from '../utils/notifications.js';
+const { sendSMS } = utils_notifications;
 
-exports.record = async (req, res) => {
+export const record = async (req, res) => {
   try {
     const { studentId, type, location, remarks } = req.body;
     const student = await Student.findById(studentId);
@@ -22,7 +23,7 @@ exports.record = async (req, res) => {
   }
 };
 
-exports.getRecords = async (req, res) => {
+export const getRecords = async (req, res) => {
   try {
     const { studentId, type, location, startDate, endDate, page = 1, limit = 30 } = req.query;
     const query = {};
@@ -45,4 +46,9 @@ exports.getRecords = async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
+};
+
+export default {
+  record,
+  getRecords,
 };

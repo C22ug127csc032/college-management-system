@@ -1,13 +1,16 @@
-const Payment = require('../models/Payment.model');
-const StudentFees = require('../models/StudentFees.model');
-const Student = require('../models/Student.model');
-const Expense = require('../models/Expense.model');
-const { Inventory } = require('../models/Inventory.model');
-const { ShopSale } = require('../models/Shop.model');
-const { BookIssue } = require('../models/Library.model');
+import Payment from '../models/Payment.model.js';
+import StudentFees from '../models/StudentFees.model.js';
+import Student from '../models/Student.model.js';
+import Expense from '../models/Expense.model.js';
+import models_Inventory_model from '../models/Inventory.model.js';
+const { Inventory } = models_Inventory_model;
+import models_Shop_model from '../models/Shop.model.js';
+const { ShopSale } = models_Shop_model;
+import models_Library_model from '../models/Library.model.js';
+const { BookIssue } = models_Library_model;
 
 // @GET /api/reports/dashboard
-exports.getDashboard = async (req, res) => {
+export const getDashboard = async (req, res) => {
   try {
     const today = new Date();
     const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -47,7 +50,7 @@ exports.getDashboard = async (req, res) => {
 };
 
 // @GET /api/reports/fees
-exports.getFeesReport = async (req, res) => {
+export const getFeesReport = async (req, res) => {
   try {
     const { academicYear, course, status, startDate, endDate } = req.query;
     const query = {};
@@ -75,7 +78,7 @@ exports.getFeesReport = async (req, res) => {
 };
 
 // @GET /api/reports/payments
-exports.getPaymentReport = async (req, res) => {
+export const getPaymentReport = async (req, res) => {
   try {
     const { startDate, endDate, paymentMode } = req.query;
     const query = { status: 'success' };
@@ -103,7 +106,7 @@ exports.getPaymentReport = async (req, res) => {
 };
 
 // @GET /api/reports/expenses
-exports.getExpenseReport = async (req, res) => {
+export const getExpenseReport = async (req, res) => {
   try {
     const { startDate, endDate, category, academicYear } = req.query;
     const query = {};
@@ -124,4 +127,11 @@ exports.getExpenseReport = async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
+};
+
+export default {
+  getDashboard,
+  getFeesReport,
+  getPaymentReport,
+  getExpenseReport,
 };

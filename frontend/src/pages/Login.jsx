@@ -6,14 +6,14 @@ import toast from 'react-hot-toast';
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ phone: '', password: '' });
+  const [form, setForm] = useState({ identifier: '', password: '' });
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async e => {
     e.preventDefault();
     setLoading(true);
     try {
-      const user = await login(form.phone, form.password);
+      const user = await login(form.identifier, form.password);
       toast.success(`Welcome, ${user.name}!`);
       navigate(user.role === 'student' ? '/student' : '/admin');
     } catch (err) {
@@ -34,9 +34,9 @@ export default function Login() {
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="label">Phone Number</label>
-              <input type="tel" className="input" placeholder="Enter phone number"
-                value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} required />
+              <label className="label">Email or Phone Number</label>
+              <input type="text" className="input" placeholder="Enter email or phone number"
+                value={form.identifier} onChange={e => setForm({ ...form, identifier: e.target.value })} required />
             </div>
             <div>
               <label className="label">Password</label>

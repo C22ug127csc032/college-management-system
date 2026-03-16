@@ -1,15 +1,18 @@
-const razorpay = require('../config/razorpay');
-const Payment = require('../models/Payment.model');
-const StudentFees = require('../models/StudentFees.model');
-const Ledger = require('../models/Ledger.model');
-const Student = require('../models/Student.model');
-const crypto = require('crypto');
-const { generateReceipt } = require('../utils/pdfGenerator');
-const { sendSMS, sendEmail } = require('../utils/notifications');
+import getRazorpay from '../config/razorpay.js';
+import Payment from '../models/Payment.model.js';
+import StudentFees from '../models/StudentFees.model.js';
+import Ledger from '../models/Ledger.model.js';
+import Student from '../models/Student.model.js';
+import crypto from 'crypto';
+import utils_pdfGenerator from '../utils/pdfGenerator.js';
+const { generateReceipt } = utils_pdfGenerator;
+import utils_notifications from '../utils/notifications.js';
+const { sendSMS, sendEmail } = utils_notifications;
 
 // @POST /api/payments/create-order
-exports.createOrder = async (req, res) => {
+export const createOrder = async (req, res) => {
   try {
+    const razorpay = getRazorpay();
     const { amount, studentFeesId, studentId } = req.body;
     const amountInPaise = Math.round(amount * 100);
 
@@ -27,7 +30,7 @@ exports.createOrder = async (req, res) => {
 };
 
 // @POST /api/payments/verify
-exports.verifyPayment = async (req, res) => {
+export const verifyPayment = async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, studentFeesId, studentId, amount } = req.body;
 
@@ -58,7 +61,7 @@ exports.verifyPayment = async (req, res) => {
 };
 
 // @POST /api/payments/manual  (cash/cheque/dd)
-exports.manualPayment = async (req, res) => {
+export const manualPayment = async (req, res) => {
   try {
     const { studentId, studentFeesId, amount, paymentMode, description, isAdvance } = req.body;
     const payment = await _recordPayment({
@@ -146,7 +149,7 @@ async function _recordPayment({ studentId, studentFeesId, amount, paymentMode,
 }
 
 // @GET /api/payments/student/:studentId
-exports.getStudentPayments = async (req, res) => {
+export const getStudentPayments = async (req, res) => {
   try {
     const { startDate, endDate, status, page = 1, limit = 20 } = req.query;
     const query = { student: req.params.studentId };
@@ -165,7 +168,7 @@ exports.getStudentPayments = async (req, res) => {
 };
 
 // @GET /api/payments/receipt/:id
-exports.downloadReceipt = async (req, res) => {
+export const downloadReceipt = async (req, res) => {
   try {
     const payment = await Payment.findById(req.params.id)
       .populate({ path: 'student', populate: { path: 'course', select: 'name' } });
@@ -183,7 +186,7 @@ exports.downloadReceipt = async (req, res) => {
 };
 
 // @GET /api/payments  (Admin - all payments)
-exports.getAllPayments = async (req, res) => {
+export const getAllPayments = async (req, res) => {
   try {
     const { startDate, endDate, mode, status, page = 1, limit = 20 } = req.query;
     const query = {};
@@ -204,4 +207,13 @@ exports.getAllPayments = async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
+};
+
+export default {
+  createOrder,
+  verifyPayment,
+  manualPayment,
+  getStudentPayments,
+  downloadReceipt,
+  getAllPayments,
 };

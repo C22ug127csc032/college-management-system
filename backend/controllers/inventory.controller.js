@@ -1,13 +1,14 @@
-const { Inventory, InventoryTransaction } = require('../models/Inventory.model');
+import models_Inventory_model from '../models/Inventory.model.js';
+const { Inventory, InventoryTransaction } = models_Inventory_model;
 
-exports.createItem = async (req, res) => {
+export const createItem = async (req, res) => {
   try {
     const item = await Inventory.create(req.body);
     res.status(201).json({ success: true, item });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
 
-exports.getAllItems = async (req, res) => {
+export const getAllItems = async (req, res) => {
   try {
     const { category, search, lowStock } = req.query;
     const query = {};
@@ -19,7 +20,7 @@ exports.getAllItems = async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
 
-exports.getItem = async (req, res) => {
+export const getItem = async (req, res) => {
   try {
     const item = await Inventory.findById(req.params.id);
     if (!item) return res.status(404).json({ success: false, message: 'Item not found' });
@@ -27,14 +28,14 @@ exports.getItem = async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
 
-exports.updateItem = async (req, res) => {
+export const updateItem = async (req, res) => {
   try {
     const item = await Inventory.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json({ success: true, item });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
 
-exports.addTransaction = async (req, res) => {
+export const addTransaction = async (req, res) => {
   try {
     const { inventoryId, type, quantity, unitPrice, remarks, reference } = req.body;
     const item = await Inventory.findById(inventoryId);
@@ -58,7 +59,7 @@ exports.addTransaction = async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
 
-exports.getTransactions = async (req, res) => {
+export const getTransactions = async (req, res) => {
   try {
     const { inventoryId, type, startDate, endDate } = req.query;
     const query = {};
@@ -76,7 +77,7 @@ exports.getTransactions = async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
 
-exports.getInventoryStats = async (req, res) => {
+export const getInventoryStats = async (req, res) => {
   try {
     const stats = await Inventory.aggregate([
       { $group: { _id: '$category', count: { $sum: 1 }, totalValue: { $sum: { $multiply: ['$currentStock', '$purchasePrice'] } } } }
@@ -84,4 +85,14 @@ exports.getInventoryStats = async (req, res) => {
     const lowStockItems = await Inventory.find({ $expr: { $lte: ['$currentStock', '$minStockAlert'] } }).select('name currentStock minStockAlert category');
     res.json({ success: true, stats, lowStockItems });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+};
+
+export default {
+  createItem,
+  getAllItems,
+  getItem,
+  updateItem,
+  addTransaction,
+  getTransactions,
+  getInventoryStats,
 };

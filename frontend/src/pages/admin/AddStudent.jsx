@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import { PageHeader } from '../../components/common';
+import { FiArrowLeft, FiAward, FiCamera, FiClipboard, FiHome, FiUsers } from '../../components/common/icons';
 import toast from 'react-hot-toast';
 
 const Section = ({ title, children }) => (
@@ -52,7 +53,6 @@ export default function AddStudent() {
     setLoading(true);
     try {
       const fd = new FormData();
-      // Expand dot-notation keys into nested object
       const nested = {};
       Object.entries(form).forEach(([k, v]) => {
         if (k.includes('.')) {
@@ -82,10 +82,13 @@ export default function AddStudent() {
 
   return (
     <div>
-      <PageHeader title="Add Student" subtitle="Create a new student profile"
-        action={<button onClick={() => navigate(-1)} className="btn-secondary">← Back</button>} />
+      <PageHeader
+        title="Add Student"
+        subtitle="Create a new student profile"
+        action={<button onClick={() => navigate(-1)} className="btn-secondary flex items-center gap-2"><FiArrowLeft /> Back</button>}
+      />
       <form onSubmit={handleSubmit}>
-        <Section title="📋 Personal Details">
+        <Section title={<span className="flex items-center gap-2"><FiClipboard /> Personal Details</span>}>
           <Field label="First Name" name="firstName" value={form.firstName} onChange={handleChange} required />
           <Field label="Last Name" name="lastName" value={form.lastName} onChange={handleChange} required />
           <Field label="Date of Birth" name="dob" type="date" value={form.dob} onChange={handleChange} />
@@ -95,18 +98,17 @@ export default function AddStudent() {
           <Field label="Email" name="email" type="email" value={form.email} onChange={handleChange} />
           <Field label="Aadhar No" name="aadharNo" value={form.aadharNo} onChange={handleChange} />
           <Field label="Religion" name="religion" value={form.religion} onChange={handleChange} />
-          <Field label="Category" name="category" value={form.category} onChange={handleChange}
-            options={['General','OBC','SC','ST','EWS']} />
+          <Field label="Category" name="category" value={form.category} onChange={handleChange} options={['General', 'OBC', 'SC', 'ST', 'EWS']} />
         </Section>
 
-        <Section title="🏠 Address">
+        <Section title={<span className="flex items-center gap-2"><FiHome /> Address</span>}>
           <Field label="Street" name="address.street" value={form['address.street']} onChange={handleChange} />
           <Field label="City" name="address.city" value={form['address.city']} onChange={handleChange} />
           <Field label="State" name="address.state" value={form['address.state']} onChange={handleChange} />
           <Field label="Pincode" name="address.pincode" value={form['address.pincode']} onChange={handleChange} />
         </Section>
 
-        <Section title="👨‍👩 Parent Details">
+        <Section title={<span className="flex items-center gap-2"><FiUsers /> Parent Details</span>}>
           <Field label="Father Name" name="father.name" value={form['father.name']} onChange={handleChange} />
           <Field label="Father Phone" name="father.phone" value={form['father.phone']} onChange={handleChange} />
           <Field label="Father Email" name="father.email" type="email" value={form['father.email']} onChange={handleChange} />
@@ -115,7 +117,7 @@ export default function AddStudent() {
           <Field label="Mother Phone" name="mother.phone" value={form['mother.phone']} onChange={handleChange} />
         </Section>
 
-        <Section title="🎓 Academic Details">
+        <Section title={<span className="flex items-center gap-2"><FiAward /> Academic Details</span>}>
           <Field label="Course" name="course" value={form.course} onChange={handleChange} options={courseOpts} required />
           <Field label="Class" name="className" value={form.className} onChange={handleChange} />
           <Field label="Section" name="section" value={form.section} onChange={handleChange} />
@@ -127,7 +129,7 @@ export default function AddStudent() {
         </Section>
 
         <div className="card mb-4">
-          <h3 className="section-title border-b border-gray-100 pb-3 mb-4">📸 Photo & Hostel</h3>
+          <h3 className="section-title border-b border-gray-100 pb-3 mb-4 flex items-center gap-2"><FiCamera /> Photo & Hostel</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="label">Student Photo</label>

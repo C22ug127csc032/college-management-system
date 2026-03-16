@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const expenseSchema = new mongoose.Schema({
   title:       { type: String, required: true },
@@ -17,4 +17,4 @@ const expenseSchema = new mongoose.Schema({
   academicYear:{ type: String },
 }, { timestamps: true });
 
-module.exports = mongoose.model('Expense', expenseSchema);
+export default mongoose.model('Expense', expenseSchema);

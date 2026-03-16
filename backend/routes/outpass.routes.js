@@ -1,9 +1,10 @@
-const express = require('express');
+import express from 'express';
 const r = express.Router();
-const c = require('../controllers/outpass.controller');
-const { protect, hostelStaff } = require('../middleware/auth.middleware');
+import c from '../controllers/outpass.controller.js';
+import middleware_auth_middleware from '../middleware/auth.middleware.js';
+const { protect, hostelStaff } = middleware_auth_middleware;
 r.post('/', protect, c.createOutpass);
 r.get('/', protect, c.getOutpasses);
 r.put('/:id/status', protect, hostelStaff, c.updateOutpassStatus);
 r.put('/:id/return', protect, hostelStaff, c.markReturned);
-module.exports = r;
+export default r;

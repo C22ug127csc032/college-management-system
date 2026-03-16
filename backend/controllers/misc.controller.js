@@ -1,7 +1,7 @@
 // ─── EXPENSE CONTROLLER ───────────────────────────────────────────────────────
-const Expense = require('../models/Expense.model');
+import Expense from '../models/Expense.model.js';
 
-exports.expense = {
+export const expense = {
   create: async (req, res) => {
     try {
       const expense = await Expense.create({ ...req.body, enteredBy: req.user.id });
@@ -43,9 +43,9 @@ exports.expense = {
 };
 
 // ─── CIRCULAR CONTROLLER ─────────────────────────────────────────────────────
-const Circular = require('../models/Circular.model');
+import Circular from '../models/Circular.model.js';
 
-exports.circular = {
+export const circular = {
   create: async (req, res) => {
     try {
       const circular = await Circular.create({ ...req.body, publishedBy: req.user.id });
@@ -81,9 +81,10 @@ exports.circular = {
 };
 
 // ─── LIBRARY CONTROLLER ──────────────────────────────────────────────────────
-const { Book, BookIssue } = require('../models/Library.model');
+import libraryModels from '../models/Library.model.js';
+const { Book, BookIssue } = libraryModels;
 
-exports.library = {
+export const library = {
   addBook: async (req, res) => {
     try {
       const book = await Book.create(req.body);
@@ -152,9 +153,10 @@ exports.library = {
 };
 
 // ─── SHOP / CANTEEN CONTROLLER ───────────────────────────────────────────────
-const { ShopItem, ShopSale } = require('../models/Shop.model');
+import shopModels from '../models/Shop.model.js';
+const { ShopItem, ShopSale } = shopModels;
 
-exports.shop = {
+export const shop = {
   addItem: async (req, res) => {
     try {
       const item = await ShopItem.create(req.body);
@@ -212,4 +214,11 @@ exports.shop = {
       res.json({ success: true, sales, totalRevenue });
     } catch (err) { res.status(500).json({ success: false, message: err.message }); }
   },
+};
+
+export default {
+  expense,
+  circular,
+  library,
+  shop,
 };

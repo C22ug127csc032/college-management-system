@@ -1,6 +1,6 @@
-const PDFDocument = require('pdfkit');
+import PDFDocument from 'pdfkit';
 
-exports.generateReceipt = (payment) => {
+export const generateReceipt = (payment) => {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A5', margin: 40 });
     const buffers = [];
@@ -52,4 +52,8 @@ exports.generateReceipt = (payment) => {
 
     doc.end();
   });
+};
+
+export default {
+  generateReceipt,
 };

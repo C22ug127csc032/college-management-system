@@ -3,6 +3,7 @@ import { Bar, Doughnut } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend } from 'chart.js';
 import api from '../../api/axios';
 import { PageSpinner, StatCard } from '../../components/common';
+import { FiAlertCircle, FiAlertOctagon, FiCheckCircle, FiCreditCard, FiDollarSign, FiTrendingDown, FiUsers } from '../../components/common/icons';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend);
 
@@ -25,21 +26,19 @@ export default function Dashboard() {
         <p className="text-sm text-gray-500 mt-0.5">Welcome back! Here's what's happening today.</p>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon="🎓" label="Total Students" value={data?.totalStudents || 0} color="blue" />
-        <StatCard icon="✅" label="Active Students" value={data?.activeStudents || 0} color="green" />
-        <StatCard icon="💰" label="Monthly Collection" value={fmt(data?.monthlyCollection)} color="purple" />
-        <StatCard icon="⚠️" label="Pending Dues" value={fmt(data?.pendingDues)} color="red" sub={`${data?.overdueCount || 0} overdue`} />
+        <StatCard icon={<FiUsers />} label="Total Students" value={data?.totalStudents || 0} color="blue" />
+        <StatCard icon={<FiCheckCircle />} label="Active Students" value={data?.activeStudents || 0} color="green" />
+        <StatCard icon={<FiDollarSign />} label="Monthly Collection" value={fmt(data?.monthlyCollection)} color="purple" />
+        <StatCard icon={<FiAlertCircle />} label="Pending Dues" value={fmt(data?.pendingDues)} color="red" sub={`${data?.overdueCount || 0} overdue`} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <StatCard icon="💳" label="Total Collected" value={fmt(data?.totalFeesCollected)} color="green" />
-        <StatCard icon="💸" label="Monthly Expense" value={fmt(data?.expenseThisMonth)} color="yellow" />
-        <StatCard icon="🔴" label="Overdue Records" value={data?.overdueCount || 0} color="red" />
+        <StatCard icon={<FiCreditCard />} label="Total Collected" value={fmt(data?.totalFeesCollected)} color="green" />
+        <StatCard icon={<FiTrendingDown />} label="Monthly Expense" value={fmt(data?.expenseThisMonth)} color="yellow" />
+        <StatCard icon={<FiAlertOctagon />} label="Overdue Records" value={data?.overdueCount || 0} color="red" />
       </div>
 
-      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card">
           <h3 className="section-title">Fee Collection vs Dues</h3>

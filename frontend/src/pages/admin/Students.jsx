@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import { PageHeader, Table, StatusBadge, EmptyState, FilterBar, Pagination, PageSpinner } from '../../components/common';
+import { FiUsers } from '../../components/common/icons';
 import toast from 'react-hot-toast';
 
 export default function Students() {
@@ -69,7 +70,7 @@ export default function Students() {
                       </div>
                     </div>
                   </td>
-                  <td className="table-cell text-gray-500">{s.course?.name || '–'}</td>
+                  <td className="table-cell text-gray-500">{s.course?.name || '-'}</td>
                   <td className="table-cell">{s.phone}</td>
                   <td className="table-cell text-gray-500">{new Date(s.admissionDate).toLocaleDateString('en-IN')}</td>
                   <td className="table-cell"><StatusBadge status={s.status} /></td>
@@ -80,7 +81,7 @@ export default function Students() {
                 </tr>
               ))}
             </Table>
-            {students.length === 0 && <EmptyState message="No students found" icon="🎓" />}
+            {students.length === 0 && <EmptyState message="No students found" icon={<FiUsers />} />}
             <Pagination page={page} pages={Math.ceil(total / 15)} onPage={setPage} />
           </>
         )}

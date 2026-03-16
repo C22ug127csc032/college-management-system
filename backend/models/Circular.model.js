@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const circularSchema = new mongoose.Schema({
   title:        { type: String, required: true },
@@ -17,4 +17,4 @@ const circularSchema = new mongoose.Schema({
   publishedBy:  { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
 
-module.exports = mongoose.model('Circular', circularSchema);
+export default mongoose.model('Circular', circularSchema);

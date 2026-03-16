@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
 import { PageSpinner, StatusBadge, StatCard, EmptyState } from '../../components/common';
+import { FiBell, FiBook, FiCalendar, FiClipboard, FiDollarSign, FiLogOut, HiOutlineHandRaised } from '../../components/common/icons';
 import toast from 'react-hot-toast';
 
 // ─── STUDENT DASHBOARD ───────────────────────────────────────────────────────
@@ -30,14 +31,14 @@ export function StudentDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="page-title">Welcome, {user?.name}! 👋</h1>
+        <h1 className="page-title flex items-center gap-2">Welcome, {user?.name}! <HiOutlineHandRaised className="text-amber-500" /></h1>
         <p className="text-sm text-gray-500 mt-0.5">Here's your academic summary</p>
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon="💰" label="Total Due" value={'₹' + totalDue.toLocaleString('en-IN')} color="red" />
-        <StatCard icon="📋" label="Fee Records" value={data?.fees?.length || 0} color="blue" />
-        <StatCard icon="📅" label="Pending Leaves" value={pendingLeaves} color="yellow" />
-        <StatCard icon="📢" label="Circulars" value={data?.circulars?.length || 0} color="purple" />
+        <StatCard icon={<FiDollarSign />} label="Total Due" value={'₹' + totalDue.toLocaleString('en-IN')} color="red" />
+        <StatCard icon={<FiClipboard />} label="Fee Records" value={data?.fees?.length || 0} color="blue" />
+        <StatCard icon={<FiCalendar />} label="Pending Leaves" value={pendingLeaves} color="yellow" />
+        <StatCard icon={<FiBell />} label="Circulars" value={data?.circulars?.length || 0} color="purple" />
       </div>
       <div className="card">
         <h3 className="section-title">Recent Circulars</h3>
@@ -47,7 +48,7 @@ export function StudentDashboard() {
             <p className="text-xs text-gray-400 mt-0.5">{new Date(c.publishDate).toLocaleDateString('en-IN')}</p>
           </div>
         ))}
-        {(!data?.circulars?.length) && <EmptyState message="No circulars" icon="📢" />}
+        {(!data?.circulars?.length) && <EmptyState message="No circulars" icon={<FiBell />} />}
       </div>
     </div>
   );
@@ -131,7 +132,7 @@ export function StudentFees() {
             )}
           </div>
         ))}
-        {fees.length === 0 && <div className="card text-center py-12 text-gray-400"><p className="text-4xl mb-3">💰</p><p>No fee records found</p></div>}
+        {fees.length === 0 && <div className="card text-center py-12 text-gray-400"><div className="text-4xl mb-3 flex justify-center"><FiDollarSign /></div><p>No fee records found</p></div>}
       </div>
     </div>
   );
@@ -173,7 +174,7 @@ export function StudentLedger() {
             ))}
           </tbody>
         </table>
-        {entries.length === 0 && <EmptyState message="No ledger entries" icon="📒" />}
+        {entries.length === 0 && <EmptyState message="No ledger entries" icon={<FiBook />} />}
       </div>
     </div>
   );
@@ -217,7 +218,7 @@ export function StudentLeave() {
             <StatusBadge status={l.status} />
           </div>
         ))}
-        {leaves.length === 0 && <EmptyState message="No leave requests" icon="📅" />}
+        {leaves.length === 0 && <EmptyState message="No leave requests" icon={<FiCalendar />} />}
       </div>
       {show && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
@@ -278,7 +279,7 @@ export function StudentOutpass() {
             <StatusBadge status={o.status} />
           </div>
         ))}
-        {list.length === 0 && <EmptyState message="No outpass requests" icon="🚪" />}
+        {list.length === 0 && <EmptyState message="No outpass requests" icon={<FiLogOut />} />}
       </div>
       {show && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
@@ -324,7 +325,7 @@ export function StudentCirculars() {
             <p className="text-xs text-gray-400 mt-3">{new Date(c.publishDate).toLocaleDateString('en-IN')}</p>
           </div>
         ))}
-        {circulars.length === 0 && <EmptyState message="No circulars published" icon="📢" />}
+        {circulars.length === 0 && <EmptyState message="No circulars published" icon={<FiBell />} />}
       </div>
     </div>
   );

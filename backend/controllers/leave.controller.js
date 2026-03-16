@@ -1,8 +1,9 @@
-const Leave = require('../models/Leave.model');
-const Student = require('../models/Student.model');
-const { sendSMS, sendEmail } = require('../utils/notifications');
+import Leave from '../models/Leave.model.js';
+import Student from '../models/Student.model.js';
+import utils_notifications from '../utils/notifications.js';
+const { sendSMS, sendEmail } = utils_notifications;
 
-exports.applyLeave = async (req, res) => {
+export const applyLeave = async (req, res) => {
   try {
     const { studentId, leaveType, fromDate, toDate, reason } = req.body;
     const leave = await Leave.create({
@@ -20,7 +21,7 @@ exports.applyLeave = async (req, res) => {
   }
 };
 
-exports.getLeaves = async (req, res) => {
+export const getLeaves = async (req, res) => {
   try {
     const { studentId, status, startDate, endDate, page = 1, limit = 20 } = req.query;
     const query = {};
@@ -49,7 +50,7 @@ exports.getLeaves = async (req, res) => {
   }
 };
 
-exports.updateLeaveStatus = async (req, res) => {
+export const updateLeaveStatus = async (req, res) => {
   try {
     const { status, remarks } = req.body;
     const leave = await Leave.findByIdAndUpdate(req.params.id, {
@@ -67,7 +68,7 @@ exports.updateLeaveStatus = async (req, res) => {
   }
 };
 
-exports.getLeave = async (req, res) => {
+export const getLeave = async (req, res) => {
   try {
     const leave = await Leave.findById(req.params.id)
       .populate('student', 'firstName lastName regNo phone')
@@ -77,4 +78,11 @@ exports.getLeave = async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
+};
+
+export default {
+  applyLeave,
+  getLeaves,
+  updateLeaveStatus,
+  getLeave,
 };

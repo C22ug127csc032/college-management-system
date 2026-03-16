@@ -1,9 +1,10 @@
-const StudentFees = require('../models/StudentFees.model');
-const Student = require('../models/Student.model');
-const { sendSMS, sendEmail } = require('./notifications');
-const moment = require('moment');
+import StudentFees from '../models/StudentFees.model.js';
+import Student from '../models/Student.model.js';
+import notifications from './notifications.js';
+const { sendSMS, sendEmail } = notifications;
+import moment from 'moment';
 
-exports.sendDueDateAlerts = async () => {
+export const sendDueDateAlerts = async () => {
   try {
     const today = moment().startOf('day');
     const threeDaysLater = moment().add(3, 'days').endOf('day');
@@ -44,4 +45,8 @@ exports.sendDueDateAlerts = async () => {
   } catch (err) {
     console.error('Cron error:', err.message);
   }
+};
+
+export default {
+  sendDueDateAlerts,
 };

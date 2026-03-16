@@ -1,4 +1,5 @@
-const nodemailer = require('nodemailer');
+import nodemailer from 'nodemailer';
+import twilioFactory from 'twilio';
 
 // ─── Email ────────────────────────────────────────────────────────────────────
 const transporter = nodemailer.createTransport({
@@ -8,7 +9,7 @@ const transporter = nodemailer.createTransport({
   auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
 });
 
-exports.sendEmail = async (to, subject, text, html) => {
+export const sendEmail = async (to, subject, text, html) => {
   try {
     if (!process.env.EMAIL_USER) { console.log('[EMAIL MOCK]', to, subject); return; }
     await transporter.sendMail({
@@ -21,15 +22,20 @@ exports.sendEmail = async (to, subject, text, html) => {
 };
 
 // ─── SMS (Twilio) ─────────────────────────────────────────────────────────────
-exports.sendSMS = async (to, message) => {
+export const sendSMS = async (to, message) => {
   try {
     if (!process.env.TWILIO_ACCOUNT_SID || process.env.TWILIO_ACCOUNT_SID === 'your_twilio_account_sid') {
       console.log('[SMS MOCK] To:', to, '| Msg:', message);
       return;
     }
-    const twilio = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+    const twilio = twilioFactory(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
     await twilio.messages.create({ body: message, from: process.env.TWILIO_PHONE, to });
   } catch (err) {
     console.error('SMS error:', err.message);
   }
+};
+
+export default {
+  sendEmail,
+  sendSMS,
 };

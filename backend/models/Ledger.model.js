@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const ledgerSchema = new mongoose.Schema({
   student:    { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
@@ -23,4 +23,4 @@ const ledgerSchema = new mongoose.Schema({
   createdBy:  { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
 
-module.exports = mongoose.model('Ledger', ledgerSchema);
+export default mongoose.model('Ledger', ledgerSchema);

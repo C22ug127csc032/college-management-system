@@ -1,8 +1,9 @@
-const Outpass = require('../models/Outpass.model');
-const Student = require('../models/Student.model');
-const { sendSMS } = require('../utils/notifications');
+import Outpass from '../models/Outpass.model.js';
+import Student from '../models/Student.model.js';
+import utils_notifications from '../utils/notifications.js';
+const { sendSMS } = utils_notifications;
 
-exports.createOutpass = async (req, res) => {
+export const createOutpass = async (req, res) => {
   try {
     const { studentId, exitDate, exitTime, expectedReturn, reason, destination } = req.body;
     const outpass = await Outpass.create({
@@ -15,7 +16,7 @@ exports.createOutpass = async (req, res) => {
   }
 };
 
-exports.getOutpasses = async (req, res) => {
+export const getOutpasses = async (req, res) => {
   try {
     const { studentId, status, page = 1, limit = 20 } = req.query;
     const query = {};
@@ -38,7 +39,7 @@ exports.getOutpasses = async (req, res) => {
   }
 };
 
-exports.updateOutpassStatus = async (req, res) => {
+export const updateOutpassStatus = async (req, res) => {
   try {
     const { status, remarks } = req.body;
     const outpass = await Outpass.findByIdAndUpdate(req.params.id, {
@@ -59,7 +60,7 @@ exports.updateOutpassStatus = async (req, res) => {
   }
 };
 
-exports.markReturned = async (req, res) => {
+export const markReturned = async (req, res) => {
   try {
     const outpass = await Outpass.findByIdAndUpdate(req.params.id, {
       status: 'returned', actualReturn: new Date()
@@ -73,4 +74,11 @@ exports.markReturned = async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
+};
+
+export default {
+  createOutpass,
+  getOutpasses,
+  updateOutpassStatus,
+  markReturned,
 };
