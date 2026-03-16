@@ -1,0 +1,12 @@
+const express = require('express');
+const r = express.Router();
+const c = require('../controllers/inventory.controller');
+const { protect, adminOnly } = require('../middleware/auth.middleware');
+r.get('/stats', protect, c.getInventoryStats);
+r.get('/transactions', protect, c.getTransactions);
+r.post('/transactions', protect, c.addTransaction);
+r.get('/', protect, c.getAllItems);
+r.post('/', protect, adminOnly, c.createItem);
+r.get('/:id', protect, c.getItem);
+r.put('/:id', protect, adminOnly, c.updateItem);
+module.exports = r;
