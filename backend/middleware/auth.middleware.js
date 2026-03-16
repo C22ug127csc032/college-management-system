@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken';
+﻿import jwt from 'jsonwebtoken';
 import User from '../models/User.model.js';
 
 export const protect = async (req, res, next) => {
@@ -13,7 +13,7 @@ export const protect = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = await User.findById(decoded.id).select('-password');
     if (!req.user || !req.user.isActive)
-      return res.status(401).json({ success: false, message: 'Account deactivated or not found' });
+      return res.status(401).json({ success: false, message: 'Account deactivated' });
     next();
   } catch (err) {
     res.status(401).json({ success: false, message: 'Token invalid or expired' });
@@ -26,12 +26,13 @@ export const authorize = (...roles) => (req, res, next) => {
   next();
 };
 
-// Shorthand role guards
-export const adminOnly = authorize('super_admin');
+export const adminOnly      = authorize('super_admin');
 export const adminOrTeacher = authorize('super_admin', 'class_teacher');
-export const hostelStaff = authorize('super_admin', 'hostel_warden');
-export const shopStaff = authorize('super_admin', 'shop_operator', 'canteen_operator');
-export const libStaff = authorize('super_admin', 'librarian');
+export const hostelStaff    = authorize('super_admin', 'hostel_warden');
+export const shopStaff      = authorize('super_admin', 'shop_operator', 'canteen_operator');
+export const libStaff       = authorize('super_admin', 'librarian');
+export const parentOnly     = authorize('parent');
+export const studentOnly    = authorize('student');
 
 export default {
   protect,
@@ -41,4 +42,6 @@ export default {
   hostelStaff,
   shopStaff,
   libStaff,
+  parentOnly,
+  studentOnly,
 };

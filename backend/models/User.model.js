@@ -8,7 +8,11 @@ const userSchema = new mongoose.Schema({
   password:   { type: String, required: true },
   role: {
     type: String,
-    enum: ['super_admin', 'class_teacher', 'hostel_warden', 'shop_operator', 'canteen_operator', 'librarian', 'student'],
+    enum: [
+      'super_admin', 'class_teacher', 'hostel_warden',
+      'shop_operator', 'canteen_operator', 'librarian',
+      'student', 'parent'
+    ],
     default: 'student'
   },
   isActive:   { type: Boolean, default: true },
@@ -20,13 +24,13 @@ const userSchema = new mongoose.Schema({
   otpExpire:  { type: Date },
 }, { timestamps: true });
 
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });
 
-userSchema.methods.matchPassword = async function(entered) {
+userSchema.methods.matchPassword = async function (entered) {
   return await bcrypt.compare(entered, this.password);
 };
 

@@ -1,11 +1,16 @@
-// routes/report.routes.js
 import express from 'express';
-const r = express.Router();
-import c from '../controllers/report.controller.js';
-import middleware_auth_middleware from '../middleware/auth.middleware.js';
-const { protect, adminOnly } = middleware_auth_middleware;
-r.get('/dashboard', protect, c.getDashboard);
-r.get('/fees', protect, adminOnly, c.getFeesReport);
-r.get('/payments', protect, adminOnly, c.getPaymentReport);
-r.get('/expenses', protect, adminOnly, c.getExpenseReport);
-export default r;
+import * as c from '../controllers/report.controller.js';
+import { protect, adminOnly } from '../middleware/auth.middleware.js';
+
+const router = express.Router();
+
+router.get('/dashboard',  protect,            c.getDashboard);
+router.get('/fees',       protect, adminOnly, c.getFeesReport);
+router.get('/payments',   protect, adminOnly, c.getPaymentReport);
+router.get('/expenses',   protect, adminOnly, c.getExpenseReport);
+router.get('/inventory',  protect, adminOnly, c.getInventoryReport);
+router.get('/library',    protect,            c.getLibraryReport);
+router.get('/shop',       protect,            c.getShopReport);
+router.get('/attendance', protect,            c.getAttendanceReport);
+
+export default router;

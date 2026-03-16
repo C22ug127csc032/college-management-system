@@ -1,13 +1,19 @@
-// routes/auth.routes.js
-import express from 'express';
-const r = express.Router();
-import c from '../controllers/auth.controller.js';
-import middleware_auth_middleware from '../middleware/auth.middleware.js';
-const { protect, adminOnly } = middleware_auth_middleware;
-r.post('/login', c.login);
-r.post('/register', protect, adminOnly, c.register);
-r.get('/me', protect, c.getMe);
-r.put('/change-password', protect, c.changePassword);
-r.get('/users', protect, adminOnly, c.getAllUsers);
-r.put('/users/:id/toggle', protect, adminOnly, c.toggleUser);
-export default r;
+﻿import express from 'express';
+import * as authController from '../controllers/auth.controller.js';
+import * as otpController  from '../controllers/otp.controller.js';
+import { protect, adminOnly } from '../middleware/auth.middleware.js';
+
+const router = express.Router();
+
+router.post('/login',                       authController.login);
+router.post('/register',  protect, adminOnly, authController.register);
+router.get('/me',         protect,           authController.getMe);
+router.put('/change-password', protect,      authController.changePassword);
+router.get('/users',      protect, adminOnly, authController.getAllUsers);
+router.put('/users/:id/toggle', protect, adminOnly, authController.toggleUser);
+
+// OTP routes
+router.post('/send-otp',   otpController.sendOTP);
+router.post('/verify-otp', otpController.verifyOTP);
+
+export default router;
