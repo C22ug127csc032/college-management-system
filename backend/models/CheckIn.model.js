@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const checkInSchema = new mongoose.Schema({
   student:      { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
@@ -10,4 +10,4 @@ const checkInSchema = new mongoose.Schema({
   parentNotified:{ type: Boolean, default: false },
 }, { timestamps: true });
 
-module.exports = mongoose.model('CheckIn', checkInSchema);
+export default mongoose.model('CheckIn', checkInSchema);

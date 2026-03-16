@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api/axios';
 import { PageHeader, Modal, EmptyState, PageSpinner } from '../../components/common';
+import { FiClipboard } from '../../components/common/icons';
 import toast from 'react-hot-toast';
 
 export default function FeesStructure() {
@@ -58,7 +59,7 @@ export default function FeesStructure() {
               </div>
             </div>
           ))}
-          {structures.length === 0 && <div className="col-span-3"><EmptyState message="No fee structures yet" icon="📋" /></div>}
+          {structures.length === 0 && <div className="col-span-3"><EmptyState message="No fee structures yet" icon={<FiClipboard />} /></div>}
         </div>
       )}
 

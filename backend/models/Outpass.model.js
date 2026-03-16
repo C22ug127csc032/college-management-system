@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const outpassSchema = new mongoose.Schema({
   student:       { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
@@ -23,4 +23,4 @@ const outpassSchema = new mongoose.Schema({
   parentNotified:{ type: Boolean, default: false },
 }, { timestamps: true });
 
-module.exports = mongoose.model('Outpass', outpassSchema);
+export default mongoose.model('Outpass', outpassSchema);

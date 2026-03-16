@@ -1,9 +1,11 @@
-const express = require('express');
+import express from 'express';
 const r = express.Router();
-const { circular } = require('../controllers/misc.controller');
-const { protect, adminOrTeacher } = require('../middleware/auth.middleware');
+import controllers_misc_controller from '../controllers/misc.controller.js';
+const { circular } = controllers_misc_controller;
+import middleware_auth_middleware from '../middleware/auth.middleware.js';
+const { protect, adminOrTeacher } = middleware_auth_middleware;
 r.get('/', protect, circular.getAll);
 r.post('/', protect, adminOrTeacher, circular.create);
 r.put('/:id', protect, adminOrTeacher, circular.update);
 r.delete('/:id', protect, adminOrTeacher, circular.delete);
-module.exports = r;
+export default r;

@@ -1,11 +1,13 @@
-const express = require('express');
+import express from 'express';
 const r = express.Router();
-const { shop } = require('../controllers/misc.controller');
-const { protect, shopStaff } = require('../middleware/auth.middleware');
+import controllers_misc_controller from '../controllers/misc.controller.js';
+const { shop } = controllers_misc_controller;
+import middleware_auth_middleware from '../middleware/auth.middleware.js';
+const { protect, shopStaff } = middleware_auth_middleware;
 
 r.get('/items', protect, shop.getItems);
 r.post('/items', protect, shopStaff, shop.addItem);
 r.post('/sale', protect, shopStaff, shop.createSale);
 r.get('/sales', protect, shopStaff, shop.getSales);
 
-module.exports = r;
+export default r;

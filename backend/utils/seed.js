@@ -1,9 +1,9 @@
-const mongoose = require('mongoose');
-const dotenv = require('dotenv');
+import mongoose from 'mongoose';
+import dotenv from 'dotenv';
 dotenv.config();
 
-const User = require('../models/User.model');
-const Course = require('../models/Course.model');
+import User from '../models/User.model.js';
+import Course from '../models/Course.model.js';
 
 async function seed() {
   await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/college_mgmt');

@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const inventorySchema = new mongoose.Schema({
   name:        { type: String, required: true },
@@ -32,7 +32,10 @@ const inventoryTransactionSchema = new mongoose.Schema({
   recordedBy:  { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
 
-module.exports = {
-  Inventory: mongoose.model('Inventory', inventorySchema),
-  InventoryTransaction: mongoose.model('InventoryTransaction', inventoryTransactionSchema)
+export const Inventory = mongoose.model('Inventory', inventorySchema);
+export const InventoryTransaction = mongoose.model('InventoryTransaction', inventoryTransactionSchema);
+
+export default {
+  Inventory,
+  InventoryTransaction,
 };

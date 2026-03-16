@@ -1,7 +1,8 @@
-const express = require('express');
+import express from 'express';
 const r = express.Router();
-const Ledger = require('../models/Ledger.model');
-const { protect } = require('../middleware/auth.middleware');
+import Ledger from '../models/Ledger.model.js';
+import middleware_auth_middleware from '../middleware/auth.middleware.js';
+const { protect } = middleware_auth_middleware;
 
 r.get('/student/:studentId', protect, async (req, res) => {
   try {
@@ -21,4 +22,4 @@ r.get('/student/:studentId', protect, async (req, res) => {
   }
 });
 
-module.exports = r;
+export default r;

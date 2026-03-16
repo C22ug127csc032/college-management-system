@@ -1,7 +1,8 @@
-const express = require('express');
+import express from 'express';
 const r = express.Router();
-const User = require('../models/User.model');
-const { protect, adminOnly } = require('../middleware/auth.middleware');
+import User from '../models/User.model.js';
+import middleware_auth_middleware from '../middleware/auth.middleware.js';
+const { protect, adminOnly } = middleware_auth_middleware;
 
 r.get('/', protect, adminOnly, async (req, res) => {
   try {
@@ -18,4 +19,4 @@ r.put('/:id', protect, adminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });
 
-module.exports = r;
+export default r;

@@ -1,10 +1,11 @@
 // routes/leave.routes.js
-const express = require('express');
+import express from 'express';
 const r = express.Router();
-const c = require('../controllers/leave.controller');
-const { protect, adminOrTeacher, hostelStaff } = require('../middleware/auth.middleware');
+import c from '../controllers/leave.controller.js';
+import middleware_auth_middleware from '../middleware/auth.middleware.js';
+const { protect, adminOrTeacher, hostelStaff } = middleware_auth_middleware;
 r.post('/', protect, c.applyLeave);
 r.get('/', protect, c.getLeaves);
 r.get('/:id', protect, c.getLeave);
 r.put('/:id/status', protect, adminOrTeacher, c.updateLeaveStatus);
-module.exports = r;
+export default r;

@@ -1,8 +1,10 @@
-const express = require('express');
+import express from 'express';
 const r = express.Router();
-const { expense } = require('../controllers/misc.controller');
-const { protect, adminOnly } = require('../middleware/auth.middleware');
+import controllers_misc_controller from '../controllers/misc.controller.js';
+const { expense } = controllers_misc_controller;
+import middleware_auth_middleware from '../middleware/auth.middleware.js';
+const { protect, adminOnly } = middleware_auth_middleware;
 r.get('/summary', protect, expense.getSummary);
 r.get('/', protect, expense.getAll);
 r.post('/', protect, adminOnly, expense.create);
-module.exports = r;
+export default r;

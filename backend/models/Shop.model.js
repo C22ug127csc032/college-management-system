@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 // Shop/Canteen Item
 const shopItemSchema = new mongoose.Schema({
@@ -40,7 +40,10 @@ shopSaleSchema.pre('save', async function(next) {
   next();
 });
 
-module.exports = {
-  ShopItem: mongoose.model('ShopItem', shopItemSchema),
-  ShopSale: mongoose.model('ShopSale', shopSaleSchema),
+export const ShopItem = mongoose.model('ShopItem', shopItemSchema);
+export const ShopSale = mongoose.model('ShopSale', shopSaleSchema);
+
+export default {
+  ShopItem,
+  ShopSale,
 };

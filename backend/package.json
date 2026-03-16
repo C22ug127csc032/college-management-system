@@ -2,6 +2,7 @@
   "name": "college-mgmt-backend",
   "version": "1.0.0",
   "description": "College Management System Backend",
+  "type": "module",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

@@ -1,10 +1,12 @@
-const express = require('express');
+import express from 'express';
 const r = express.Router();
-const { library } = require('../controllers/misc.controller');
-const { protect, libStaff } = require('../middleware/auth.middleware');
+import controllers_misc_controller from '../controllers/misc.controller.js';
+const { library } = controllers_misc_controller;
+import middleware_auth_middleware from '../middleware/auth.middleware.js';
+const { protect, libStaff } = middleware_auth_middleware;
 r.get('/books', protect, library.getBooks);
 r.post('/books', protect, libStaff, library.addBook);
 r.get('/issues', protect, library.getIssues);
 r.post('/issue', protect, libStaff, library.issueBook);
 r.put('/return/:id', protect, libStaff, library.returnBook);
-module.exports = r;
+export default r;

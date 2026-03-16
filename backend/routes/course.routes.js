@@ -1,7 +1,8 @@
-const express = require('express');
+import express from 'express';
 const r = express.Router();
-const Course = require('../models/Course.model');
-const { protect, adminOnly } = require('../middleware/auth.middleware');
+import Course from '../models/Course.model.js';
+import middleware_auth_middleware from '../middleware/auth.middleware.js';
+const { protect, adminOnly } = middleware_auth_middleware;
 
 r.get('/', protect, async (req, res) => {
   try {
@@ -31,4 +32,4 @@ r.delete('/:id', protect, adminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });
 
-module.exports = r;
+export default r;

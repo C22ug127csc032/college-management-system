@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const feeHeadSchema = new mongoose.Schema({
   headName:   { type: String, required: true },
@@ -39,4 +39,4 @@ feesStructureSchema.pre('save', function(next) {
   next();
 });
 
-module.exports = mongoose.model('FeesStructure', feesStructureSchema);
+export default mongoose.model('FeesStructure', feesStructureSchema);

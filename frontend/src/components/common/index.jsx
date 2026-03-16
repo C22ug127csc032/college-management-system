@@ -1,4 +1,5 @@
 import React from 'react';
+import { FiChevronLeft, FiChevronRight, FiInbox, FiX } from './icons';
 
 export const Spinner = ({ size = 'md' }) => {
   const s = { sm: 'h-4 w-4', md: 'h-8 w-8', lg: 'h-12 w-12' }[size];
@@ -20,9 +21,9 @@ export const StatusBadge = ({ status }) => {
   return <span className={map[status] || 'badge-gray'}>{status?.replace('_', ' ')}</span>;
 };
 
-export const EmptyState = ({ message = 'No data found', icon = '📭' }) => (
+export const EmptyState = ({ message = 'No data found', icon = <FiInbox /> }) => (
   <div className="text-center py-16 text-gray-400">
-    <div className="text-4xl mb-3">{icon}</div>
+    <div className="text-4xl mb-3 flex justify-center">{icon}</div>
     <p className="text-sm">{message}</p>
   </div>
 );
@@ -39,10 +40,10 @@ export const PageHeader = ({ title, subtitle, action }) => (
 
 export const StatCard = ({ icon, label, value, color = 'blue', sub }) => {
   const colors = {
-    blue:   'bg-blue-50 text-blue-600',
-    green:  'bg-green-50 text-green-600',
+    blue: 'bg-blue-50 text-blue-600',
+    green: 'bg-green-50 text-green-600',
     yellow: 'bg-yellow-50 text-yellow-600',
-    red:    'bg-red-50 text-red-600',
+    red: 'bg-red-50 text-red-600',
     purple: 'bg-purple-50 text-purple-600',
   };
   return (
@@ -67,7 +68,9 @@ export const Modal = ({ open, onClose, title, children, size = 'md' }) => {
         <div className={`relative bg-white rounded-xl shadow-xl w-full ${sizes[size]} z-10`}>
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
             <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">
+              <FiX />
+            </button>
           </div>
           <div className="p-6">{children}</div>
         </div>
@@ -104,9 +107,13 @@ export const Pagination = ({ page, pages, onPage }) => {
   if (pages <= 1) return null;
   return (
     <div className="flex items-center gap-2 justify-center mt-4">
-      <button disabled={page === 1} onClick={() => onPage(page - 1)} className="btn-secondary px-3 py-1 text-sm disabled:opacity-40">← Prev</button>
+      <button disabled={page === 1} onClick={() => onPage(page - 1)} className="btn-secondary px-3 py-1 text-sm disabled:opacity-40 flex items-center gap-1">
+        <FiChevronLeft /> Prev
+      </button>
       <span className="text-sm text-gray-600">Page {page} of {pages}</span>
-      <button disabled={page === pages} onClick={() => onPage(page + 1)} className="btn-secondary px-3 py-1 text-sm disabled:opacity-40">Next →</button>
+      <button disabled={page === pages} onClick={() => onPage(page + 1)} className="btn-secondary px-3 py-1 text-sm disabled:opacity-40 flex items-center gap-1">
+        Next <FiChevronRight />
+      </button>
     </div>
   );
 };

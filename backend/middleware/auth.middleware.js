@@ -1,7 +1,7 @@
-const jwt = require('jsonwebtoken');
-const User = require('../models/User.model');
+import jwt from 'jsonwebtoken';
+import User from '../models/User.model.js';
 
-exports.protect = async (req, res, next) => {
+export const protect = async (req, res, next) => {
   let token;
   if (req.headers.authorization?.startsWith('Bearer '))
     token = req.headers.authorization.split(' ')[1];
@@ -20,15 +20,25 @@ exports.protect = async (req, res, next) => {
   }
 };
 
-exports.authorize = (...roles) => (req, res, next) => {
+export const authorize = (...roles) => (req, res, next) => {
   if (!roles.includes(req.user.role))
     return res.status(403).json({ success: false, message: `Role '${req.user.role}' not authorized` });
   next();
 };
 
 // Shorthand role guards
-exports.adminOnly    = exports.authorize('super_admin');
-exports.adminOrTeacher = exports.authorize('super_admin', 'class_teacher');
-exports.hostelStaff  = exports.authorize('super_admin', 'hostel_warden');
-exports.shopStaff    = exports.authorize('super_admin', 'shop_operator', 'canteen_operator');
-exports.libStaff     = exports.authorize('super_admin', 'librarian');
+export const adminOnly = authorize('super_admin');
+export const adminOrTeacher = authorize('super_admin', 'class_teacher');
+export const hostelStaff = authorize('super_admin', 'hostel_warden');
+export const shopStaff = authorize('super_admin', 'shop_operator', 'canteen_operator');
+export const libStaff = authorize('super_admin', 'librarian');
+
+export default {
+  protect,
+  authorize,
+  adminOnly,
+  adminOrTeacher,
+  hostelStaff,
+  shopStaff,
+  libStaff,
+};

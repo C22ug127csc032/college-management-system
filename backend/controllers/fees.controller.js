@@ -1,11 +1,11 @@
-const FeesStructure = require('../models/FeesStructure.model');
-const StudentFees = require('../models/StudentFees.model');
-const Student = require('../models/Student.model');
-const Ledger = require('../models/Ledger.model');
+import FeesStructure from '../models/FeesStructure.model.js';
+import StudentFees from '../models/StudentFees.model.js';
+import Student from '../models/Student.model.js';
+import Ledger from '../models/Ledger.model.js';
 
 // ─── Fee Structure CRUD ────────────────────────────────────────────────────────
 
-exports.createStructure = async (req, res) => {
+export const createStructure = async (req, res) => {
   try {
     const structure = await FeesStructure.create({ ...req.body, createdBy: req.user.id });
     res.status(201).json({ success: true, structure });
@@ -14,7 +14,7 @@ exports.createStructure = async (req, res) => {
   }
 };
 
-exports.getAllStructures = async (req, res) => {
+export const getAllStructures = async (req, res) => {
   try {
     const { course, academicYear } = req.query;
     const query = {};
@@ -27,7 +27,7 @@ exports.getAllStructures = async (req, res) => {
   }
 };
 
-exports.getStructure = async (req, res) => {
+export const getStructure = async (req, res) => {
   try {
     const structure = await FeesStructure.findById(req.params.id).populate('course', 'name code');
     if (!structure) return res.status(404).json({ success: false, message: 'Structure not found' });
@@ -37,7 +37,7 @@ exports.getStructure = async (req, res) => {
   }
 };
 
-exports.updateStructure = async (req, res) => {
+export const updateStructure = async (req, res) => {
   try {
     const structure = await FeesStructure.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json({ success: true, structure });
@@ -48,7 +48,7 @@ exports.updateStructure = async (req, res) => {
 
 // ─── Assign Fees to Student ───────────────────────────────────────────────────
 
-exports.assignFees = async (req, res) => {
+export const assignFees = async (req, res) => {
   try {
     const { studentId, structureId, academicYear, semester, dueDate } = req.body;
     const structure = await FeesStructure.findById(structureId);
@@ -112,7 +112,7 @@ exports.assignFees = async (req, res) => {
 
 // ─── Get Student Fees ─────────────────────────────────────────────────────────
 
-exports.getStudentFees = async (req, res) => {
+export const getStudentFees = async (req, res) => {
   try {
     const { studentId } = req.params;
     const { academicYear, status } = req.query;
@@ -130,7 +130,7 @@ exports.getStudentFees = async (req, res) => {
 
 // ─── Fees Dashboard Summary ───────────────────────────────────────────────────
 
-exports.getFeesSummary = async (req, res) => {
+export const getFeesSummary = async (req, res) => {
   try {
     const { academicYear } = req.query;
     const query = academicYear ? { academicYear } : {};
@@ -156,7 +156,7 @@ exports.getFeesSummary = async (req, res) => {
 
 // ─── All Student Fees (with filter) ──────────────────────────────────────────
 
-exports.getAllStudentFees = async (req, res) => {
+export const getAllStudentFees = async (req, res) => {
   try {
     const { academicYear, status, course, page = 1, limit = 20 } = req.query;
     const query = {};
@@ -181,4 +181,15 @@ exports.getAllStudentFees = async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
+};
+
+export default {
+  createStructure,
+  getAllStructures,
+  getStructure,
+  updateStructure,
+  assignFees,
+  getStudentFees,
+  getFeesSummary,
+  getAllStudentFees,
 };
