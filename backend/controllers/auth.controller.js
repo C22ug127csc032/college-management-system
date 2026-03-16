@@ -9,8 +9,11 @@ const generateToken = (id, role) =>
 // @POST /api/auth/login
 export const login = async (req, res) => {
   try {
-    const { phone, password, role } = req.body;
-    const user = await User.findOne({ phone }).populate('studentRef');
+    const { identifier, phone, password, role } = req.body;
+    const loginValue = (identifier || phone || '').trim();
+    const user = await User.findOne({
+      $or: [{ phone: loginValue }, { email: loginValue.toLowerCase() }],
+    }).populate('studentRef');
     if (!user || !(await user.matchPassword(password)))
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     if (!user.isActive)
