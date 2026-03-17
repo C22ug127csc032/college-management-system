@@ -71,7 +71,7 @@ export default function ParentRegister() {
             </button>
             <p className="text-center text-sm text-gray-500">
               Already registered?{' '}
-              <a href="/login" className="text-green-600 hover:underline">Login here</a>
+              <a href="/parent/login" className="text-green-600 hover:underline">Login here</a>
             </p>
           </form>
         </div>

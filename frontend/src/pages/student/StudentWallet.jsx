@@ -3,6 +3,7 @@ import api from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
 import { PageSpinner, EmptyState } from '../../components/common';
 import toast from 'react-hot-toast';
+import { FiArrowDown, FiArrowUp, FiCreditCard } from '../../components/common/icons';
 
 export default function StudentWallet() {
   const { user }            = useAuth();
@@ -137,7 +138,7 @@ export default function StudentWallet() {
         <h3 className="section-title">Transaction History</h3>
         <div className="space-y-0">
           {!wallet?.transactions?.length && (
-            <EmptyState message="No transactions yet" icon="💳" />
+            <EmptyState message="No transactions yet" icon={<FiCreditCard />} />
           )}
           {[...(wallet?.transactions || [])].reverse().map((txn, i) => (
             <div
@@ -152,7 +153,7 @@ export default function StudentWallet() {
                     ? 'bg-green-100 text-green-700'
                     : 'bg-red-100 text-red-700'}`}
                 >
-                  {txn.type === 'credit' ? '↑' : '↓'}
+                  {txn.type === 'credit' ? <FiArrowUp /> : <FiArrowDown />}
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-800">{txn.description}</p>

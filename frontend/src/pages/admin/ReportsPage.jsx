@@ -11,6 +11,21 @@ import {
   PageSpinner, StatCard, FilterBar,
   EmptyState, Table, StatusBadge,
 } from '../../components/common';
+import {
+  FiAlertCircle,
+  FiBarChart2,
+  FiBook,
+  FiCheckCircle,
+  FiClock,
+  FiClipboard,
+  FiCreditCard,
+  FiDollarSign,
+  FiPackage,
+  FiShoppingBag,
+  FiTrendingDown,
+  FiTrendingUp,
+  FiUser,
+} from '../../components/common/icons';
 
 ChartJS.register(
   CategoryScale, LinearScale,
@@ -109,10 +124,10 @@ export default function ReportsPage() {
           {tab === 'Overview' && (
             <div className="space-y-6">
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard icon="🎓" label="Total Students"    value={data.totalStudents   || 0} color="blue" />
-                <StatCard icon="✅" label="Active Students"   value={data.activeStudents  || 0} color="green" />
-                <StatCard icon="💰" label="Monthly Collection"value={fmt(data.monthlyCollection)} color="purple" />
-                <StatCard icon="⚠️" label="Overdue Records"  value={data.overdueCount    || 0} color="red" />
+                <StatCard icon={<FiUser />} label="Total Students"    value={data.totalStudents   || 0} color="blue" />
+                <StatCard icon={<FiCheckCircle />} label="Active Students"   value={data.activeStudents  || 0} color="green" />
+                <StatCard icon={<FiDollarSign />} label="Monthly Collection"value={fmt(data.monthlyCollection)} color="purple" />
+                <StatCard icon={<FiAlertCircle />} label="Overdue Records"  value={data.overdueCount    || 0} color="red" />
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="card">
@@ -150,7 +165,7 @@ export default function ReportsPage() {
                       </div>
                     ))}
                     {!data.recentPayments?.length && (
-                      <EmptyState message="No recent payments" icon="💳" />
+                      <EmptyState message="No recent payments" icon={<FiCreditCard />} />
                     )}
                   </div>
                 </div>
@@ -162,10 +177,10 @@ export default function ReportsPage() {
           {tab === 'Fees' && (
             <div className="space-y-5">
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard icon="💰" label="Total Billed"  value={fmt(data.summary?.totalBilled)}    color="blue" />
-                <StatCard icon="✅" label="Collected"     value={fmt(data.summary?.totalCollected)}  color="green" />
+                <StatCard icon={<FiDollarSign />} label="Total Billed"  value={fmt(data.summary?.totalBilled)}    color="blue" />
+                <StatCard icon={<FiCheckCircle />} label="Collected"     value={fmt(data.summary?.totalCollected)}  color="green" />
                 <StatCard icon="⏳" label="Total Due"     value={fmt(data.summary?.totalDue)}        color="yellow" />
-                <StatCard icon="🔴" label="Overdue Count" value={data.summary?.overdue || 0}         color="red" />
+                <StatCard icon={<FiAlertCircle />} label="Overdue Count" value={data.summary?.overdue || 0}         color="red" />
               </div>
               <div className="card">
                 <h3 className="section-title">Status Breakdown</h3>
@@ -271,7 +286,7 @@ export default function ReportsPage() {
                     </tr>
                   ))}
                 </Table>
-                {!data.payments?.length && <EmptyState message="No payments" icon="💳" />}
+                {!data.payments?.length && <EmptyState message="No payments" icon={<FiCreditCard />} />}
               </div>
             </div>
           )}
@@ -333,7 +348,7 @@ export default function ReportsPage() {
                     </tr>
                   ))}
                 </Table>
-                {!data.expenses?.length && <EmptyState message="No expenses" icon="💸" />}
+                {!data.expenses?.length && <EmptyState message="No expenses" icon={<FiTrendingDown />} />}
               </div>
             </div>
           )}
@@ -342,13 +357,13 @@ export default function ReportsPage() {
           {tab === 'Inventory' && (
             <div className="space-y-5">
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                <StatCard icon="📦" label="Total Stock Value" value={fmt(data.totalValue)}            color="blue" />
-                <StatCard icon="⚠️" label="Low Stock Items"  value={data.lowStockItems?.length || 0} color="red" />
-                <StatCard icon="📊" label="Categories"       value={data.byCategory?.length    || 0} color="purple" />
+                <StatCard icon={<FiPackage />} label="Total Stock Value" value={fmt(data.totalValue)}            color="blue" />
+                <StatCard icon={<FiAlertCircle />} label="Low Stock Items"  value={data.lowStockItems?.length || 0} color="red" />
+                <StatCard icon={<FiBarChart2 />} label="Categories"       value={data.byCategory?.length    || 0} color="purple" />
               </div>
               {data.lowStockItems?.length > 0 && (
                 <div className="card border-red-200 bg-red-50">
-                  <h3 className="section-title text-red-700">⚠️ Low Stock Alerts</h3>
+                  <h3 className="section-title text-red-700 inline-flex items-center gap-2"><FiAlertCircle /> Low Stock Alerts</h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {data.lowStockItems.map(i => (
                       <div key={i._id} className="bg-white p-3 rounded-lg border border-red-100">
@@ -383,7 +398,7 @@ export default function ReportsPage() {
                     </tr>
                   ))}
                 </Table>
-                {!data.items?.length && <EmptyState message="No inventory items" icon="📦" />}
+                {!data.items?.length && <EmptyState message="No inventory items" icon={<FiPackage />} />}
               </div>
             </div>
           )}
@@ -392,10 +407,10 @@ export default function ReportsPage() {
           {tab === 'Library' && (
             <div className="space-y-5">
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard icon="📚" label="Total Books"  value={data.summary?.totalBooks    || 0} color="purple" />
-                <StatCard icon="📤" label="Issued"       value={data.summary?.totalIssued   || 0} color="blue" />
-                <StatCard icon="📥" label="Returned"     value={data.summary?.totalReturned || 0} color="green" />
-                <StatCard icon="⚠️" label="Overdue"     value={data.summary?.overdue       || 0} color="red" />
+                <StatCard icon={<FiBook />} label="Total Books"  value={data.summary?.totalBooks    || 0} color="purple" />
+                <StatCard icon={<FiTrendingUp />} label="Issued"       value={data.summary?.totalIssued   || 0} color="blue" />
+                <StatCard icon={<FiCheckCircle />} label="Returned"     value={data.summary?.totalReturned || 0} color="green" />
+                <StatCard icon={<FiAlertCircle />} label="Overdue"     value={data.summary?.overdue       || 0} color="red" />
               </div>
               {data.summary?.totalFine > 0 && (
                 <div className="card bg-yellow-50 border-yellow-200">
@@ -432,7 +447,7 @@ export default function ReportsPage() {
                     </tr>
                   ))}
                 </Table>
-                {!data.issues?.length && <EmptyState message="No issue records" icon="📚" />}
+                {!data.issues?.length && <EmptyState message="No issue records" icon={<FiBook />} />}
               </div>
             </div>
           )}
@@ -441,9 +456,9 @@ export default function ReportsPage() {
           {tab === 'Shop & Canteen' && (
             <div className="space-y-5">
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                <StatCard icon="💵" label="Total Revenue"  value={fmt(data.summary?.totalRevenue)} color="green" />
-                <StatCard icon="📋" label="Total Sales"    value={data.summary?.totalSales || 0}   color="blue" />
-                <StatCard icon="💳" label="Credit Pending" value={fmt(data.summary?.totalCredit)}  color="yellow" />
+                <StatCard icon={<FiDollarSign />} label="Total Revenue"  value={fmt(data.summary?.totalRevenue)} color="green" />
+                <StatCard icon={<FiClipboard />} label="Total Sales"    value={data.summary?.totalSales || 0}   color="blue" />
+                <StatCard icon={<FiCreditCard />} label="Credit Pending" value={fmt(data.summary?.totalCredit)}  color="yellow" />
               </div>
               {data.dailySales?.length > 0 && (
                 <div className="card">
@@ -480,7 +495,7 @@ export default function ReportsPage() {
                     </tr>
                   ))}
                 </Table>
-                {!data.sales?.length && <EmptyState message="No sales records" icon="🏪" />}
+                {!data.sales?.length && <EmptyState message="No sales records" icon={<FiShoppingBag />} />}
               </div>
             </div>
           )}
@@ -516,7 +531,7 @@ export default function ReportsPage() {
                   ))}
                 </Table>
                 {!data.records?.length && (
-                  <EmptyState message="No attendance records" icon="🕒" />
+                  <EmptyState message="No attendance records" icon={<FiClock />} />
                 )}
               </div>
             </div>

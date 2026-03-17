@@ -43,6 +43,7 @@ import courseRoutes       from './routes/course.routes.js';
 import parentRoutes       from './routes/parent.routes.js';
 import walletRoutes       from './routes/wallet.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
+import Student from './models/Student.model.js';
 
 app.use('/api/auth',          authRoutes);
 app.use('/api/students',      studentRoutes);
@@ -72,13 +73,27 @@ cron.schedule('0 8 * * *', async () => {
   await sendDueDateAlerts();
 });
 
+const cleanupStudentIndexes = async () => {
+  try {
+    const indexes = await Student.collection.indexes();
+    const hasAdmissionNumberIndex = indexes.some(index => index.name === 'admissionNumber_1');
+    if (hasAdmissionNumberIndex) {
+      await Student.collection.dropIndex('admissionNumber_1');
+      console.log('Dropped stale Student index: admissionNumber_1');
+    }
+  } catch (err) {
+    console.error('Index cleanup warning:', err.message);
+  }
+};
+
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => {
-    console.log('âœ… MongoDB connected');
+  .then(async () => {
+    await cleanupStudentIndexes();
+    console.log('MongoDB connected');
     app.listen(process.env.PORT || 5000, () =>
-      console.log(`ðŸš€ Server running on port ${process.env.PORT || 5000}`)
+      console.log(`Server running on port ${process.env.PORT || 5000}`)
     );
   })
-  .catch(err => { console.error('âŒ DB Error:', err); process.exit(1); });
+  .catch(err => { console.error('DB Error:', err); process.exit(1); });
 
 export default app;

@@ -56,6 +56,25 @@ export const assignFees = async (req, res) => {
 
     const student = await Student.findById(studentId);
     if (!student) return res.status(404).json({ success: false, message: 'Student not found' });
+    if (structure.course && String(structure.course) !== String(student.course)) {
+      return res.status(400).json({ success: false, message: 'Selected fee structure does not match the student course' });
+    }
+
+    const resolvedAcademicYear = academicYear || structure.academicYear || student.academicYear;
+    const resolvedSemester = Number(semester || structure.semester || student.semester || 0) || undefined;
+
+    const existingAssignment = await StudentFees.findOne({
+      student: studentId,
+      academicYear: resolvedAcademicYear,
+      ...(resolvedSemester ? { semester: resolvedSemester } : {}),
+    });
+
+    if (existingAssignment) {
+      return res.status(409).json({
+        success: false,
+        message: `Fees already assigned for ${resolvedAcademicYear}${resolvedSemester ? ` semester ${resolvedSemester}` : ''}`,
+      });
+    }
 
     // Adjust advance if any
     const advance = student.advanceAmount || 0;
@@ -67,8 +86,8 @@ export const assignFees = async (req, res) => {
     const sf = await StudentFees.create({
       student: studentId,
       structure: structureId,
-      academicYear,
-      semester,
+      academicYear: resolvedAcademicYear,
+      semester: resolvedSemester,
       feeHeads,
       totalAmount: structure.totalAmount,
       dueDate: dueDate || (structure.installments[0]?.dueDate),
@@ -82,9 +101,9 @@ export const assignFees = async (req, res) => {
       type: 'debit',
       category: 'fee_billed',
       amount: structure.totalAmount,
-      description: `Fees billed for ${academicYear} Sem ${semester}`,
+      description: `Fees billed for ${resolvedAcademicYear}${resolvedSemester ? ` Sem ${resolvedSemester}` : ''}`,
       feesRef: sf._id,
-      academicYear,
+      academicYear: resolvedAcademicYear,
       createdBy: req.user.id,
     });
 
@@ -96,7 +115,7 @@ export const assignFees = async (req, res) => {
         amount: advance,
         description: `Advance payment adjusted`,
         feesRef: sf._id,
-        academicYear,
+        academicYear: resolvedAcademicYear,
         createdBy: req.user.id,
       });
       student.advanceAmount = 0;
@@ -117,7 +136,7 @@ export const getStudentFees = async (req, res) => {
     const { studentId } = req.params;
     const { academicYear, status } = req.query;
     const query = { student: studentId };
-    if (academicYear) query.academicYear = academicYear;
+    if (academicYear?.trim()) query.academicYear = { $regex: academicYear.trim(), $options: 'i' };
     if (status) query.status = status;
     const fees = await StudentFees.find(query)
       .populate('structure', 'name feeHeads installments fineEnabled')
@@ -133,7 +152,9 @@ export const getStudentFees = async (req, res) => {
 export const getFeesSummary = async (req, res) => {
   try {
     const { academicYear } = req.query;
-    const query = academicYear ? { academicYear } : {};
+    const query = academicYear?.trim()
+      ? { academicYear: { $regex: academicYear.trim(), $options: 'i' } }
+      : {};
     const [totalBilled, totalCollected, totalDue, overdueCount] = await Promise.all([
       StudentFees.aggregate([{ $match: query }, { $group: { _id: null, total: { $sum: '$totalAmount' } } }]),
       StudentFees.aggregate([{ $match: query }, { $group: { _id: null, total: { $sum: '$totalPaid' } } }]),
@@ -160,7 +181,7 @@ export const getAllStudentFees = async (req, res) => {
   try {
     const { academicYear, status, course, page = 1, limit = 20 } = req.query;
     const query = {};
-    if (academicYear) query.academicYear = academicYear;
+    if (academicYear?.trim()) query.academicYear = { $regex: academicYear.trim(), $options: 'i' };
     if (status) query.status = status;
 
     let studentIds;

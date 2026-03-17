@@ -1,8 +1,69 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import api from '../../api/axios';
+import api, { downloadPaymentReceipt } from '../../api/axios';
 import { PageHeader, Table, StatusBadge, FilterBar, EmptyState, Modal, PageSpinner, StatCard, Pagination } from '../../components/common';
 import { FiAlertOctagon, FiBell, FiCheckCircle, FiClock, FiCreditCard, FiDollarSign, FiLogOut, FiPackage, FiTarget, FiTrendingDown, FiUsers } from '../../components/common/icons';
 import toast from 'react-hot-toast';
+
+const SearchableStudentSelect = ({ students, value, onChange, placeholder = 'Select Student...' }) => {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+
+  const selectedStudent = students.find(s => s._id === value);
+
+  useEffect(() => {
+    setQuery(selectedStudent ? `${selectedStudent.firstName} ${selectedStudent.lastName} (${selectedStudent.regNo})` : '');
+  }, [selectedStudent]);
+
+  const filteredStudents = (() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return students.slice(0, 20);
+    return students.filter(s =>
+      `${s.firstName} ${s.lastName} ${s.regNo}`.toLowerCase().includes(q)
+    ).slice(0, 20);
+  })();
+
+  return (
+    <div className="relative">
+      <input
+        className="input"
+        value={query}
+        placeholder={placeholder}
+        onFocus={() => setOpen(true)}
+        onChange={e => {
+          setQuery(e.target.value);
+          setOpen(true);
+          if (!e.target.value) onChange('');
+        }}
+        onBlur={() => {
+          setTimeout(() => {
+            setOpen(false);
+            setQuery(selectedStudent ? `${selectedStudent.firstName} ${selectedStudent.lastName} (${selectedStudent.regNo})` : '');
+          }, 150);
+        }}
+      />
+      {open && (
+        <div className="absolute z-20 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg max-h-56 overflow-auto">
+          {filteredStudents.length ? filteredStudents.map(s => (
+            <button
+              key={s._id}
+              type="button"
+              className="w-full px-3 py-2 text-left hover:bg-gray-50 text-sm"
+              onMouseDown={() => {
+                onChange(s._id);
+                setQuery(`${s.firstName} ${s.lastName} (${s.regNo})`);
+                setOpen(false);
+              }}
+            >
+              {s.firstName} {s.lastName} ({s.regNo})
+            </button>
+          )) : (
+            <div className="px-3 py-2 text-sm text-gray-400">No students found</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // ─── OUTPASS ──────────────────────────────────────────────────────────────────
 export function OutpassManagement() {
@@ -164,7 +225,8 @@ export function PaymentsAdmin() {
   const [filters, setFilters] = useState({ startDate: '', endDate: '', mode: '' });
   const [showManual, setShowManual] = useState(false);
   const [students, setStudents] = useState([]);
-  const [manualForm, setManualForm] = useState({ studentId: '', amount: '', paymentMode: 'cash', description: '' });
+  const [studentFeesOptions, setStudentFeesOptions] = useState([]);
+  const [manualForm, setManualForm] = useState({ studentId: '', studentFeesId: '', amount: '', paymentMode: 'cash', description: '' });
 
   const fetch = useCallback(async () => {
     setLoading(true);
@@ -173,11 +235,33 @@ export function PaymentsAdmin() {
   }, [page, filters]);
   useEffect(() => { fetch(); }, [fetch]);
   useEffect(() => { api.get('/students?limit=500').then(r => setStudents(r.data.students)); }, []);
+  useEffect(() => {
+    if (!manualForm.studentId) {
+      setStudentFeesOptions([]);
+      return;
+    }
+    api.get(`/fees/student/${manualForm.studentId}`)
+      .then(r => setStudentFeesOptions((r.data.fees || []).filter(f => f.totalDue > 0)))
+      .catch(() => setStudentFeesOptions([]));
+  }, [manualForm.studentId]);
+  const selectedFee = studentFeesOptions.find(f => f._id === manualForm.studentFeesId);
+  const handleReceiptDownload = async (paymentId) => {
+    try {
+      await downloadPaymentReceipt(paymentId);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to download receipt');
+    }
+  };
 
   const handleManual = async e => {
     e.preventDefault();
+    if (!manualForm.studentFeesId) {
+      toast.error('Select the assigned fee record');
+      return;
+    }
     await api.post('/payments/manual', manualForm);
     toast.success('Payment recorded'); setShowManual(false); fetch();
+    setManualForm({ studentId: '', studentFeesId: '', amount: '', paymentMode: 'cash', description: '' });
   };
 
   return (
@@ -202,7 +286,11 @@ export function PaymentsAdmin() {
                 <td className="table-cell font-semibold text-green-600">₹{p.amount?.toLocaleString('en-IN')}</td>
                 <td className="table-cell uppercase text-xs">{p.paymentMode}</td>
                 <td className="table-cell"><StatusBadge status={p.status} /></td>
-                <td className="table-cell"><a href={`/api/payments/receipt/${p._id}`} target="_blank" rel="noreferrer" className="text-primary-600 text-xs hover:underline">PDF</a></td>
+                <td className="table-cell">
+                  <button type="button" onClick={() => handleReceiptDownload(p._id)} className="text-primary-600 text-xs hover:underline">
+                    PDF
+                  </button>
+                </td>
               </tr>
             ))}
           </Table>
@@ -213,11 +301,25 @@ export function PaymentsAdmin() {
       <Modal open={showManual} onClose={() => setShowManual(false)} title="Manual Payment Entry">
         <form onSubmit={handleManual} className="space-y-4">
           <div><label className="label">Student *</label>
-            <select className="input" value={manualForm.studentId} onChange={e => setManualForm(f => ({ ...f, studentId: e.target.value }))} required>
-              <option value="">Select Student</option>
-              {students.map(s => <option key={s._id} value={s._id}>{s.firstName} {s.lastName} ({s.regNo})</option>)}
+            <SearchableStudentSelect
+              students={students}
+              value={manualForm.studentId}
+              onChange={studentId => setManualForm(f => ({ ...f, studentId, studentFeesId: '' }))}
+            />
+          </div>
+          <div><label className="label">Assigned Fees *</label>
+            <select className="input" value={manualForm.studentFeesId} onChange={e => setManualForm(f => ({ ...f, studentFeesId: e.target.value }))} required disabled={!manualForm.studentId}>
+              <option value="">{manualForm.studentId ? 'Select assigned fee' : 'Select student first'}</option>
+              {studentFeesOptions.map(f => <option key={f._id} value={f._id}>{f.academicYear} / Sem {f.semester} - Due ₹{(f.totalDue || 0).toLocaleString('en-IN')}</option>)}
             </select>
           </div>
+          {selectedFee && (
+            <div className="bg-blue-50 rounded-lg p-3 text-sm space-y-1">
+              <p className="text-blue-800 font-medium">Total Fees: ₹{(selectedFee.totalAmount || 0).toLocaleString('en-IN')}</p>
+              <p className="text-green-700">Paid: ₹{(selectedFee.totalPaid || 0).toLocaleString('en-IN')}</p>
+              <p className="text-red-700">Remaining: ₹{(selectedFee.totalDue || 0).toLocaleString('en-IN')}</p>
+            </div>
+          )}
           <div><label className="label">Amount *</label><input type="number" className="input" value={manualForm.amount} onChange={e => setManualForm(f => ({ ...f, amount: e.target.value }))} required /></div>
           <div><label className="label">Mode</label>
             <select className="input" value={manualForm.paymentMode} onChange={e => setManualForm(f => ({ ...f, paymentMode: e.target.value }))}>
@@ -245,7 +347,7 @@ export function FeesList() {
   useEffect(() => {
     Promise.all([
       api.get('/fees/all', { params: filters }),
-      api.get('/fees/summary'),
+      api.get('/fees/summary', { params: filters }),
     ]).then(([f, s]) => { setFees(f.data.fees); setSummary(s.data.summary); }).finally(() => setLoading(false));
   }, [filters]);
 
@@ -266,10 +368,10 @@ export function FeesList() {
             <option value="">All Status</option>
             {['pending','partial','paid','overdue'].map(s => <option key={s} value={s}>{s}</option>)}
           </select>
-          <input className="input w-40" placeholder="Academic Year" value={filters.academicYear} onChange={e => setFilters(f => ({ ...f, academicYear: e.target.value }))} />
+          <input className="input w-48" placeholder="Search Academic Year" value={filters.academicYear} onChange={e => setFilters(f => ({ ...f, academicYear: e.target.value }))} />
         </FilterBar>
         {loading ? <PageSpinner /> : (
-          <Table headers={['Student', 'Course', 'Year/Sem', 'Total', 'Paid', 'Due', 'Status']}>
+          <Table headers={['Student', 'Course', 'Year/Sem', 'Total', 'Paid', 'Balance', 'Status']}>
             {fees.map(f => (
               <tr key={f._id} className="hover:bg-gray-50">
                 <td className="table-cell"><p className="font-medium">{f.student?.firstName} {f.student?.lastName}</p><p className="text-xs text-gray-400">{f.student?.regNo}</p></td>

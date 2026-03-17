@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
 import { PageSpinner, EmptyState } from '../../components/common';
+import { FiClock } from '../../components/common/icons';
 
 export default function ParentCheckIn() {
   const { user } = useAuth();
@@ -48,7 +49,7 @@ export default function ParentCheckIn() {
             ))}
           </tbody>
         </table>
-        {records.length === 0 && <EmptyState message="No check-in records" icon="🕒" />}
+        {records.length === 0 && <EmptyState message="No check-in records" icon={<FiClock />} />}
       </div>
     </div>
   );

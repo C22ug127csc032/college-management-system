@@ -1,16 +1,30 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import {
+  FiCalendar,
+  FiClock,
+  FiCreditCard,
+  FiFileText,
+  FiHome,
+  FiLogOut,
+  FiMenu,
+  FiBook,
+  FiDollarSign,
+  FiUser,
+} from '../common/icons';
 
 const NAV = [
-  { to: '/parent',          label: 'Dashboard',       icon: '🏠', exact: true },
-  { to: '/parent/student',  label: 'My Child',         icon: '🎓' },
-  { to: '/parent/fees',     label: 'Fees',             icon: '💰' },
-  { to: '/parent/payments', label: 'Payments',         icon: '💳' },
-  { to: '/parent/leave',    label: 'Leave',            icon: '📅' },
-  { to: '/parent/outpass',  label: 'Outpass',          icon: '🚪' },
-  { to: '/parent/checkin',  label: 'Check-In History', icon: '🕒' },
-  { to: '/parent/circulars',label: 'Circulars',        icon: '📢' },
+  { to: '/parent',          label: 'Dashboard',       icon: FiHome, exact: true },
+  { to: '/parent/student',  label: 'My Child',        icon: FiUser },
+  { to: '/parent/fees',     label: 'Fees',            icon: FiCreditCard },
+  { to: '/parent/payments', label: 'Payments',        icon: FiCreditCard },
+  { to: '/parent/ledger',   label: 'Ledger',          icon: FiBook },
+  { to: '/parent/wallet',   label: 'Wallet',          icon: FiDollarSign },
+  { to: '/parent/leave',    label: 'Leave',           icon: FiCalendar },
+  { to: '/parent/outpass',  label: 'Outpass',         icon: FiLogOut },
+  { to: '/parent/checkin',  label: 'Check-In History', icon: FiClock },
+  { to: '/parent/circulars',label: 'Circulars',       icon: FiFileText },
 ];
 
 export default function ParentLayout() {
@@ -47,7 +61,7 @@ export default function ParentLayout() {
                   : 'text-green-200 hover:bg-white/10 hover:text-white'}`
               }
               onClick={() => setMobileOpen(false)}>
-              <span className="text-base">{item.icon}</span>
+              <item.icon className="text-base shrink-0" />
               <span>{item.label}</span>
             </NavLink>
           ))}
@@ -56,7 +70,7 @@ export default function ParentLayout() {
           <button onClick={handleLogout}
             className="w-full flex items-center gap-2 px-3 py-2
               text-green-300 hover:text-white text-sm rounded-lg hover:bg-white/10 transition-colors">
-            <span>⏏</span><span>Logout</span>
+            <FiLogOut className="shrink-0" /><span>Logout</span>
           </button>
         </div>
       </aside>
@@ -64,7 +78,7 @@ export default function ParentLayout() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 shrink-0">
           <button onClick={() => setMobileOpen(true)}
-            className="p-2 rounded-lg hover:bg-gray-100 lg:hidden">☰</button>
+            className="p-2 rounded-lg hover:bg-gray-100 lg:hidden"><FiMenu /></button>
           <span className="text-gray-700 font-medium text-sm">Parent Portal</span>
           <div className="ml-auto text-sm text-gray-500">{user?.name}</div>
         </header>

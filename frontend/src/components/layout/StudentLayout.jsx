@@ -1,16 +1,26 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import {
+  FiBookOpen,
+  FiCalendar,
+  FiCreditCard,
+  FiFileText,
+  FiHome,
+  FiLogOut,
+  FiMenu,
+  FiUser,
+} from '../common/icons';
 
 const NAV = [
-  { to: '/student',           label: 'Dashboard',  icon: '🏠', exact: true },
-  { to: '/student/fees',      label: 'My Fees',    icon: '💰' },
-  { to: '/student/ledger',    label: 'Ledger',     icon: '📒' },
-  { to: '/student/wallet',    label: 'Wallet',     icon: '👛' },
-  { to: '/student/leave',     label: 'Leave',      icon: '📅' },
-  { to: '/student/outpass',   label: 'Outpass',    icon: '🚪' },
-  { to: '/student/circulars', label: 'Circulars',  icon: '📢' },
-  { to: '/student/profile',   label: 'My Profile', icon: '👤' },
+  { to: '/student',           label: 'Dashboard',  icon: FiHome, exact: true },
+  { to: '/student/fees',      label: 'My Fees',    icon: FiCreditCard },
+  { to: '/student/ledger',    label: 'Ledger',     icon: FiBookOpen },
+  { to: '/student/wallet',    label: 'Wallet',     icon: FiCreditCard },
+  { to: '/student/leave',     label: 'Leave',      icon: FiCalendar },
+  { to: '/student/outpass',   label: 'Outpass',    icon: FiLogOut },
+  { to: '/student/circulars', label: 'Circulars',  icon: FiFileText },
+  { to: '/student/profile',   label: 'My Profile', icon: FiUser },
 ];
 
 export default function StudentLayout() {
@@ -58,7 +68,7 @@ export default function StudentLayout() {
               }
               onClick={() => setMobileOpen(false)}
             >
-              <span className="text-base">{item.icon}</span>
+              <item.icon className="text-base shrink-0" />
               <span>{item.label}</span>
             </NavLink>
           ))}
@@ -72,7 +82,7 @@ export default function StudentLayout() {
               text-indigo-300 hover:text-white text-sm transition-colors
               rounded-lg hover:bg-white/10"
           >
-            <span>⏏</span>
+            <FiLogOut className="shrink-0" />
             <span>Logout</span>
           </button>
         </div>
@@ -86,7 +96,7 @@ export default function StudentLayout() {
             onClick={() => setMobileOpen(true)}
             className="p-2 rounded-lg hover:bg-gray-100 lg:hidden"
           >
-            ☰
+            <FiMenu />
           </button>
           <span className="text-gray-700 font-medium text-sm">Student Portal</span>
         </header>

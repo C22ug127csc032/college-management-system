@@ -79,12 +79,17 @@ async function _recordPayment({ studentId, studentFeesId, amount, paymentMode,
   razorpayOrderId, razorpayPaymentId, razorpaySignature, description, isAdvance, collectedBy }) {
 
   const student = await Student.findById(studentId).populate('course');
+  const numericAmount = Number(amount);
+
+  if (!numericAmount || numericAmount <= 0) {
+    throw new Error('Enter a valid payment amount');
+  }
 
   // Create payment record
   const payment = await Payment.create({
     student: studentId,
     studentFees: studentFeesId,
-    amount,
+    amount: numericAmount,
     paymentMode,
     razorpayOrderId,
     razorpayPaymentId,
@@ -97,12 +102,12 @@ async function _recordPayment({ studentId, studentFeesId, amount, paymentMode,
 
   if (isAdvance) {
     // Update student advance amount
-    await Student.findByIdAndUpdate(studentId, { $inc: { advanceAmount: amount } });
+    await Student.findByIdAndUpdate(studentId, { $inc: { advanceAmount: numericAmount } });
     await Ledger.create({
       student: studentId,
       type: 'credit',
       category: 'advance',
-      amount,
+      amount: numericAmount,
       description: 'Advance payment received',
       paymentRef: payment._id,
       date: new Date(),
@@ -112,17 +117,21 @@ async function _recordPayment({ studentId, studentFeesId, amount, paymentMode,
     // Update student fees record
     const sf = await StudentFees.findById(studentFeesId);
     if (sf) {
-      sf.totalPaid += amount;
+      sf.totalPaid += numericAmount;
+      let remainingAmount = numericAmount;
       sf.feeHeads = sf.feeHeads.map(h => {
         const due = h.amount - h.paid;
-        if (due > 0) {
-          const pay = Math.min(due, amount);
+        if (due > 0 && remainingAmount > 0) {
+          const pay = Math.min(due, remainingAmount);
           h.paid += pay;
           h.due = h.amount - h.paid;
+          remainingAmount -= pay;
         }
         return h;
       });
       await sf.save();
+    } else {
+      throw new Error('Assigned fee record not found for this payment');
     }
 
     // Ledger credit entry
@@ -130,7 +139,7 @@ async function _recordPayment({ studentId, studentFeesId, amount, paymentMode,
       student: studentId,
       type: 'credit',
       category: 'payment_received',
-      amount,
+      amount: numericAmount,
       description: `Payment received via ${paymentMode}`,
       paymentRef: payment._id,
       feesRef: studentFeesId,
@@ -140,7 +149,7 @@ async function _recordPayment({ studentId, studentFeesId, amount, paymentMode,
   }
 
   // Notifications
-  const msg = `Dear Student, Payment of ₹${amount} received. Receipt: ${payment.receiptNo}. Thank you.`;
+  const msg = `Dear Student, Payment of ₹${numericAmount} received. Receipt: ${payment.receiptNo}. Thank you.`;
   if (student?.phone) await sendSMS(student.phone, msg);
   if (student?.father?.phone) await sendSMS(student.father.phone, msg);
   if (student?.email) await sendEmail(student.email, 'Payment Confirmation', msg);

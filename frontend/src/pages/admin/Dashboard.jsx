@@ -9,6 +9,25 @@ import {
 } from 'chart.js';
 import api from '../../api/axios';
 import { PageSpinner, StatCard } from '../../components/common';
+import {
+  FiAlertCircle,
+  FiArrowRight,
+  FiBook,
+  FiCalendar,
+  FiCheckCircle,
+  FiClock,
+  FiCreditCard,
+  FiDollarSign,
+  FiEdit3,
+  FiFileText,
+  FiHome,
+  FiPackage,
+  FiShoppingBag,
+  FiTrendingDown,
+  FiTrendingUp,
+  FiUser,
+  FiUsers,
+} from '../../components/common/icons';
 
 ChartJS.register(
   CategoryScale, LinearScale,
@@ -75,7 +94,7 @@ export default function Dashboard() {
           <div className="stat-card cursor-pointer hover:shadow-md transition-shadow"
             onClick={() => navigate('/admin/students')}>
             <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600
-              flex items-center justify-center text-2xl shrink-0">🎓</div>
+              flex items-center justify-center text-2xl shrink-0"><FiUser /></div>
             <div>
               <p className="text-2xl font-bold text-gray-900">
                 {studentStats?.total || data?.totalStudents || 0}
@@ -86,7 +105,7 @@ export default function Dashboard() {
           <div className="stat-card cursor-pointer hover:shadow-md transition-shadow"
             onClick={() => navigate('/admin/students')}>
             <div className="w-12 h-12 rounded-xl bg-green-50 text-green-600
-              flex items-center justify-center text-2xl shrink-0">✅</div>
+              flex items-center justify-center text-2xl shrink-0"><FiCheckCircle /></div>
             <div>
               <p className="text-2xl font-bold text-gray-900">
                 {studentStats?.active || data?.activeStudents || 0}
@@ -97,7 +116,7 @@ export default function Dashboard() {
           <div className="stat-card cursor-pointer hover:shadow-md transition-shadow"
             onClick={() => navigate('/admin/students')}>
             <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600
-              flex items-center justify-center text-2xl shrink-0">🏠</div>
+              flex items-center justify-center text-2xl shrink-0"><FiHome /></div>
             <div>
               <p className="text-2xl font-bold text-gray-900">
                 {studentStats?.hostel || 0}
@@ -128,7 +147,7 @@ export default function Dashboard() {
           <div className="stat-card cursor-pointer hover:shadow-md transition-shadow"
             onClick={() => navigate('/admin/payments')}>
             <div className="w-12 h-12 rounded-xl bg-green-50 text-green-600
-              flex items-center justify-center text-2xl shrink-0">💰</div>
+              flex items-center justify-center text-2xl shrink-0"><FiDollarSign /></div>
             <div>
               <p className="text-2xl font-bold text-gray-900">
                 {fmt(data?.totalFeesCollected)}
@@ -139,7 +158,7 @@ export default function Dashboard() {
           <div className="stat-card cursor-pointer hover:shadow-md transition-shadow"
             onClick={() => navigate('/admin/payments')}>
             <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600
-              flex items-center justify-center text-2xl shrink-0">📅</div>
+              flex items-center justify-center text-2xl shrink-0"><FiCalendar /></div>
             <div>
               <p className="text-2xl font-bold text-gray-900">
                 {fmt(data?.monthlyCollection)}
@@ -150,7 +169,7 @@ export default function Dashboard() {
           <div className="stat-card cursor-pointer hover:shadow-md transition-shadow"
             onClick={() => navigate('/admin/fees/list')}>
             <div className="w-12 h-12 rounded-xl bg-red-50 text-red-600
-              flex items-center justify-center text-2xl shrink-0">⚠️</div>
+              flex items-center justify-center text-2xl shrink-0"><FiAlertCircle /></div>
             <div>
               <p className="text-2xl font-bold text-gray-900">
                 {fmt(feesSummary?.totalDue || data?.pendingDues)}
@@ -164,7 +183,7 @@ export default function Dashboard() {
           <div className="stat-card cursor-pointer hover:shadow-md transition-shadow"
             onClick={() => navigate('/admin/expense')}>
             <div className="w-12 h-12 rounded-xl bg-orange-50 text-orange-600
-              flex items-center justify-center text-2xl shrink-0">💸</div>
+              flex items-center justify-center text-2xl shrink-0"><FiTrendingDown /></div>
             <div>
               <p className="text-2xl font-bold text-gray-900">
                 {fmt(data?.expenseThisMonth)}
@@ -240,14 +259,14 @@ export default function Dashboard() {
           <h3 className="section-title">Quick Actions</h3>
           <div className="space-y-2">
             {[
-              { label: 'Add New Student',    icon: '🎓', path: '/admin/students/add',     color: 'bg-blue-50 hover:bg-blue-100 text-blue-700' },
-              { label: 'Assign Fees',        icon: '📝', path: '/admin/fees/assign',       color: 'bg-green-50 hover:bg-green-100 text-green-700' },
-              { label: 'Manual Payment',     icon: '💳', path: '/admin/payments',          color: 'bg-purple-50 hover:bg-purple-100 text-purple-700' },
-              { label: 'Publish Circular',   icon: '📢', path: '/admin/circulars',         color: 'bg-yellow-50 hover:bg-yellow-100 text-yellow-700' },
-              { label: 'Issue Book',         icon: '📚', path: '/admin/library',           color: 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700' },
-              { label: 'Top Up Wallet',      icon: '👛', path: '/admin/wallet',            color: 'bg-orange-50 hover:bg-orange-100 text-orange-700' },
-              { label: 'View Reports',       icon: '📈', path: '/admin/reports',           color: 'bg-red-50 hover:bg-red-100 text-red-700' },
-              { label: 'Check In Student',   icon: '🕒', path: '/admin/checkin',           color: 'bg-teal-50 hover:bg-teal-100 text-teal-700' },
+              { label: 'Add New Student',    icon: FiUser, path: '/admin/students/add',     color: 'bg-blue-50 hover:bg-blue-100 text-blue-700' },
+              { label: 'Assign Fees',        icon: FiEdit3, path: '/admin/fees/assign',     color: 'bg-green-50 hover:bg-green-100 text-green-700' },
+              { label: 'Manual Payment',     icon: FiCreditCard, path: '/admin/payments',   color: 'bg-purple-50 hover:bg-purple-100 text-purple-700' },
+              { label: 'Publish Circular',   icon: FiFileText, path: '/admin/circulars',    color: 'bg-yellow-50 hover:bg-yellow-100 text-yellow-700' },
+              { label: 'Issue Book',         icon: FiBook, path: '/admin/library',           color: 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700' },
+              { label: 'Top Up Wallet',      icon: FiCreditCard, path: '/admin/wallet',      color: 'bg-orange-50 hover:bg-orange-100 text-orange-700' },
+              { label: 'View Reports',       icon: FiTrendingUp, path: '/admin/reports',     color: 'bg-red-50 hover:bg-red-100 text-red-700' },
+              { label: 'Check In Student',   icon: FiClock, path: '/admin/checkin',          color: 'bg-teal-50 hover:bg-teal-100 text-teal-700' },
             ].map(action => (
               <button
                 key={action.path}
@@ -255,9 +274,9 @@ export default function Dashboard() {
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
                   text-sm font-medium transition-colors text-left ${action.color}`}
               >
-                <span className="text-base">{action.icon}</span>
+                <action.icon className="text-base shrink-0" />
                 {action.label}
-                <span className="ml-auto text-gray-400">→</span>
+                <FiArrowRight className="ml-auto text-gray-400 shrink-0" />
               </button>
             ))}
           </div>
@@ -281,7 +300,9 @@ export default function Dashboard() {
           <div className="space-y-0">
             {data?.recentPayments?.length === 0 && (
               <div className="text-center py-8 text-gray-400">
-                <p className="text-3xl mb-2">💳</p>
+                <div className="flex justify-center mb-2">
+                  <FiCreditCard className="text-3xl" />
+                </div>
                 <p className="text-sm">No payments yet</p>
               </div>
             )}
@@ -361,7 +382,7 @@ export default function Dashboard() {
           {(data?.overdueCount > 0) && (
             <div className="mt-4 p-3 bg-red-50 border border-red-200
               rounded-xl flex items-center gap-3">
-              <span className="text-2xl">🚨</span>
+              <FiAlertCircle className="text-2xl" />
               <div>
                 <p className="text-sm font-semibold text-red-700">
                   {data.overdueCount} overdue fee records
@@ -386,56 +407,56 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             {
-              icon: '📅', label: 'Leave',
+              icon: FiCalendar, label: 'Leave',
               desc: 'Manage student leaves',
               path: '/admin/leave',
               color: 'border-blue-200 bg-blue-50',
               iconBg: 'bg-blue-100 text-blue-600',
             },
             {
-              icon: '🚪', label: 'Outpass',
+              icon: FiArrowRight, label: 'Outpass',
               desc: 'Hostel outpass requests',
               path: '/admin/outpass',
               color: 'border-purple-200 bg-purple-50',
               iconBg: 'bg-purple-100 text-purple-600',
             },
             {
-              icon: '📦', label: 'Inventory',
+              icon: FiPackage, label: 'Inventory',
               desc: 'Stock management',
               path: '/admin/inventory',
               color: 'border-yellow-200 bg-yellow-50',
               iconBg: 'bg-yellow-100 text-yellow-600',
             },
             {
-              icon: '📚', label: 'Library',
+              icon: FiBook, label: 'Library',
               desc: 'Books & issue records',
               path: '/admin/library',
               color: 'border-green-200 bg-green-50',
               iconBg: 'bg-green-100 text-green-600',
             },
             {
-              icon: '🏪', label: 'Shop & Canteen',
+              icon: FiShoppingBag, label: 'Shop & Canteen',
               desc: 'Sales & billing',
               path: '/admin/shop',
               color: 'border-orange-200 bg-orange-50',
               iconBg: 'bg-orange-100 text-orange-600',
             },
             {
-              icon: '💸', label: 'Expenses',
+              icon: FiTrendingDown, label: 'Expenses',
               desc: 'Institution expenses',
               path: '/admin/expense',
               color: 'border-red-200 bg-red-50',
               iconBg: 'bg-red-100 text-red-600',
             },
             {
-              icon: '👥', label: 'Staff',
+              icon: FiUsers, label: 'Staff',
               desc: 'Manage staff roles',
               path: '/admin/staff',
               color: 'border-indigo-200 bg-indigo-50',
               iconBg: 'bg-indigo-100 text-indigo-600',
             },
             {
-              icon: '📈', label: 'Reports',
+              icon: FiTrendingUp, label: 'Reports',
               desc: 'All reports & analytics',
               path: '/admin/reports',
               color: 'border-teal-200 bg-teal-50',
@@ -450,7 +471,7 @@ export default function Dashboard() {
             >
               <div className={`w-10 h-10 rounded-lg flex items-center justify-center
                 text-xl mb-3 ${module.iconBg}`}>
-                {module.icon}
+                <module.icon />
               </div>
               <p className="text-sm font-semibold text-gray-800">{module.label}</p>
               <p className="text-xs text-gray-500 mt-0.5">{module.desc}</p>

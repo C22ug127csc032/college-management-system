@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
 import { PageSpinner, StatCard, EmptyState } from '../../components/common';
+import { FiCalendar, FiClock, FiCreditCard, FiFileText } from '../../components/common/icons';
 
 export default function ParentDashboard() {
   const { user } = useAuth();
@@ -28,14 +29,14 @@ export default function ParentDashboard() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatCard icon="💰" label="Total Fee Due"   value={fmt(data?.summary?.totalDue)}      color="red" />
-        <StatCard icon="📅" label="Pending Leaves"  value={data?.summary?.pendingLeaves || 0} color="yellow" />
-        <StatCard icon="📋" label="Fee Records"     value={data?.summary?.totalFees || 0}     color="blue" />
+        <StatCard icon={<FiCreditCard />} label="Total Fee Due"   value={fmt(data?.summary?.totalDue)}      color="red" />
+        <StatCard icon={<FiCalendar />} label="Pending Leaves"  value={data?.summary?.pendingLeaves || 0} color="yellow" />
+        <StatCard icon={<FiFileText />} label="Fee Records"     value={data?.summary?.totalFees || 0}     color="blue" />
       </div>
 
       <div className="card">
         <h3 className="section-title">Recent Check-In / Out</h3>
-        {data?.checkins?.length === 0 && <EmptyState message="No check-in records" icon="🕒" />}
+        {data?.checkins?.length === 0 && <EmptyState message="No check-in records" icon={<FiClock />} />}
         {data?.checkins?.map(c => (
           <div key={c._id} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
             <div>
@@ -61,7 +62,7 @@ export default function ParentDashboard() {
             </p>
           </div>
         ))}
-        {!data?.circulars?.length && <EmptyState message="No circulars" icon="📢" />}
+        {!data?.circulars?.length && <EmptyState message="No circulars" icon={<FiFileText />} />}
       </div>
     </div>
   );

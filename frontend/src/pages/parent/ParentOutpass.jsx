@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../api/axios';
 import { StatusBadge, EmptyState } from '../../components/common';
 import toast from 'react-hot-toast';
+import { FiLogOut } from '../../components/common/icons';
 
 export default function ParentOutpass() {
   const [list, setList] = useState([]);
@@ -54,7 +55,7 @@ export default function ParentOutpass() {
             <StatusBadge status={o.status} />
           </div>
         ))}
-        {list.length === 0 && <EmptyState message="No outpass requests" icon="🚪" />}
+        {list.length === 0 && <EmptyState message="No outpass requests" icon={<FiLogOut />} />}
       </div>
 
       {show && (

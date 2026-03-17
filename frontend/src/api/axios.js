@@ -22,4 +22,21 @@ api.interceptors.response.use(
   }
 );
 
+export const downloadPaymentReceipt = async (paymentId) => {
+  const response = await api.get(`/payments/receipt/${paymentId}`, {
+    responseType: 'blob',
+  });
+
+  const blobUrl = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+  const link = document.createElement('a');
+  const contentDisposition = response.headers['content-disposition'] || '';
+  const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/i);
+  link.href = blobUrl;
+  link.download = filenameMatch?.[1] || `receipt_${paymentId}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(blobUrl);
+};
+
 export default api;

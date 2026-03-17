@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../api/axios';
 import { PageHeader, Table, EmptyState, Modal, PageSpinner, FilterBar } from '../../components/common';
 import toast from 'react-hot-toast';
+import { FiUser } from '../../components/common/icons';
 
 export default function WalletAdmin() {
   const [students, setStudents]   = useState([]);
@@ -118,7 +119,7 @@ export default function WalletAdmin() {
           </Table>
         )}
         {!loading && filtered.length === 0 && (
-          <EmptyState message="No students found" icon="👤" />
+          <EmptyState message="No students found" icon={<FiUser />} />
         )}
       </div>
 

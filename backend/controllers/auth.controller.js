@@ -6,15 +6,51 @@ import crypto from 'crypto';
 const generateToken = (id, role) =>
   jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE || '7d' });
 
+const ensureStudentUserByPhone = async (phone) => {
+  const normalizedPhone = (phone || '').trim();
+  if (!normalizedPhone) return null;
+
+  let user = await User.findOne({ phone: normalizedPhone }).populate('studentRef');
+  if (user) return user;
+
+  const student = await Student.findOne({ phone: normalizedPhone });
+  if (!student) return null;
+
+  user = await User.create({
+    name: `${student.firstName} ${student.lastName}`.trim(),
+    phone: student.phone,
+    email: student.email || undefined,
+    password: student.phone,
+    role: 'student',
+    studentRef: student._id,
+  });
+
+  if (!student.userRef) {
+    student.userRef = user._id;
+    await student.save();
+  }
+
+  return User.findById(user._id).populate('studentRef');
+};
+
 // @POST /api/auth/login
 export const login = async (req, res) => {
   try {
     const { identifier, phone, password, role } = req.body;
     const loginValue = (identifier || phone || '').trim();
-    const user = await User.findOne({
+    let user = await User.findOne({
       $or: [{ phone: loginValue }, { email: loginValue.toLowerCase() }],
     }).populate('studentRef');
-    if (!user || !(await user.matchPassword(password)))
+    if (!user) {
+      user = await ensureStudentUserByPhone(loginValue);
+    }
+    let passwordMatches = user ? await user.matchPassword(password) : false;
+    if (!passwordMatches && user?.role === 'student' && loginValue === user.phone && password === user.phone) {
+      user.password = user.phone;
+      await user.save();
+      passwordMatches = await user.matchPassword(password);
+    }
+    if (!user || !passwordMatches)
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     if (!user.isActive)
       return res.status(403).json({ success: false, message: 'Account deactivated' });

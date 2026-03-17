@@ -3,6 +3,13 @@ import api from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
 import { PageSpinner, StatusBadge, StatCard, EmptyState } from '../../components/common';
 import toast from 'react-hot-toast';
+import {
+  FiCalendar,
+  FiClock,
+  FiCreditCard,
+  FiFileText,
+  FiLogOut,
+} from '../../components/common/icons';
 
 // ─── PARENT REGISTER ──────────────────────────────────────────────────────────
 export function ParentRegister() {
@@ -112,13 +119,13 @@ export function ParentDashboard() {
         </p>
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatCard icon="💰" label="Total Fee Due" value={fmt(data?.summary?.totalDue)} color="red" />
-        <StatCard icon="📅" label="Pending Leaves" value={data?.summary?.pendingLeaves || 0} color="yellow" />
-        <StatCard icon="📋" label="Fee Records" value={data?.summary?.totalFees || 0} color="blue" />
+        <StatCard icon={<FiCreditCard />} label="Total Fee Due" value={fmt(data?.summary?.totalDue)} color="red" />
+        <StatCard icon={<FiCalendar />} label="Pending Leaves" value={data?.summary?.pendingLeaves || 0} color="yellow" />
+        <StatCard icon={<FiFileText />} label="Fee Records" value={data?.summary?.totalFees || 0} color="blue" />
       </div>
       <div className="card">
         <h3 className="section-title">Recent Check-In / Out</h3>
-        {data?.checkins?.length === 0 && <EmptyState message="No check-in records" icon="🕒" />}
+        {data?.checkins?.length === 0 && <EmptyState message="No check-in records" icon={<FiClock />} />}
         {data?.checkins?.map(c => (
           <div key={c._id}
             className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
@@ -144,7 +151,7 @@ export function ParentDashboard() {
             </p>
           </div>
         ))}
-        {!data?.circulars?.length && <EmptyState message="No circulars" icon="📢" />}
+        {!data?.circulars?.length && <EmptyState message="No circulars" icon={<FiFileText />} />}
       </div>
     </div>
   );
@@ -251,7 +258,7 @@ export function ParentFees() {
             </div>
           </div>
         ))}
-        {fees.length === 0 && <EmptyState message="No fee records" icon="💰" />}
+        {fees.length === 0 && <EmptyState message="No fee records" icon={<FiCreditCard />} />}
       </div>
     </div>
   );
@@ -293,7 +300,7 @@ export function ParentPayments() {
             ))}
           </tbody>
         </table>
-        {payments.length === 0 && <EmptyState message="No payments yet" icon="💳" />}
+        {payments.length === 0 && <EmptyState message="No payments yet" icon={<FiCreditCard />} />}
       </div>
     </div>
   );
@@ -339,7 +346,7 @@ export function ParentLeave() {
             <StatusBadge status={l.status} />
           </div>
         ))}
-        {leaves.length === 0 && <EmptyState message="No leave requests" icon="📅" />}
+        {leaves.length === 0 && <EmptyState message="No leave requests" icon={<FiCalendar />} />}
       </div>
 
       {show && (
@@ -427,7 +434,7 @@ export function ParentOutpass() {
             <StatusBadge status={o.status} />
           </div>
         ))}
-        {list.length === 0 && <EmptyState message="No outpass requests" icon="🚪" />}
+        {list.length === 0 && <EmptyState message="No outpass requests" icon={<FiLogOut />} />}
       </div>
 
       {show && (
@@ -522,7 +529,7 @@ export function ParentCheckIn() {
             ))}
           </tbody>
         </table>
-        {records.length === 0 && <EmptyState message="No check-in records" icon="🕒" />}
+        {records.length === 0 && <EmptyState message="No check-in records" icon={<FiClock />} />}
       </div>
     </div>
   );
@@ -558,7 +565,7 @@ export function ParentCirculars() {
             </p>
           </div>
         ))}
-        {circulars.length === 0 && <EmptyState message="No circulars" icon="📢" />}
+        {circulars.length === 0 && <EmptyState message="No circulars" icon={<FiFileText />} />}
       </div>
     </div>
   );

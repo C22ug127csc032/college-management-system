@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api/axios';
 import { StatusBadge, EmptyState } from '../../components/common';
+import { FiCreditCard } from '../../components/common/icons';
 
 export default function ParentPayments() {
   const [payments, setPayments] = useState([]);
@@ -39,7 +40,7 @@ export default function ParentPayments() {
             ))}
           </tbody>
         </table>
-        {payments.length === 0 && <EmptyState message="No payments yet" icon="💳" />}
+        {payments.length === 0 && <EmptyState message="No payments yet" icon={<FiCreditCard />} />}
       </div>
     </div>
   );

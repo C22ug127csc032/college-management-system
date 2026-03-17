@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../api/axios';
 import { PageHeader, Table, FilterBar, EmptyState, PageSpinner } from '../../components/common';
 import toast from 'react-hot-toast';
+import { FiCheck, FiClock } from '../../components/common/icons';
 
 export default function CheckInOut() {
   const [records, setRecords]         = useState([]);
@@ -109,7 +110,7 @@ export default function CheckInOut() {
 
             {studentName && (
               <p className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded">
-                ✓ {studentName}
+                <span className="inline-flex items-center gap-1"><FiCheck /> {studentName}</span>
               </p>
             )}
 
@@ -205,7 +206,7 @@ export default function CheckInOut() {
             </table>
           )}
           {!loading && records.length === 0 && (
-            <EmptyState message="No records found" icon="🕒" />
+            <EmptyState message="No records found" icon={<FiClock />} />
           )}
         </div>
       </div>

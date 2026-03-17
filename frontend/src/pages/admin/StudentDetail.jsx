@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import api from '../../api/axios';
-import { PageSpinner, StatusBadge, Modal } from '../../components/common';
+import api, { downloadPaymentReceipt } from '../../api/axios';
+import { PageSpinner, StatusBadge } from '../../components/common';
 import toast from 'react-hot-toast';
+import { FiArrowLeft, FiEdit3 } from '../../components/common/icons';
 
 const TABS = ['Profile', 'Fees', 'Payments', 'Ledger', 'Leave', 'Outpass'];
 
@@ -17,6 +18,14 @@ export default function StudentDetail() {
   const [outpasses, setOutpasses] = useState([]);
   const [tab, setTab] = useState('Profile');
   const [loading, setLoading] = useState(true);
+
+  const handleReceiptDownload = async (paymentId) => {
+    try {
+      await downloadPaymentReceipt(paymentId);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to download receipt');
+    }
+  };
 
   useEffect(() => {
     Promise.all([
@@ -39,63 +48,114 @@ export default function StudentDetail() {
   if (loading) return <PageSpinner />;
   if (!student) return <div className="text-center py-20 text-gray-400">Student not found</div>;
 
-  const fmt = n => '₹' + (n || 0).toLocaleString('en-IN');
+  const fmt = n => `₹${(n || 0).toLocaleString('en-IN')}`;
+  const personalDetails = [
+    ['DOB', student.dob ? new Date(student.dob).toLocaleDateString('en-IN') : ''],
+    ['Gender', student.gender],
+    ['Blood Group', student.bloodGroup],
+    ['Aadhar', student.aadharNo],
+    ['Religion', student.religion],
+    ['Category', student.category],
+  ].filter(([, value]) => value);
+  const addressDetails = [
+    ['Street', student.address?.street],
+    ['City', student.address?.city],
+    ['State', student.address?.state],
+    ['Pincode', student.address?.pincode],
+  ].filter(([, value]) => value);
+  const familyDetails = [
+    ['Father', student.father?.name],
+    ['Father Phone', student.father?.phone],
+    ['Father Occupation', student.father?.occupation],
+    ['Mother', student.mother?.name],
+    ['Mother Phone', student.mother?.phone],
+    ['Mother Occupation', student.mother?.occupation],
+    ['Guardian', student.guardian?.name],
+    ['Guardian Relation', student.guardian?.relation],
+    ['Guardian Phone', student.guardian?.phone],
+  ].filter(([, value]) => value);
 
   return (
     <div>
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate(-1)} className="btn-secondary text-sm">← Back</button>
+        <button onClick={() => navigate(-1)} className="btn-secondary text-sm inline-flex items-center gap-2">
+          <FiArrowLeft /> Back
+        </button>
         <h1 className="page-title">{student.firstName} {student.lastName}</h1>
         <StatusBadge status={student.status} />
+        <button
+          onClick={() => navigate(`/admin/students/${id}/edit`)}
+          className="btn-primary text-sm inline-flex items-center gap-2 ml-auto"
+        >
+          <FiEdit3 /> Edit Student
+        </button>
       </div>
 
-      {/* Header card */}
       <div className="card mb-6 flex flex-wrap gap-6 items-start">
         <div className="w-20 h-20 rounded-xl bg-primary-100 text-primary-700 text-3xl font-bold flex items-center justify-center shrink-0">
           {student.photo ? <img src={student.photo} alt="" className="w-20 h-20 rounded-xl object-cover" /> : student.firstName[0]}
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1">
-          {[['Reg No', student.regNo], ['Phone', student.phone], ['Course', student.course?.name], ['Admission', new Date(student.admissionDate).toLocaleDateString('en-IN')],
-            ['Email', student.email || '–'], ['Hostel', student.isHosteler ? 'Yes' : 'No'], ['Batch', student.batch || '–'], ['Semester', student.semester || '–']
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 flex-1 min-w-0">
+          {[
+            ['Reg No', student.regNo],
+            ['Phone', student.phone],
+            ['Course', student.course?.name],
+            ['Admission', new Date(student.admissionDate).toLocaleDateString('en-IN')],
+            ['Email', student.email || '-'],
+            ['Hostel', student.isHosteler ? 'Yes' : 'No'],
+            ['Batch', student.batch || '-'],
+            ['Semester', student.semester || '-'],
           ].map(([k, v]) => (
-            <div key={k}>
+            <div key={k} className="min-w-0">
               <p className="text-xs text-gray-400 font-medium">{k}</p>
-              <p className="text-sm text-gray-800 font-medium mt-0.5">{v || '–'}</p>
+              <p className="text-sm text-gray-800 font-medium mt-0.5 break-words">{v || '-'}</p>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-1 border-b border-gray-200 mb-6 overflow-x-auto">
         {TABS.map(t => (
-          <button key={t} onClick={() => setTab(t)}
-            className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${tab === t ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${tab === t ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+          >
             {t}
           </button>
         ))}
       </div>
 
-      {/* Tab Content */}
       {tab === 'Profile' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="card">
             <h3 className="section-title">Personal Details</h3>
-            {[['DOB', student.dob ? new Date(student.dob).toLocaleDateString('en-IN') : '–'], ['Gender', student.gender], ['Blood Group', student.bloodGroup], ['Aadhar', student.aadharNo], ['Religion', student.religion], ['Category', student.category]].map(([k, v]) => (
+            {personalDetails.length ? personalDetails.map(([k, v]) => (
               <div key={k} className="flex justify-between py-2 border-b border-gray-50 last:border-0">
                 <span className="text-sm text-gray-500">{k}</span>
-                <span className="text-sm font-medium text-gray-800">{v || '–'}</span>
+                <span className="text-sm font-medium text-gray-800">{v}</span>
               </div>
-            ))}
+            )) : <p className="text-sm text-gray-400">No personal details available.</p>}
           </div>
+
           <div className="card">
-            <h3 className="section-title">Parent Details</h3>
-            {[['Father', student.father?.name], ['Father Phone', student.father?.phone], ['Father Email', student.father?.email], ['Mother', student.mother?.name], ['Mother Phone', student.mother?.phone]].map(([k, v]) => (
+            <h3 className="section-title">Address</h3>
+            {addressDetails.length ? addressDetails.map(([k, v]) => (
               <div key={k} className="flex justify-between py-2 border-b border-gray-50 last:border-0">
                 <span className="text-sm text-gray-500">{k}</span>
-                <span className="text-sm font-medium text-gray-800">{v || '–'}</span>
+                <span className="text-sm font-medium text-gray-800">{v}</span>
               </div>
-            ))}
+            )) : <p className="text-sm text-gray-400">No address details available.</p>}
+          </div>
+
+          <div className="card md:col-span-2">
+            <h3 className="section-title">Family Details</h3>
+            {familyDetails.length ? familyDetails.map(([k, v]) => (
+              <div key={k} className="flex justify-between py-2 border-b border-gray-50 last:border-0">
+                <span className="text-sm text-gray-500">{k}</span>
+                <span className="text-sm font-medium text-gray-800">{v}</span>
+              </div>
+            )) : <p className="text-sm text-gray-400">No parent or guardian details available.</p>}
           </div>
         </div>
       )}
@@ -105,7 +165,7 @@ export default function StudentDetail() {
           {fees.map(f => (
             <div key={f._id} className="card">
               <div className="flex flex-wrap gap-3 justify-between items-start mb-3">
-                <div><p className="font-semibold text-gray-800">{f.academicYear} – Sem {f.semester}</p></div>
+                <div><p className="font-semibold text-gray-800">{f.academicYear} - Sem {f.semester}</p></div>
                 <StatusBadge status={f.status} />
               </div>
               <div className="grid grid-cols-3 gap-4 mb-3">
@@ -137,7 +197,11 @@ export default function StudentDetail() {
                   <td className="table-cell font-semibold text-green-600">{fmt(p.amount)}</td>
                   <td className="table-cell capitalize">{p.paymentMode}</td>
                   <td className="table-cell"><StatusBadge status={p.status} /></td>
-                  <td className="table-cell"><a href={`/api/payments/receipt/${p._id}`} target="_blank" rel="noreferrer" className="text-primary-600 hover:underline text-xs">PDF</a></td>
+                  <td className="table-cell">
+                    <button type="button" onClick={() => handleReceiptDownload(p._id)} className="text-primary-600 hover:underline text-xs">
+                      PDF
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -173,7 +237,7 @@ export default function StudentDetail() {
             <div key={l._id} className="card flex flex-wrap gap-4 justify-between items-start">
               <div>
                 <p className="font-medium text-gray-800 capitalize">{l.leaveType} Leave</p>
-                <p className="text-sm text-gray-500">{new Date(l.fromDate).toLocaleDateString('en-IN')} – {new Date(l.toDate).toLocaleDateString('en-IN')} ({l.noOfDays} days)</p>
+                <p className="text-sm text-gray-500">{new Date(l.fromDate).toLocaleDateString('en-IN')} - {new Date(l.toDate).toLocaleDateString('en-IN')} ({l.noOfDays} days)</p>
                 <p className="text-sm text-gray-600 mt-1">{l.reason}</p>
               </div>
               <StatusBadge status={l.status} />
@@ -189,7 +253,7 @@ export default function StudentDetail() {
             <div key={o._id} className="card flex flex-wrap gap-4 justify-between items-start">
               <div>
                 <p className="font-medium text-gray-800">{o.reason}</p>
-                <p className="text-sm text-gray-500">Exit: {new Date(o.exitDate).toLocaleDateString('en-IN')} • Return: {new Date(o.expectedReturn).toLocaleDateString('en-IN')}</p>
+                <p className="text-sm text-gray-500">Exit: {new Date(o.exitDate).toLocaleDateString('en-IN')} | Return: {new Date(o.expectedReturn).toLocaleDateString('en-IN')}</p>
                 {o.destination && <p className="text-sm text-gray-500">Destination: {o.destination}</p>}
               </div>
               <StatusBadge status={o.status} />

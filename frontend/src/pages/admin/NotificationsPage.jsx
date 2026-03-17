@@ -2,15 +2,24 @@ import React, { useState, useEffect } from 'react';
 import api from '../../api/axios';
 import { PageHeader, EmptyState, PageSpinner } from '../../components/common';
 import toast from 'react-hot-toast';
+import {
+  FiBell,
+  FiCalendar,
+  FiCheckCircle,
+  FiClock,
+  FiDollarSign,
+  FiFileText,
+  FiLogOut,
+} from '../../components/common/icons';
 
 const typeIcon = {
-  fee_due:         '💰',
-  payment_confirm: '✅',
-  leave_status:    '📅',
-  outpass_status:  '🚪',
-  checkin:         '🕒',
-  circular:        '📢',
-  general:         '🔔',
+  fee_due: FiDollarSign,
+  payment_confirm: FiCheckCircle,
+  leave_status: FiCalendar,
+  outpass_status: FiLogOut,
+  checkin: FiClock,
+  circular: FiFileText,
+  general: FiBell,
 };
 
 const typeColor = {
@@ -95,36 +104,41 @@ export default function NotificationsPage() {
         {loading ? <PageSpinner /> : (
           <div className="space-y-2">
             {filtered.map(n => (
-              <div
-                key={n._id}
-                onClick={() => !n.isRead && markRead(n._id)}
-                className={`flex gap-3 p-3 rounded-xl border transition-all cursor-pointer
-                  ${typeColor[n.type] || 'bg-gray-50 border-gray-200'}
-                  ${!n.isRead ? 'shadow-sm' : 'opacity-70'}`}
-              >
-                <span className="text-xl shrink-0">{typeIcon[n.type] || '🔔'}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-start gap-2">
-                    <p className={`text-sm ${!n.isRead
-                      ? 'font-semibold text-gray-900'
-                      : 'text-gray-700'}`}>
-                      {n.title}
-                    </p>
-                    {!n.isRead && (
-                      <span className="w-2 h-2 rounded-full bg-primary-600 shrink-0 mt-1.5" />
-                    )}
+              (() => {
+                const Icon = typeIcon[n.type] || FiBell;
+                return (
+                  <div
+                    key={n._id}
+                    onClick={() => !n.isRead && markRead(n._id)}
+                    className={`flex gap-3 p-3 rounded-xl border transition-all cursor-pointer
+                      ${typeColor[n.type] || 'bg-gray-50 border-gray-200'}
+                      ${!n.isRead ? 'shadow-sm' : 'opacity-70'}`}
+                  >
+                    <Icon className="text-xl shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start gap-2">
+                        <p className={`text-sm ${!n.isRead
+                          ? 'font-semibold text-gray-900'
+                          : 'text-gray-700'}`}>
+                          {n.title}
+                        </p>
+                        {!n.isRead && (
+                          <span className="w-2 h-2 rounded-full bg-primary-600 shrink-0 mt-1.5" />
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                        {n.message}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {new Date(n.sentAt).toLocaleString('en-IN')}
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
-                    {n.message}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {new Date(n.sentAt).toLocaleString('en-IN')}
-                  </p>
-                </div>
-              </div>
+                );
+              })()
             ))}
             {filtered.length === 0 && (
-              <EmptyState message="No notifications" icon="🔔" />
+              <EmptyState message="No notifications" icon={<FiBell />} />
             )}
           </div>
         )}

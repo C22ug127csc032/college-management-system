@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../api/axios';
 import { StatusBadge, EmptyState } from '../../components/common';
 import toast from 'react-hot-toast';
+import { FiCalendar } from '../../components/common/icons';
 
 export default function ParentLeave() {
   const [leaves, setLeaves] = useState([]);
@@ -52,7 +53,7 @@ export default function ParentLeave() {
             <StatusBadge status={l.status} />
           </div>
         ))}
-        {leaves.length === 0 && <EmptyState message="No leave requests" icon="📅" />}
+        {leaves.length === 0 && <EmptyState message="No leave requests" icon={<FiCalendar />} />}
       </div>
 
       {show && (

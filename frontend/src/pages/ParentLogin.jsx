@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 
-export default function Login() {
+export default function ParentLogin() {
   const { login, completeLogin } = useAuth();
   const navigate = useNavigate();
 
@@ -21,20 +21,12 @@ export default function Login() {
     setLoginFailed(false);
     try {
       const user = await login(form.phone, form.password);
-
-      if (user.role === 'student') {
-        toast.error('Students must use Student Login');
-        navigate('/login');
+      if (user.role !== 'parent') {
+        toast.error('This portal is for parents only');
         return;
       }
-      if (user.role === 'parent') {
-        toast.error('Parents must use Parent Login');
-        navigate('/parent/register');
-        return;
-      }
-
       toast.success(`Welcome, ${user.name}!`);
-      navigate('/admin');
+      navigate('/parent');
     } catch (err) {
       setLoginFailed(true);
       toast.error('Invalid email, phone, or password');
@@ -68,21 +60,13 @@ export default function Login() {
         phone: form.phone,
         otp: form.otp,
       });
-
-      if (r.data.user.role === 'student') {
-        toast.error('Students must use Student Login');
-        navigate('/login');
+      if (r.data.user.role !== 'parent') {
+        toast.error('This portal is for parents only');
         return;
       }
-      if (r.data.user.role === 'parent') {
-        toast.error('Parents must use Parent Login');
-        navigate('/parent/register');
-        return;
-      }
-
       const user = completeLogin(r.data);
       toast.success(`Welcome, ${user.name}!`);
-      navigate('/admin');
+      navigate('/parent');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Invalid OTP');
     } finally {
@@ -91,20 +75,20 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-green-700 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-primary-700 text-3xl font-bold mx-auto mb-4 shadow-xl">
-            C
+          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-green-700 text-3xl font-bold mx-auto mb-4 shadow-xl">
+            P
           </div>
-          <h1 className="text-3xl font-bold text-white">College Management</h1>
-          <p className="text-primary-300 mt-2">Admin & Staff Login</p>
+          <h1 className="text-3xl font-bold text-white">Parent Portal</h1>
+          <p className="text-green-300 mt-2">Monitor and manage your child</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           <div className="flex justify-center mb-6">
-            <span className="px-4 py-1.5 bg-primary-50 text-primary-700 rounded-full text-sm font-medium border border-primary-200">
-              Admin / Staff Portal
+            <span className="px-4 py-1.5 bg-green-50 text-green-700 rounded-full text-sm font-medium border border-green-200">
+              Parents Only
             </span>
           </div>
 
@@ -115,7 +99,7 @@ export default function Login() {
                 <input
                   type="text"
                   className="input"
-                  placeholder="Enter registered email or phone"
+                  placeholder="Enter your registered email or phone"
                   value={form.phone}
                   onChange={e => {
                     setForm({ ...form, phone: e.target.value });
@@ -141,7 +125,7 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={loading}
-                className="btn-primary w-full py-3 text-base font-semibold"
+                className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50"
               >
                 {loading ? 'Signing in...' : 'Sign In'}
               </button>
@@ -154,7 +138,7 @@ export default function Login() {
                   <input
                     type="tel"
                     className="input flex-1"
-                    placeholder="Enter registered phone"
+                    placeholder="Enter your phone number"
                     value={form.phone}
                     onChange={e => setForm({ ...form, phone: e.target.value })}
                     required
@@ -163,7 +147,7 @@ export default function Login() {
                     type="button"
                     onClick={handleSendOTP}
                     disabled={sendingOTP || otpSent}
-                    className="btn-secondary text-sm px-4 whitespace-nowrap disabled:opacity-50"
+                    className="px-4 py-2 bg-green-50 text-green-700 border border-green-200 rounded-lg text-sm font-medium hover:bg-green-100 disabled:opacity-50 whitespace-nowrap"
                   >
                     {sendingOTP ? 'Sending...' : otpSent ? 'Sent' : 'Send OTP'}
                   </button>
@@ -187,7 +171,7 @@ export default function Login() {
                     <button
                       type="button"
                       onClick={handleSendOTP}
-                      className="text-primary-600 hover:underline"
+                      className="text-green-600 hover:underline"
                     >
                       Resend
                     </button>
@@ -198,7 +182,7 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={loading || !otpSent}
-                className="btn-primary w-full py-3 text-base font-semibold disabled:opacity-50"
+                className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50"
               >
                 {loading ? 'Verifying...' : 'Verify & Login'}
               </button>
@@ -209,7 +193,7 @@ export default function Login() {
                   setShowOTP(false);
                   setOtpSent(false);
                 }}
-                className="w-full text-sm text-gray-500 hover:text-gray-700 hover:underline pt-1"
+                className="w-full text-sm text-gray-500 hover:underline pt-1"
               >
                 Back to Password Login
               </button>
@@ -221,7 +205,7 @@ export default function Login() {
               <div className="mb-2">
                 <p className="text-sm font-semibold text-yellow-800">Wrong password?</p>
                 <p className="text-xs text-yellow-600 mt-0.5">
-                  You can login using OTP sent to your registered phone instead.
+                  Use OTP to login. OTP will be sent to your registered phone.
                 </p>
               </div>
               <button
@@ -237,22 +221,23 @@ export default function Login() {
             </div>
           )}
 
-          <div className="mt-6 pt-4 border-t border-gray-100">
-            <p className="text-xs text-gray-400 text-center mb-3">Other portals</p>
-            <div className="grid grid-cols-2 gap-3">
-              <a
-                href="/student/login"
-                className="flex items-center justify-center px-3 py-2.5 bg-indigo-50 text-indigo-700 rounded-xl text-sm font-medium hover:bg-indigo-100 transition-colors border border-indigo-200"
-              >
-                Student Login
+          <div className="mt-4 text-center">
+            <p className="text-sm text-gray-500">
+              New parent?{' '}
+              <a href="/parent/register" className="text-green-600 font-medium hover:underline">
+                Register here
               </a>
-              <a
-                href="/parent/login"
-                className="flex items-center justify-center px-3 py-2.5 bg-green-50 text-green-700 rounded-xl text-sm font-medium hover:bg-green-100 transition-colors border border-green-200"
-              >
-                Parent Login
-              </a>
-            </div>
+            </p>
+          </div>
+
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={() => navigate('/login')}
+              className="w-full py-2.5 bg-gray-50 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-100 transition-colors border border-gray-200"
+            >
+              Back
+            </button>
           </div>
         </div>
       </div>

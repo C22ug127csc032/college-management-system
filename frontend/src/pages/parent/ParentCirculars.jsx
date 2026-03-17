@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api/axios';
 import { EmptyState } from '../../components/common';
+import { FiFileText } from '../../components/common/icons';
 
 export default function ParentCirculars() {
   const [circulars, setCirculars] = useState([]);
@@ -35,7 +36,7 @@ export default function ParentCirculars() {
             </p>
           </div>
         ))}
-        {circulars.length === 0 && <EmptyState message="No circulars published" icon="📢" />}
+        {circulars.length === 0 && <EmptyState message="No circulars published" icon={<FiFileText />} />}
       </div>
     </div>
   );

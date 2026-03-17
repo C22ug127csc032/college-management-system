@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import api from '../../api/axios';
 import { PageHeader } from '../../components/common';
 import { FiArrowLeft, FiAward, FiCamera, FiClipboard, FiHome, FiUsers } from '../../components/common/icons';
@@ -27,21 +27,74 @@ const Field = ({ label, name, type = 'text', value, onChange, options, required 
 );
 
 export default function AddStudent() {
+  const { id } = useParams();
+  const isEdit = Boolean(id);
   const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(isEdit);
   const [photo, setPhoto] = useState(null);
   const [form, setForm] = useState({
     firstName: '', lastName: '', dob: '', gender: '', bloodGroup: '', phone: '', email: '',
     aadharNo: '', religion: '', category: '',
     'address.street': '', 'address.city': '', 'address.state': '', 'address.pincode': '',
-    'father.name': '', 'father.phone': '', 'father.email': '', 'father.occupation': '',
-    'mother.name': '', 'mother.phone': '', 'mother.email': '',
+    'father.name': '', 'father.phone': '', 'father.occupation': '',
+    'mother.name': '', 'mother.phone': '', 'mother.occupation': '',
+    'guardian.name': '', 'guardian.relation': '', 'guardian.phone': '',
     course: '', className: '', section: '', semester: '', rollNo: '', academicYear: '', batch: '',
-    admissionDate: new Date().toISOString().slice(0, 10), isHosteler: false,
+    admissionDate: new Date().toISOString().slice(0, 10), isHosteler: false, hostelRoom: '',
   });
 
   useEffect(() => { api.get('/courses').then(r => setCourses(r.data.courses)); }, []);
+
+  useEffect(() => {
+    if (!isEdit) return;
+    api.get(`/students/${id}`)
+      .then(r => {
+        const s = r.data.student;
+        setForm(f => ({
+          ...f,
+          firstName: s.firstName || '',
+          lastName: s.lastName || '',
+          dob: s.dob ? new Date(s.dob).toISOString().slice(0, 10) : '',
+          gender: s.gender || '',
+          bloodGroup: s.bloodGroup || '',
+          phone: s.phone || '',
+          email: s.email || '',
+          aadharNo: s.aadharNo || '',
+          religion: s.religion || '',
+          category: s.category || '',
+          'address.street': s.address?.street || '',
+          'address.city': s.address?.city || '',
+          'address.state': s.address?.state || '',
+          'address.pincode': s.address?.pincode || '',
+          'father.name': s.father?.name || '',
+          'father.phone': s.father?.phone || '',
+          'father.occupation': s.father?.occupation || '',
+          'mother.name': s.mother?.name || '',
+          'mother.phone': s.mother?.phone || '',
+          'mother.occupation': s.mother?.occupation || '',
+          'guardian.name': s.guardian?.name || '',
+          'guardian.relation': s.guardian?.relation || '',
+          'guardian.phone': s.guardian?.phone || '',
+          course: s.course?._id || s.course || '',
+          className: s.className || '',
+          section: s.section || '',
+          semester: s.semester || '',
+          rollNo: s.rollNo || '',
+          academicYear: s.academicYear || '',
+          batch: s.batch || '',
+          admissionDate: s.admissionDate ? new Date(s.admissionDate).toISOString().slice(0, 10) : '',
+          isHosteler: Boolean(s.isHosteler),
+          hostelRoom: s.hostelRoom || '',
+        }));
+      })
+      .catch(() => {
+        toast.error('Failed to load student details');
+        navigate('/admin/students');
+      })
+      .finally(() => setPageLoading(false));
+  }, [id, isEdit, navigate]);
 
   const handleChange = e => {
     const { name, value, type, checked } = e.target;
@@ -66,11 +119,17 @@ export default function AddStudent() {
         else fd.append(k, v);
       });
       if (photo) fd.append('photo', photo);
-      await api.post('/students', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-      toast.success('Student added successfully!');
-      navigate('/admin/students');
+      if (isEdit) {
+        await api.put(`/students/${id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        toast.success('Student updated successfully!');
+        navigate(`/admin/students/${id}`);
+      } else {
+        await api.post('/students', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        toast.success('Student added successfully!');
+        navigate('/admin/students');
+      }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to add student');
+      toast.error(err.response?.data?.message || `Failed to ${isEdit ? 'update' : 'add'} student`);
     } finally {
       setLoading(false);
     }
@@ -80,11 +139,15 @@ export default function AddStudent() {
   const bloodGroups = ['A+','A-','B+','B-','O+','O-','AB+','AB-'];
   const courseOpts = courses.map(c => ({ value: c._id, label: c.name }));
 
+  if (pageLoading) {
+    return <div className="card text-center py-10 text-gray-400">Loading student form...</div>;
+  }
+
   return (
     <div>
       <PageHeader
-        title="Add Student"
-        subtitle="Create a new student profile"
+        title={isEdit ? 'Edit Student' : 'Add Student'}
+        subtitle={isEdit ? 'Update the student profile' : 'Create a new student profile'}
         action={<button onClick={() => navigate(-1)} className="btn-secondary flex items-center gap-2"><FiArrowLeft /> Back</button>}
       />
       <form onSubmit={handleSubmit}>
@@ -111,10 +174,13 @@ export default function AddStudent() {
         <Section title={<span className="flex items-center gap-2"><FiUsers /> Parent Details</span>}>
           <Field label="Father Name" name="father.name" value={form['father.name']} onChange={handleChange} />
           <Field label="Father Phone" name="father.phone" value={form['father.phone']} onChange={handleChange} />
-          <Field label="Father Email" name="father.email" type="email" value={form['father.email']} onChange={handleChange} />
           <Field label="Father Occupation" name="father.occupation" value={form['father.occupation']} onChange={handleChange} />
           <Field label="Mother Name" name="mother.name" value={form['mother.name']} onChange={handleChange} />
           <Field label="Mother Phone" name="mother.phone" value={form['mother.phone']} onChange={handleChange} />
+          <Field label="Mother Occupation" name="mother.occupation" value={form['mother.occupation']} onChange={handleChange} />
+          <Field label="Guardian Name" name="guardian.name" value={form['guardian.name']} onChange={handleChange} />
+          <Field label="Guardian Relation" name="guardian.relation" value={form['guardian.relation']} onChange={handleChange} />
+          <Field label="Guardian Phone" name="guardian.phone" value={form['guardian.phone']} onChange={handleChange} />
         </Section>
 
         <Section title={<span className="flex items-center gap-2"><FiAward /> Academic Details</span>}>
@@ -139,13 +205,19 @@ export default function AddStudent() {
               <input type="checkbox" id="hostel" name="isHosteler" checked={form.isHosteler} onChange={handleChange} className="rounded" />
               <label htmlFor="hostel" className="label mb-0 cursor-pointer">Is Hostel Student?</label>
             </div>
+            {form.isHosteler && (
+              <div>
+                <label className="label">Hostel Room</label>
+                <input className="input" name="hostelRoom" value={form.hostelRoom} onChange={handleChange} />
+              </div>
+            )}
           </div>
         </div>
 
         <div className="flex gap-3 justify-end">
           <button type="button" onClick={() => navigate(-1)} className="btn-secondary">Cancel</button>
           <button type="submit" disabled={loading} className="btn-primary px-8">
-            {loading ? 'Saving...' : 'Create Student'}
+            {loading ? 'Saving...' : isEdit ? 'Update Student' : 'Create Student'}
           </button>
         </div>
       </form>

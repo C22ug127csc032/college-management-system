@@ -2,38 +2,59 @@ import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import NotificationBell from '../common/NotificationBell';
+import {
+  FiBarChart2,
+  FiBell,
+  FiBook,
+  FiCalendar,
+  FiClipboard,
+  FiClock,
+  FiCreditCard,
+  FiDollarSign,
+  FiEdit3,
+  FiFileText,
+  FiLogOut,
+  FiMenu,
+  FiPackage,
+  FiShoppingBag,
+  FiTarget,
+  FiTrendingDown,
+  FiTrendingUp,
+  FiUser,
+  FiUsers,
+} from '../common/icons';
 
 const ALL_NAV = [
   {
-    to: '/admin', label: 'Dashboard', icon: '📊', exact: true,
+    to: '/admin', label: 'Dashboard', icon: FiBarChart2, exact: true,
     roles: ['super_admin','class_teacher','hostel_warden','shop_operator','canteen_operator','librarian'],
   },
   { section: 'Students',        roles: ['super_admin','class_teacher'] },
-  { to: '/admin/students',      label: 'Students',      icon: '🎓', roles: ['super_admin','class_teacher'] },
-  { to: '/admin/courses',       label: 'Courses',       icon: '🎯', roles: ['super_admin','class_teacher'] },
+  { to: '/admin/students',      label: 'Students',      icon: FiUser, roles: ['super_admin','class_teacher'] },
+  { to: '/admin/courses',       label: 'Courses',       icon: FiTarget, roles: ['super_admin','class_teacher'] },
   { section: 'Fees & Payments', roles: ['super_admin'] },
-  { to: '/admin/fees/structure',label: 'Fee Structure',  icon: '📋', roles: ['super_admin'] },
-  { to: '/admin/fees/assign',   label: 'Assign Fees',   icon: '📝', roles: ['super_admin'] },
-  { to: '/admin/fees/list',     label: 'Fees List',     icon: '💰', roles: ['super_admin','class_teacher'] },
-  { to: '/admin/payments',      label: 'Payments',      icon: '💳', roles: ['super_admin'] },
-  { to: '/admin/wallet',        label: 'Wallet Top-Up', icon: '👛', roles: ['super_admin'] },
+  { to: '/admin/fees/structure',label: 'Fee Structure',  icon: FiClipboard, roles: ['super_admin'] },
+  { to: '/admin/fees/assign',   label: 'Assign Fees',   icon: FiEdit3, roles: ['super_admin'] },
+  { to: '/admin/fees/list',     label: 'Fees List',     icon: FiDollarSign, roles: ['super_admin','class_teacher'] },
+  { to: '/admin/payments',      label: 'Payments',      icon: FiCreditCard, roles: ['super_admin'] },
+  { to: '/admin/wallet',        label: 'Wallet Top-Up', icon: FiCreditCard, roles: ['super_admin'] },
   { section: 'Hostel & Attendance', roles: ['super_admin','class_teacher','hostel_warden'] },
-  { to: '/admin/leave',         label: 'Leave',         icon: '📅', roles: ['super_admin','class_teacher','hostel_warden'] },
-  { to: '/admin/outpass',       label: 'Outpass',       icon: '🚪', roles: ['super_admin','hostel_warden'] },
-  { to: '/admin/checkin',       label: 'Check In/Out',  icon: '🕒', roles: ['super_admin','hostel_warden'] },
+  { to: '/admin/leave',         label: 'Leave',         icon: FiCalendar, roles: ['super_admin','class_teacher','hostel_warden'] },
+  { to: '/admin/outpass',       label: 'Outpass',       icon: FiLogOut, roles: ['super_admin','hostel_warden'] },
+  { to: '/admin/checkin',       label: 'Check In/Out',  icon: FiClock, roles: ['super_admin','hostel_warden'] },
   { section: 'Shop & Canteen',  roles: ['super_admin','shop_operator','canteen_operator'] },
-  { to: '/admin/shop',          label: 'Shop & Canteen',icon: '🏪', roles: ['super_admin','shop_operator','canteen_operator'] },
+  { to: '/admin/shop',          label: 'Shop & Canteen',icon: FiShoppingBag, roles: ['super_admin','shop_operator','canteen_operator'] },
   { section: 'Library',         roles: ['super_admin','librarian'] },
-  { to: '/admin/library',       label: 'Library',       icon: '📚', roles: ['super_admin','librarian'] },
+  { to: '/admin/library',       label: 'Library',       icon: FiBook, roles: ['super_admin','librarian'] },
   { section: 'Administration',  roles: ['super_admin','class_teacher'] },
-  { to: '/admin/inventory',     label: 'Inventory',     icon: '📦', roles: ['super_admin'] },
-  { to: '/admin/expense',       label: 'Expenses',      icon: '💸', roles: ['super_admin'] },
-  { to: '/admin/circulars',     label: 'Circulars',     icon: '📢', roles: ['super_admin','class_teacher'] },
+  { to: '/admin/inventory',     label: 'Inventory',     icon: FiPackage, roles: ['super_admin'] },
+  { to: '/admin/expense',       label: 'Expenses',      icon: FiTrendingDown, roles: ['super_admin'] },
+  { to: '/admin/circulars',     label: 'Circulars',     icon: FiFileText, roles: ['super_admin','class_teacher'] },
   { section: 'Settings & Reports', roles: ['super_admin'] },
-  { to: '/admin/staff',         label: 'Staff',         icon: '👥', roles: ['super_admin'] },
-  { to: '/admin/reports',       label: 'Reports',       icon: '📈', roles: ['super_admin'] },
+  { to: '/admin/staff',         label: 'Staff',         icon: FiUsers, roles: ['super_admin'] },
+  { to: '/admin/reports',       label: 'Reports',       icon: FiTrendingUp, roles: ['super_admin'] },
   {
-    to: '/admin/notifications', label: 'Notifications', icon: '🔔',
+    to: '/admin/notifications', label: 'Notifications', icon: FiBell,
     roles: ['super_admin','class_teacher','hostel_warden','shop_operator','canteen_operator','librarian'],
   },
 ];
@@ -109,7 +130,7 @@ export default function AdminLayout() {
               }
               onClick={() => setMobileOpen(false)}
             >
-              <span className="text-base shrink-0">{item.icon}</span>
+              <item.icon className="text-base shrink-0" />
               {sidebarOpen && <span>{item.label}</span>}
             </NavLink>
           );
@@ -134,7 +155,7 @@ export default function AdminLayout() {
             title="Logout"
             className="text-primary-300 hover:text-white transition-colors text-lg shrink-0"
           >
-            ⏏
+            <FiLogOut />
           </button>
         </div>
       </div>
@@ -175,7 +196,7 @@ export default function AdminLayout() {
             onClick={() => { setSidebarOpen(!sidebarOpen); setMobileOpen(!mobileOpen); }}
             className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors"
           >
-            ☰
+            <FiMenu />
           </button>
           <h1 className="text-gray-800 font-semibold text-sm hidden sm:block">
             College Management System

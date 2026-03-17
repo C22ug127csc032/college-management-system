@@ -6,6 +6,41 @@ const { sendSMS, sendEmail } = utils_notifications;
 import multer from 'multer';
 import path from 'path';
 
+const parseMaybeJson = value => {
+  if (typeof value !== 'string') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+};
+
+const normalizeStudentPayload = body => {
+  const data = { ...body };
+  ['address', 'father', 'mother', 'guardian'].forEach(key => {
+    if (key in data) data[key] = parseMaybeJson(data[key]);
+  });
+  if ('isHosteler' in data) {
+    data.isHosteler = data.isHosteler === true || data.isHosteler === 'true';
+  }
+  if ('semester' in data && data.semester !== '') {
+    data.semester = Number(data.semester);
+  }
+  return data;
+};
+
+const generateNextRegNo = async () => {
+  const latestStudent = await Student.findOne({ regNo: /^REG\d+$/ })
+    .sort({ createdAt: -1 })
+    .select('regNo');
+
+  const latestNumber = latestStudent?.regNo
+    ? Number(latestStudent.regNo.replace(/^REG/, ''))
+    : 0;
+
+  return `REG${String(latestNumber + 1).padStart(6, '0')}`;
+};
+
 // @GET /api/students
 export const getAllStudents = async (req, res) => {
   try {
@@ -48,41 +83,97 @@ export const getStudent = async (req, res) => {
 // @POST /api/students
 export const createStudent = async (req, res) => {
   try {
-    const data = req.body;
+    const data = normalizeStudentPayload(req.body);
     if (req.file) data.photo = `/uploads/${req.file.filename}`;
+    data.email = data.email || undefined;
+
+    const existingUser = await User.findOne({
+      $or: [
+        { phone: data.phone },
+        ...(data.email ? [{ email: data.email.toLowerCase() }] : []),
+      ],
+    });
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        message: existingUser.phone === data.phone
+          ? 'Phone number already exists'
+          : 'Email already exists',
+      });
+    }
+
+    if (!data.regNo) {
+      data.regNo = await generateNextRegNo();
+    }
 
     const student = await Student.create(data);
 
     // Create user account for student login
     const userPass = data.phone; // default password = phone number
-    const user = await User.create({
-      name: `${data.firstName} ${data.lastName}`,
-      phone: data.phone,
-      email: data.email,
-      password: userPass,
-      role: 'student',
-      studentRef: student._id,
-    });
-    student.userRef = user._id;
-    await student.save();
+    try {
+      const user = await User.create({
+        name: `${data.firstName} ${data.lastName}`,
+        phone: data.phone,
+        email: data.email,
+        password: userPass,
+        role: 'student',
+        studentRef: student._id,
+      });
+      student.userRef = user._id;
+      await student.save();
+    } catch (userErr) {
+      await Student.findByIdAndDelete(student._id);
+      throw userErr;
+    }
 
     // Welcome SMS
     await sendSMS(data.phone, `Welcome to College! Your Student ID: ${student.regNo}. Login with your phone number. Password: ${data.phone}`);
 
     res.status(201).json({ success: true, message: 'Student created', student });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    const status = err.code === 11000 ? 409 : 500;
+    res.status(status).json({ success: false, message: err.message });
   }
 };
 
 // @PUT /api/students/:id
 export const updateStudent = async (req, res) => {
   try {
-    const data = req.body;
+    const data = normalizeStudentPayload(req.body);
     if (req.file) data.photo = `/uploads/${req.file.filename}`;
+    data.email = data.email || undefined;
+
+    const studentBeforeUpdate = await Student.findById(req.params.id).select('userRef');
+    if (!studentBeforeUpdate) {
+      return res.status(404).json({ success: false, message: 'Student not found' });
+    }
+
+    const existingUser = await User.findOne({
+      _id: { $ne: studentBeforeUpdate.userRef },
+      $or: [
+        { phone: data.phone },
+        ...(data.email ? [{ email: data.email.toLowerCase() }] : []),
+      ],
+    });
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        message: existingUser.phone === data.phone
+          ? 'Phone number already exists'
+          : 'Email already exists',
+      });
+    }
+
     const student = await Student.findByIdAndUpdate(req.params.id, data, { new: true, runValidators: true })
       .populate('course', 'name code');
     if (!student) return res.status(404).json({ success: false, message: 'Student not found' });
+    if (student.userRef) {
+      await User.findByIdAndUpdate(student.userRef, {
+        name: `${student.firstName} ${student.lastName}`,
+        phone: student.phone,
+        email: student.email,
+      });
+    }
     res.json({ success: true, student });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
