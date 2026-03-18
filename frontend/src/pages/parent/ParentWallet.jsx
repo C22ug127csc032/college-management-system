@@ -11,6 +11,7 @@ export default function ParentWallet() {
   const [loading, setLoading] = useState(true);
   const [amount, setAmount] = useState('');
   const [paying, setPaying] = useState(false);
+  const rupee = '\u20B9';
 
   const studentId = user?.studentRef?._id || user?.studentRef;
 
@@ -30,7 +31,7 @@ export default function ParentWallet() {
 
   const handleTopup = async () => {
     if (!amount || Number(amount) < 10) {
-      toast.error('Minimum top-up is â‚¹10');
+      toast.error(`Minimum top-up is ${rupee}10`);
       return;
     }
     setPaying(true);
@@ -53,7 +54,7 @@ export default function ParentWallet() {
             studentId,
             amount: Number(amount),
           });
-          toast.success(`â‚¹${amount} added to wallet`);
+          toast.success(`${rupee}${amount} added to wallet`);
           setAmount('');
           fetchWallet();
         },
@@ -76,14 +77,14 @@ export default function ParentWallet() {
       <h1 className="page-title mb-6">Child Wallet</h1>
       <div className="bg-gradient-to-r from-green-700 to-green-600 rounded-2xl p-6 text-white mb-6 shadow-lg">
         <p className="text-green-100 text-sm mb-1">Available Balance</p>
-        <p className="text-5xl font-bold">â‚¹{(wallet?.balance || 0).toLocaleString('en-IN')}</p>
+        <p className="text-5xl font-bold">{rupee}{(wallet?.balance || 0).toLocaleString('en-IN')}</p>
         <p className="text-green-100 text-xs mt-3">Use for Shop & Canteen purchases</p>
       </div>
       <div className="card mb-6">
         <h3 className="section-title">Top Up Wallet</h3>
         <div className="flex gap-3">
           <div className="flex-1 relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium">â‚¹</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium">{rupee}</span>
             <input type="number" className="input pl-7" placeholder="Enter amount" min="10" value={amount} onChange={e => setAmount(e.target.value)} />
           </div>
           <button onClick={handleTopup} disabled={paying || !amount} className="btn-primary px-6 whitespace-nowrap">
@@ -106,7 +107,7 @@ export default function ParentWallet() {
               </div>
             </div>
             <span className={txn.type === 'credit' ? 'font-semibold text-green-600' : 'font-semibold text-red-600'}>
-              {txn.type === 'credit' ? '+' : '-'}â‚¹{txn.amount?.toLocaleString('en-IN')}
+              {txn.type === 'credit' ? '+' : '-'}{rupee}{txn.amount?.toLocaleString('en-IN')}
             </span>
           </div>
         ))}

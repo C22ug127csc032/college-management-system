@@ -32,8 +32,6 @@ const normalizeStudentPayload = body => {
 // ── Generate Admission No — ADM2024001 format ─────────────────────────────────
 const generateAdmissionNo = async () => {
   const year = new Date().getFullYear();
-
-  // Find latest admission no for this year
   const latest = await Student.findOne({
     admissionNo: { $regex: `^ADM${year}` },
   })
@@ -42,11 +40,9 @@ const generateAdmissionNo = async () => {
 
   let nextSeq = 1;
   if (latest?.admissionNo) {
-    // Extract sequence number from ADM2024001 → 001 → 1
     const seq = parseInt(latest.admissionNo.replace(`ADM${year}`, ''), 10);
     if (!isNaN(seq)) nextSeq = seq + 1;
   }
-
   return `ADM${year}${String(nextSeq).padStart(3, '0')}`;
 };
 
@@ -175,9 +171,9 @@ export const createStudent = async (req, res) => {
       data.admissionNo = await generateAdmissionNo();
     }
 
-    // ── Reg No logic — empty until university assigns ─────────────────────
+    // ── Reg No — empty until university assigns ───────────────────────────
     if (!data.regNo || data.regNo.trim() === '') {
-      data.regNo  = null;   // ← no TEMP, just null
+      delete data.regNo;
       data.status = 'admission_pending';
     } else {
       data.status = data.status || 'active';
@@ -185,30 +181,37 @@ export const createStudent = async (req, res) => {
 
     const student = await Student.create(data);
 
-    // Create student login account — default password = phone number
+    // ── Create student login account ──────────────────────────────────────
+    // Default password = admissionNo (NOT phone number anymore)
+    // isFirstLogin = true → forces student to change password on first login
     try {
       const user = await User.create({
-        name:       `${data.firstName} ${data.lastName}`,
-        phone:      data.phone,
-        email:      data.email,
-        password:   data.phone,
-        role:       'student',
-        studentRef: student._id,
+        name:         `${data.firstName} ${data.lastName}`,
+        phone:        data.phone,
+        email:        data.email,
+        password:     student.admissionNo,  // ← admissionNo as default password
+        role:         'student',
+        studentRef:   student._id,
+        isFirstLogin: true,                 // ← force password change
       });
       student.userRef = user._id;
       await student.save();
     } catch (userErr) {
+      // Rollback student if user creation fails
       await Student.findByIdAndDelete(student._id);
       throw userErr;
     }
 
-    // Welcome SMS
+    // ── Welcome SMS with admission credentials ────────────────────────────
     try {
       await sendSMS(
         data.phone,
-        `Welcome to College! Your Admission No: ${student.admissionNo}. ` +
-        `Login at Student Portal with your phone number. ` +
-        `Default password: ${data.phone}`
+        `Welcome to College! \n` +
+        `Admission No: ${student.admissionNo}\n` +
+        `Login at Student Portal:\n` +
+        `Phone: ${data.phone}\n` +
+        `Password: ${student.admissionNo}\n` +
+        `You will be asked to set a new password on first login.`
       );
     } catch {
       // SMS failure should not block student creation
@@ -237,12 +240,12 @@ export const updateStudent = async (req, res) => {
     if (!existing)
       return res.status(404).json({ success: false, message: 'Student not found' });
 
-    // ── Protect admissionNo — never overwrite existing one ────────────────
+    // Protect admissionNo — never overwrite existing one
     if (existing.admissionNo) {
       delete data.admissionNo;
     }
 
-    // ── Class strength check on update ────────────────────────────────────
+    // Class strength check on update
     if (
       data.className &&
       data.course &&
@@ -258,12 +261,14 @@ export const updateStudent = async (req, res) => {
       }
     }
 
-    // ── If reg no now assigned → activate student ─────────────────────────
-    if (
-      !existing.regNo &&
-      data.regNo &&
-      data.regNo.trim() !== ''
-    ) {
+    // Handle regNo update
+    if ('regNo' in data && (!data.regNo || data.regNo.trim() === '')) {
+      delete data.regNo;
+      if (!existing.regNo) data.status = 'admission_pending';
+    }
+
+    // Activate student when reg no assigned
+    if (!existing.regNo && data.regNo && data.regNo.trim() !== '') {
       data.status = 'active';
     }
 
@@ -405,26 +410,21 @@ export const getClassStrength = async (req, res) => {
 export const promoteClass = async (req, res) => {
   try {
     const { className, courseId } = req.body;
-
     if (!className) {
       return res.status(400).json({
-        success: false,
-        message: 'className is required',
+        success: false, message: 'className is required',
       });
     }
-
     const students = await Student.find({
       className,
       status: { $in: ['active', 'admission_pending'] },
     });
-
     if (students.length === 0) {
       return res.status(404).json({
         success: false,
         message: `No active students found in class ${className}`,
       });
     }
-
     const course    = courseId ? await Course.findById(courseId) : null;
     const maxSem    = course?.semesters || 6;
     const promoted  = [];
@@ -445,18 +445,14 @@ export const promoteClass = async (req, res) => {
         promoted.push(`${student.firstName} ${student.lastName}`);
       }
     }
-
     res.json({
       success: true,
       message: `Promotion complete for ${className}`,
       summary: {
-        total:     students.length,
-        promoted:  promoted.length,
-        graduated: graduated.length,
-        skipped:   skipped.length,
+        total: students.length, promoted: promoted.length,
+        graduated: graduated.length, skipped: skipped.length,
       },
-      promoted,
-      graduated,
+      promoted, graduated,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -469,16 +465,13 @@ export const promoteSingle = async (req, res) => {
     const { studentId } = req.body;
     const student = await Student.findById(studentId)
       .populate('course', 'semesters');
-
     if (!student) {
       return res.status(404).json({
         success: false, message: 'Student not found',
       });
     }
-
     const maxSem     = student.course?.semesters || 6;
     const currentSem = student.semester || 1;
-
     if (currentSem >= maxSem) {
       await Student.findByIdAndUpdate(studentId, { status: 'graduated' });
       return res.json({
@@ -487,13 +480,11 @@ export const promoteSingle = async (req, res) => {
         action:  'graduated',
       });
     }
-
     const updated = await Student.findByIdAndUpdate(
       studentId,
       { semester: currentSem + 1, status: 'active' },
       { new: true }
     ).populate('course', 'name code semesters');
-
     res.json({
       success: true,
       message: `${student.firstName} promoted to Semester ${currentSem + 1}`,

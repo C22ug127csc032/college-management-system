@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 
+const INVALID_LOGIN_MESSAGE = 'Invalid email or password';
+
 export default function StudentLogin() {
   const { login, completeLogin } = useAuth();
   const navigate = useNavigate();
@@ -20,16 +22,26 @@ export default function StudentLogin() {
     setLoading(true);
     setLoginFailed(false);
     try {
-      const user = await login(form.phone, form.password);
-      if (user.role !== 'student') {
-        toast.error('This portal is for students only');
+      const data = await login(form.phone, form.password);
+
+      if (data.user.role !== 'student') {
+        setLoginFailed(true);
+        toast.error(INVALID_LOGIN_MESSAGE);
         return;
       }
+
+      const user = completeLogin(data);
       toast.success(`Welcome, ${user.name}!`);
+
+      if (user.isFirstLogin) {
+        navigate('/student/set-password');
+        return;
+      }
+
       navigate('/student');
     } catch (err) {
-      setLoginFailed(true);
-      toast.error('Invalid email, phone, or password');
+      setLoginFailed(err.response?.status === 401);
+      toast.error(INVALID_LOGIN_MESSAGE);
     } finally {
       setLoading(false);
     }
@@ -60,12 +72,20 @@ export default function StudentLogin() {
         phone: form.phone,
         otp: form.otp,
       });
+
       if (r.data.user.role !== 'student') {
-        toast.error('This portal is for students only');
+        toast.error(INVALID_LOGIN_MESSAGE);
         return;
       }
+
       const user = completeLogin(r.data);
       toast.success(`Welcome, ${user.name}!`);
+
+      if (user.isFirstLogin) {
+        navigate('/student/set-password');
+        return;
+      }
+
       navigate('/student');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Invalid OTP');
@@ -78,7 +98,7 @@ export default function StudentLogin() {
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-indigo-800 to-indigo-700 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-indigo-700 text-3xl font-bold mx-auto mb-4 shadow-xl">
+          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-indigo-700 text-3xl mx-auto mb-4 shadow-xl">
             S
           </div>
           <h1 className="text-3xl font-bold text-white">Student Portal</h1>
@@ -110,9 +130,13 @@ export default function StudentLogin() {
               </div>
               <div>
                 <label className="label">Password</label>
-                <p className="text-xs text-gray-400 mb-1">
-                  Default password is your phone number
-                </p>
+                <div className="flex items-start gap-2 p-2.5 bg-indigo-50 border border-indigo-100 rounded-lg mb-2">
+                  <span className="text-indigo-400 text-sm">Tip</span>
+                  <p className="text-xs text-indigo-600">
+                    Default password is your <strong>Admission No</strong> (e.g. ADM2026001).
+                    You will be asked to change it on first login.
+                  </p>
+                </div>
                 <input
                   type="password"
                   className="input"
@@ -128,7 +152,7 @@ export default function StudentLogin() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50"
+                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg disabled:opacity-50"
               >
                 {loading ? 'Signing in...' : 'Sign In'}
               </button>
@@ -156,7 +180,6 @@ export default function StudentLogin() {
                   </button>
                 </div>
               </div>
-
               {otpSent && (
                 <div>
                   <label className="label">Enter OTP</label>
@@ -170,7 +193,7 @@ export default function StudentLogin() {
                     required
                   />
                   <p className="text-xs text-gray-400 mt-1">
-                    OTP valid for 10 minutes.{' '}
+                    Valid for 10 minutes.{` `}
                     <button
                       type="button"
                       onClick={handleSendOTP}
@@ -181,22 +204,20 @@ export default function StudentLogin() {
                   </p>
                 </div>
               )}
-
               <button
                 type="submit"
                 disabled={loading || !otpSent}
-                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50"
+                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg disabled:opacity-50"
               >
                 {loading ? 'Verifying...' : 'Verify & Login'}
               </button>
-
               <button
                 type="button"
                 onClick={() => {
                   setShowOTP(false);
                   setOtpSent(false);
                 }}
-                className="w-full text-sm text-gray-500 hover:underline pt-1"
+                className="w-full text-sm text-gray-500 hover:underline"
               >
                 Back to Password Login
               </button>
@@ -205,11 +226,16 @@ export default function StudentLogin() {
 
           {loginFailed && !showOTP && (
             <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
-              <div className="mb-2">
-                <p className="text-sm font-semibold text-yellow-800">Wrong password?</p>
-                <p className="text-xs text-yellow-600 mt-0.5">
-                  Default password is your phone number. If you changed it, use OTP to login.
-                </p>
+              <div className="flex items-start gap-2 mb-2">
+                <span className="text-yellow-500">Warning</span>
+                <div>
+                  <p className="text-sm font-semibold text-yellow-800">
+                    Wrong password?
+                  </p>
+                  <p className="text-xs text-yellow-600 mt-0.5">
+                    Default password is your Admission No (ADM2026001). Forgot it? Use OTP to login.
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => {
@@ -217,13 +243,12 @@ export default function StudentLogin() {
                   setLoginFailed(false);
                   setForm(f => ({ ...f, password: '' }));
                 }}
-                className="w-full py-2 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 border border-yellow-300 rounded-lg text-sm font-semibold transition-colors mt-1"
+                className="w-full py-2 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 border border-yellow-300 rounded-lg text-sm font-semibold transition-colors"
               >
                 Login with OTP instead
               </button>
             </div>
           )}
-
         </div>
       </div>
     </div>

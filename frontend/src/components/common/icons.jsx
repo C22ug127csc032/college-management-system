@@ -1,6 +1,7 @@
 export {
   FiActivity,
   FiAlertCircle,
+  FiAlertTriangle,
   FiAlertOctagon,
   FiArrowDown,
   FiArrowLeft,
@@ -22,8 +23,10 @@ export {
   FiCreditCard,
   FiDollarSign,
   FiEdit3,
+  FiEye,
   FiFileText,
   FiHome,
+  FiInfo,
   FiInbox,
   FiLogOut,
   FiMenu,
@@ -33,6 +36,7 @@ export {
   FiTrendingDown,
   FiTrendingUp,
   FiUser,
+  FiUserPlus,
   FiUsers,
   FiX,
 } from 'react-icons/fi';

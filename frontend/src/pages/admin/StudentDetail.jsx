@@ -3,7 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api, { downloadPaymentReceipt } from '../../api/axios';
 import { PageSpinner, StatusBadge } from '../../components/common';
 import toast from 'react-hot-toast';
-import { FiArrowLeft, FiEdit3 } from '../../components/common/icons';
+import {
+  FiAlertCircle,
+  FiArrowLeft,
+  FiClock,
+  FiEdit3,
+} from '../../components/common/icons';
 
 const TABS = ['Profile', 'Fees', 'Payments', 'Ledger', 'Leave', 'Outpass'];
 
@@ -79,7 +84,8 @@ export default function StudentDetail() {
         {isPending
           ? <span className="inline-flex items-center gap-1 text-xs text-yellow-700
               bg-yellow-50 border border-yellow-200 px-2.5 py-1 rounded-full font-medium">
-              ⏳ Enrollment Pending
+              <FiClock className="shrink-0" />
+              Enrollment Pending
             </span>
           : <StatusBadge status={student.status} />
         }
@@ -95,7 +101,7 @@ export default function StudentDetail() {
       {isPending && (
         <div className="flex items-start gap-3 p-4 bg-yellow-50 border
           border-yellow-200 rounded-xl mb-6">
-          <span className="text-yellow-500 text-xl mt-0.5">⏳</span>
+          <FiClock className="text-yellow-500 text-xl mt-0.5 shrink-0" />
           <div>
             <p className="text-sm font-semibold text-yellow-800">
               University Enrollment Pending
@@ -130,7 +136,7 @@ export default function StudentDetail() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 flex-1 min-w-0">
           {[
             ['Admission No', student.admissionNo || '–'],
-            ['Reg No',    isPending ? '⏳ Pending' : student.regNo],
+            ['Reg No',    isPending ? 'Pending' : student.regNo],
             ['Phone',     student.phone],
             ['Course',    student.course?.name],
             ['Admission', student.admissionDate
@@ -194,11 +200,11 @@ export default function StudentDetail() {
             <h3 className="section-title">Academic Details</h3>
             <Row label="Admission No" value={student.admissionNo} />
             <Row label="Register No"
-              value={isPending ? '⏳ Not assigned yet' : student.regNo} />
+              value={isPending ? 'Not assigned yet' : student.regNo} />
             <Row label="Roll No"
-              value={student.rollNo || '⏳ Not assigned yet'} />
+              value={student.rollNo || 'Not assigned yet'} />
             <Row label="Section"
-              value={student.section || '⏳ Not assigned yet'} />
+              value={student.section || 'Not assigned yet'} />
             <Row label="Class"        value={student.className} />
             <Row label="Semester"
               value={student.semester ? `Semester ${student.semester}` : null} />
@@ -264,7 +270,8 @@ export default function StudentDetail() {
               <div className="p-3 bg-yellow-50 border border-yellow-200
                 rounded-xl">
                 <p className="text-xs text-yellow-700">
-                  ⚠️ No parent details added. Parent cannot register
+                  <FiAlertCircle className="inline mr-1 align-[-2px]" />
+                  No parent details added. Parent cannot register
                   without father/mother phone number.{' '}
                   <button
                     onClick={() => navigate(`/admin/students/${id}/edit`)}
@@ -282,7 +289,8 @@ export default function StudentDetail() {
               <div className="mt-3 p-3 bg-orange-50 border border-orange-200
                 rounded-xl">
                 <p className="text-xs text-orange-700">
-                  ⚠️ Parent phone number missing. Parent cannot register
+                  <FiAlertCircle className="inline mr-1 align-[-2px]" />
+                  Parent phone number missing. Parent cannot register
                   without a phone number.{' '}
                   <button
                     onClick={() => navigate(`/admin/students/${id}/edit`)}

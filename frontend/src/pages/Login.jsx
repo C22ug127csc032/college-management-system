@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 
+const INVALID_LOGIN_MESSAGE = 'Invalid email or password';
+
 export default function Login() {
   const { login, completeLogin } = useAuth();
   const navigate = useNavigate();
@@ -20,24 +22,20 @@ export default function Login() {
     setLoading(true);
     setLoginFailed(false);
     try {
-      const user = await login(form.phone, form.password);
+      const data = await login(form.phone, form.password);
 
-      if (user.role === 'student') {
-        toast.error('Students must use Student Login');
-        navigate('/login');
-        return;
-      }
-      if (user.role === 'parent') {
-        toast.error('Parents must use Parent Login');
-        navigate('/parent/register');
+      if (data.user.role === 'student' || data.user.role === 'parent') {
+        setLoginFailed(true);
+        toast.error(INVALID_LOGIN_MESSAGE);
         return;
       }
 
+      const user = completeLogin(data);
       toast.success(`Welcome, ${user.name}!`);
       navigate('/admin');
     } catch (err) {
-      setLoginFailed(true);
-      toast.error('Invalid email, phone, or password');
+      setLoginFailed(err.response?.status === 401);
+      toast.error(INVALID_LOGIN_MESSAGE);
     } finally {
       setLoading(false);
     }
@@ -52,7 +50,7 @@ export default function Login() {
     try {
       await api.post('/auth/send-otp', { phone: form.phone });
       setOtpSent(true);
-      toast.success(`OTP sent to ${form.phone}`);
+      toast.success('OTP sent to ' + form.phone);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to send OTP');
     } finally {
@@ -69,14 +67,8 @@ export default function Login() {
         otp: form.otp,
       });
 
-      if (r.data.user.role === 'student') {
-        toast.error('Students must use Student Login');
-        navigate('/login');
-        return;
-      }
-      if (r.data.user.role === 'parent') {
-        toast.error('Parents must use Parent Login');
-        navigate('/parent/register');
+      if (r.data.user.role === 'student' || r.data.user.role === 'parent') {
+        toast.error(INVALID_LOGIN_MESSAGE);
         return;
       }
 
@@ -115,7 +107,7 @@ export default function Login() {
                 <input
                   type="text"
                   className="input"
-                  placeholder="Enter registered email or phone"
+                  placeholder="Enter your email or phone number"
                   value={form.phone}
                   onChange={e => {
                     setForm({ ...form, phone: e.target.value });
@@ -154,7 +146,7 @@ export default function Login() {
                   <input
                     type="tel"
                     className="input flex-1"
-                    placeholder="Enter registered phone"
+                    placeholder="Enter phone number"
                     value={form.phone}
                     onChange={e => setForm({ ...form, phone: e.target.value })}
                     required
@@ -169,13 +161,12 @@ export default function Login() {
                   </button>
                 </div>
               </div>
-
               {otpSent && (
                 <div>
                   <label className="label">Enter OTP</label>
                   <input
                     type="text"
-                    className="input text-center text-2xl tracking-widest font-bold"
+                    className="input text-center text-2xl tracking-widest"
                     placeholder="------"
                     maxLength={6}
                     value={form.otp}
@@ -183,7 +174,7 @@ export default function Login() {
                     required
                   />
                   <p className="text-xs text-gray-400 mt-1">
-                    OTP valid for 10 minutes.{' '}
+                    Valid for 10 minutes.{` `}
                     <button
                       type="button"
                       onClick={handleSendOTP}
@@ -194,22 +185,20 @@ export default function Login() {
                   </p>
                 </div>
               )}
-
               <button
                 type="submit"
                 disabled={loading || !otpSent}
-                className="btn-primary w-full py-3 text-base font-semibold disabled:opacity-50"
+                className="btn-primary w-full py-3 disabled:opacity-50"
               >
                 {loading ? 'Verifying...' : 'Verify & Login'}
               </button>
-
               <button
                 type="button"
                 onClick={() => {
                   setShowOTP(false);
                   setOtpSent(false);
                 }}
-                className="w-full text-sm text-gray-500 hover:text-gray-700 hover:underline pt-1"
+                className="w-full text-sm text-gray-500 hover:underline"
               >
                 Back to Password Login
               </button>
@@ -218,11 +207,16 @@ export default function Login() {
 
           {loginFailed && !showOTP && (
             <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
-              <div className="mb-2">
-                <p className="text-sm font-semibold text-yellow-800">Wrong password?</p>
-                <p className="text-xs text-yellow-600 mt-0.5">
-                  You can login using OTP sent to your registered phone instead.
-                </p>
+              <div className="flex items-start gap-2 mb-2">
+                <span className="text-yellow-500">Warning</span>
+                <div>
+                  <p className="text-sm font-semibold text-yellow-800">
+                    Wrong password?
+                  </p>
+                  <p className="text-xs text-yellow-600 mt-0.5">
+                    Use OTP to login instead.
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => {
@@ -230,7 +224,7 @@ export default function Login() {
                   setLoginFailed(false);
                   setForm(f => ({ ...f, password: '' }));
                 }}
-                className="w-full py-2 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 border border-yellow-300 rounded-lg text-sm font-semibold transition-colors mt-1"
+                className="w-full py-2 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 border border-yellow-300 rounded-lg text-sm font-semibold transition-colors"
               >
                 Login with OTP instead
               </button>

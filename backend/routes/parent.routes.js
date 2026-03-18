@@ -1,85 +1,116 @@
 ﻿import express from 'express';
-import * as c from '../controllers/parent.controller.js';
+import {
+  requestRegisterOTP,
+  verifyRegisterOTP,
+  register,
+  sendOTP,
+  verifyOTP,
+  getDashboard,
+  getStudent,
+} from '../controllers/parent.controller.js';
 import { protect, authorize } from '../middleware/auth.middleware.js';
-import Leave from '../models/Leave.model.js';
-import Outpass from '../models/Outpass.model.js';
+import Leave      from '../models/Leave.model.js';
+import Outpass    from '../models/Outpass.model.js';
 import StudentFees from '../models/StudentFees.model.js';
-import Circular from '../models/Circular.model.js';
-import Payment from '../models/Payment.model.js';
+import Circular   from '../models/Circular.model.js';
+import Payment    from '../models/Payment.model.js';
+import User       from '../models/User.model.js';
 
 const router = express.Router();
 
-// Public routes
-router.post('/register',   c.register);
-router.post('/send-otp',   c.sendOTP);
-router.post('/verify-otp', c.verifyOTP);
+// ── Public routes — no auth needed ───────────────────────────────────────────
+router.post('/request-register-otp', requestRegisterOTP);
+router.post('/verify-register-otp',  verifyRegisterOTP);
+router.post('/register',             register);
+router.post('/send-otp',             sendOTP);
+router.post('/verify-otp',           verifyOTP);
 
-// Protected â€” parent only
+// ── Protected — parent only ───────────────────────────────────────────────────
 router.use(protect);
 router.use(authorize('parent'));
 
-router.get('/dashboard', c.getDashboard);
-router.get('/student',   c.getStudent);
+router.get('/dashboard', getDashboard);
+router.get('/student',   getStudent);
 
 // Leave
 router.post('/leave', async (req, res) => {
   try {
+    const fullUser = await User.findById(req.user._id);
     const { leaveType, fromDate, toDate, reason } = req.body;
     const leave = await Leave.create({
-      student: req.user.studentRef,
-      appliedBy: req.user.id,
+      student:       fullUser.studentRef,
+      appliedBy:     req.user._id,
       appliedByRole: 'parent',
       leaveType, fromDate, toDate, reason,
     });
     res.status(201).json({ success: true, leave });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 router.get('/leave', async (req, res) => {
   try {
-    const leaves = await Leave.find({ student: req.user.studentRef })
+    const fullUser = await User.findById(req.user._id);
+    const leaves = await Leave.find({ student: fullUser.studentRef })
       .populate('approvedBy', 'name').sort('-createdAt');
     res.json({ success: true, leaves });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 // Outpass
 router.post('/outpass', async (req, res) => {
   try {
+    const fullUser = await User.findById(req.user._id);
     const { exitDate, exitTime, expectedReturn, reason, destination } = req.body;
     const outpass = await Outpass.create({
-      student: req.user.studentRef,
-      requestedBy: req.user.id,
+      student:      fullUser.studentRef,
+      requestedBy:  req.user._id,
       exitDate, exitTime, expectedReturn, reason, destination,
     });
     res.status(201).json({ success: true, outpass });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 router.get('/outpass', async (req, res) => {
   try {
-    const outpasses = await Outpass.find({ student: req.user.studentRef })
+    const fullUser = await User.findById(req.user._id);
+    const outpasses = await Outpass.find({ student: fullUser.studentRef })
       .populate('approvedBy', 'name').sort('-createdAt');
     res.json({ success: true, outpasses });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 // Fees
 router.get('/fees', async (req, res) => {
   try {
-    const fees = await StudentFees.find({ student: req.user.studentRef })
+    const fullUser = await User.findById(req.user._id);
+    const fees = await StudentFees.find({ student: fullUser.studentRef })
       .populate('structure', 'name feeHeads').sort('-createdAt');
     res.json({ success: true, fees });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 // Payments
 router.get('/payments', async (req, res) => {
   try {
-    const payments = await Payment.find({ student: req.user.studentRef, status: 'success' })
-      .sort('-paymentDate');
+    const fullUser = await User.findById(req.user._id);
+    const payments = await Payment.find({
+      student: fullUser.studentRef,
+      status:  'success',
+    }).sort('-paymentDate');
     res.json({ success: true, payments });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 // Circulars
@@ -87,10 +118,16 @@ router.get('/circulars', async (req, res) => {
   try {
     const circulars = await Circular.find({
       isPublished: true,
-      audience: { $in: ['parents', 'all'] },
+      $or: [
+        { audience: 'all' },
+        { audience: 'parents' },
+        { audience: { $in: ['all', 'parents'] } },
+      ],
     }).sort('-publishDate').limit(30);
     res.json({ success: true, circulars });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 export default router;

@@ -179,7 +179,7 @@ export default function ReportsPage() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard icon={<FiDollarSign />} label="Total Billed"  value={fmt(data.summary?.totalBilled)}    color="blue" />
                 <StatCard icon={<FiCheckCircle />} label="Collected"     value={fmt(data.summary?.totalCollected)}  color="green" />
-                <StatCard icon="⏳" label="Total Due"     value={fmt(data.summary?.totalDue)}        color="yellow" />
+                <StatCard icon={<FiClock />} label="Total Due"     value={fmt(data.summary?.totalDue)}        color="yellow" />
                 <StatCard icon={<FiAlertCircle />} label="Overdue Count" value={data.summary?.overdue || 0}         color="red" />
               </div>
               <div className="card">

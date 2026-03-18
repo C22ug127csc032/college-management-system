@@ -5,7 +5,17 @@ import {
   PageHeader, StatusBadge, EmptyState,
   FilterBar, Pagination, PageSpinner,
 } from '../../components/common';
-import { FiUsers } from '../../components/common/icons';
+import {
+  FiAlertTriangle,
+  FiAward,
+  FiBook,
+  FiCheckCircle,
+  FiClock,
+  FiHome,
+  FiTrendingUp,
+  FiUsers,
+  FiX,
+} from '../../components/common/icons';
 import toast from 'react-hot-toast';
 
 // ── Class Strength Bar ────────────────────────────────────────────────────────
@@ -34,7 +44,7 @@ function ClassStrengthBar({ className, courseId }) {
           strength.full ? 'text-red-700'
           : strength.percentage >= 80 ? 'text-yellow-700'
           : 'text-green-700'}`}>
-          🏫 {className}
+          <span className="inline-flex items-center gap-1"><FiHome className="shrink-0" /> {className}</span>
         </p>
         <p className="text-xs text-gray-500 mt-0.5">Class Strength</p>
       </div>
@@ -67,7 +77,7 @@ function ClassStrengthBar({ className, courseId }) {
           {strength.percentage}%
         </p>
         <p className="text-xs text-gray-400">
-          {strength.full ? '🚫 Full' : `${strength.remaining} left`}
+          {strength.full ? 'Full' : `${strength.remaining} left`}
         </p>
       </div>
     </div>
@@ -153,7 +163,7 @@ function PromoteModal({ open, onClose, onDone, courses }) {
           </div>
           <button onClick={onClose}
             className="text-gray-400 hover:text-gray-600 text-xl">
-            ✕
+            <FiX />
           </button>
         </div>
 
@@ -163,7 +173,9 @@ function PromoteModal({ open, onClose, onDone, courses }) {
           {result ? (
             <div className="space-y-4">
               <div className="text-center py-4">
-                <p className="text-4xl mb-3">🎉</p>
+                <div className="flex justify-center mb-3">
+                  <FiCheckCircle className="text-4xl text-green-600" />
+                </div>
                 <p className="text-lg font-bold text-gray-800">
                   Promotion Complete!
                 </p>
@@ -196,13 +208,14 @@ function PromoteModal({ open, onClose, onDone, courses }) {
               {result.graduated.length > 0 && (
                 <div className="p-3 bg-purple-50 rounded-xl border
                   border-purple-200">
-                  <p className="text-xs font-semibold text-purple-700 mb-2">
-                    🎓 Graduated Students:
+                  <p className="text-xs font-semibold text-purple-700 mb-2 inline-flex items-center gap-1">
+                    <FiAward className="shrink-0" />
+                    Graduated Students:
                   </p>
                   <div className="space-y-1">
                     {result.graduated.map((name, i) => (
                       <p key={i} className="text-xs text-purple-600">
-                        • {name}
+                        {name}
                       </p>
                     ))}
                   </div>
@@ -266,8 +279,8 @@ function PromoteModal({ open, onClose, onDone, courses }) {
                       willGraduate ? 'text-purple-800' : 'text-blue-800'
                     }`}>
                       {willGraduate
-                        ? '🎓 These students will be GRADUATED'
-                        : `📈 Semester ${currentSem} → ${nextSem}`
+                        ? 'These students will be graduated'
+                        : `Semester ${currentSem} to ${nextSem}`
                       }
                     </p>
                     <span className={`text-xs font-bold px-2 py-0.5
@@ -295,8 +308,8 @@ function PromoteModal({ open, onClose, onDone, courses }) {
                           willGraduate ? 'text-purple-500' : 'text-blue-500'
                         }`}>
                           Sem {s.semester}
-                          {' → '}
-                          {willGraduate ? '🎓' : `Sem ${nextSem}`}
+                          {' to '}
+                          {willGraduate ? 'Graduated' : `Sem ${nextSem}`}
                         </span>
                       </div>
                     ))}
@@ -308,7 +321,7 @@ function PromoteModal({ open, onClose, onDone, courses }) {
               {selectedClass && (
                 <div className="flex items-start gap-2 p-3 bg-yellow-50
                   border border-yellow-200 rounded-xl">
-                  <span className="text-yellow-500 text-base mt-0.5">⚠️</span>
+                  <FiAlertTriangle className="text-yellow-500 text-base mt-0.5 shrink-0" />
                   <p className="text-xs text-yellow-700">
                     This will update ALL active students in{' '}
                     <strong>{selectedClass}</strong>.
@@ -457,7 +470,8 @@ export default function Students() {
               onClick={() => setShowPromote(true)}
               className="btn-secondary flex items-center gap-2"
             >
-              📈 Promote Class
+              <FiTrendingUp />
+              Promote Class
             </button>
             <button
               className="btn-primary"
@@ -473,17 +487,17 @@ export default function Students() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
           { label: 'Total',    value: total,
-            icon: '🎓', color: 'bg-blue-50 text-blue-700' },
+            icon: FiUsers, color: 'bg-blue-50 text-blue-700' },
           { label: 'Active',   value: students.filter(s => s.status === 'active').length,
-            icon: '✅', color: 'bg-green-50 text-green-700' },
+            icon: FiCheckCircle, color: 'bg-green-50 text-green-700' },
           { label: 'Pending',  value: pendingCount,
-            icon: '⏳', color: 'bg-yellow-50 text-yellow-700' },
+            icon: FiClock, color: 'bg-yellow-50 text-yellow-700' },
           { label: 'Hostel',   value: students.filter(s => s.isHosteler).length,
-            icon: '🏠', color: 'bg-purple-50 text-purple-700' },
+            icon: FiHome, color: 'bg-purple-50 text-purple-700' },
         ].map(stat => (
           <div key={stat.label}
             className={`rounded-xl p-4 flex items-center gap-3 ${stat.color}`}>
-            <span className="text-2xl">{stat.icon}</span>
+            <span className="text-2xl"><stat.icon /></span>
             <div>
               <p className="text-2xl font-bold leading-none">{stat.value}</p>
               <p className="text-xs font-medium opacity-75 mt-0.5">
@@ -537,7 +551,9 @@ export default function Students() {
                 search: '', course: '', status: '', className: '',
               })}
               className="btn-secondary text-sm px-3">
-              Clear ✕
+              <span className="inline-flex items-center gap-1">
+                Clear <FiX />
+              </span>
             </button>
           )}
         </FilterBar>
@@ -549,18 +565,18 @@ export default function Students() {
               <span className="inline-flex items-center gap-1.5 px-3 py-1
                 bg-blue-50 text-blue-700 text-xs font-medium rounded-full
                 border border-blue-200">
-                📚 {courses.find(c => c._id === filters.course)?.name}
+                <FiBook className="shrink-0" /> {courses.find(c => c._id === filters.course)?.name}
                 <button onClick={() => handleCourseFilter('')}
-                  className="hover:text-blue-900">✕</button>
+                  className="hover:text-blue-900"><FiX /></button>
               </span>
             )}
             {filters.className && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1
                 bg-green-50 text-green-700 text-xs font-medium rounded-full
                 border border-green-200">
-                🏫 Class {filters.className}
+                <FiHome className="shrink-0" /> Class {filters.className}
                 <button onClick={() => setFilter('className', '')}
-                  className="hover:text-green-900">✕</button>
+                  className="hover:text-green-900"><FiX /></button>
               </span>
             )}
           </div>
@@ -578,7 +594,7 @@ export default function Students() {
         {pendingCount > 0 && !filters.status && (
           <div className="flex items-center gap-2 p-3 bg-yellow-50
             border border-yellow-200 rounded-xl mb-4">
-            <span className="text-yellow-500 text-lg">⏳</span>
+            <FiClock className="text-yellow-500 text-lg shrink-0" />
             <p className="text-sm text-yellow-800 flex-1">
               <strong>{pendingCount} student{pendingCount > 1 ? 's' : ''}</strong>{' '}
               have admission numbers only — assign Register Number after enrollment.
@@ -649,7 +665,7 @@ export default function Students() {
                               text-xs text-orange-600 bg-orange-50 border
                               border-orange-200 px-2 py-0.5 rounded-full
                               font-medium">
-                              ⏳ Pending
+                              Pending
                             </span>
                           : <span className="font-mono text-xs text-gray-600">
                               {s.regNo || '–'}
@@ -696,7 +712,10 @@ export default function Students() {
                       <td className="table-cell text-center">
                         {s.isHosteler
                           ? <span className="text-purple-600 text-xs font-medium">
-                              🏠 {s.hostelRoom || 'Yes'}
+                              <span className="inline-flex items-center gap-1">
+                                <FiHome className="shrink-0" />
+                                {s.hostelRoom || 'Yes'}
+                              </span>
                             </span>
                           : <span className="text-gray-300 text-xs">–</span>
                         }
@@ -708,7 +727,8 @@ export default function Students() {
                           ? <span className="inline-flex items-center gap-1
                               text-xs text-yellow-700 bg-yellow-50 border
                               border-yellow-200 px-2 py-0.5 rounded-full">
-                              ⏳ Enrollment
+                              <FiClock className="shrink-0" />
+                              Enrollment
                             </span>
                           : <StatusBadge status={s.status} />
                         }

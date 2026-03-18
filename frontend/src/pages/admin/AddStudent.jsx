@@ -3,7 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import api from '../../api/axios';
 import { PageHeader } from '../../components/common';
 import {
+  FiAlertCircle,
+  FiAlertTriangle,
   FiArrowLeft, FiAward, FiCamera,
+  FiCheckCircle,
   FiClipboard, FiHome, FiUsers,
 } from '../../components/common/icons';
 import toast from 'react-hot-toast';
@@ -502,7 +505,7 @@ export default function AddStudent() {
               {/* Card Header */}
               <div className="flex items-start gap-3 mb-4 pb-4
                 border-b border-gray-100">
-                <span className="text-xl">🎓</span>
+                <FiAward className="text-xl text-primary-600 shrink-0" />
                 <div>
                   <p className="text-sm font-semibold text-gray-700">
                     University Enrollment Details
@@ -517,7 +520,8 @@ export default function AddStudent() {
                     px-2.5 py-1 bg-green-50 text-green-700 text-xs
                     font-semibold rounded-full border border-green-200
                     shrink-0">
-                    ✅ Enrollment Complete
+                    <FiCheckCircle className="shrink-0" />
+                    Enrollment Complete
                   </span>
                 )}
               </div>
@@ -611,7 +615,7 @@ export default function AddStudent() {
               {form.section && form.course && form.batch && (
                 <div className="mt-3 flex items-center gap-2 text-xs
                   text-green-600">
-                  <span>✅</span>
+                  <FiCheckCircle className="shrink-0" />
                   <span>
                     Class auto filled as <strong>{form.className}</strong>{' '}
                     from Course + Batch {form.batch} + Section {form.section}
@@ -647,11 +651,20 @@ export default function AddStudent() {
                               ? 'text-yellow-700'
                               : 'text-green-700'
                         }`}>
-                          {classStrength.full
-                            ? '🚫 Class Full'
-                            : classStrength.percentage >= 80
-                              ? '⚠️ Almost Full'
-                              : '✅ Seats Available'}
+                          <span className="inline-flex items-center gap-1">
+                            {classStrength.full
+                              ? <FiAlertCircle className="shrink-0" />
+                              : classStrength.percentage >= 80
+                                ? <FiAlertTriangle className="shrink-0" />
+                                : <FiCheckCircle className="shrink-0" />}
+                            <span>
+                              {classStrength.full
+                                ? 'Class Full'
+                                : classStrength.percentage >= 80
+                                  ? 'Almost Full'
+                                  : 'Seats Available'}
+                            </span>
+                          </span>
                           {' — '}{form.className}
                         </p>
                         <span className={`text-sm font-bold ${

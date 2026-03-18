@@ -32,7 +32,7 @@ export default function ParentLayout() {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const handleLogout = () => { logout(); navigate('/login'); };
+  const handleLogout = () => { logout(); navigate('/parent/login'); };
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">

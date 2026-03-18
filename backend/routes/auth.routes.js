@@ -5,11 +5,12 @@ import { protect, adminOnly } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
-router.post('/login',                       authController.login);
-router.post('/register',  protect, adminOnly, authController.register);
-router.get('/me',         protect,           authController.getMe);
-router.put('/change-password', protect,      authController.changePassword);
-router.get('/users',      protect, adminOnly, authController.getAllUsers);
+router.post('/login',                          authController.login);
+router.post('/register',   protect, adminOnly, authController.register);
+router.get('/me',          protect,            authController.getMe);
+router.put('/change-password', protect,        authController.changePassword);
+router.put('/set-password',    protect,        authController.setFirstPassword); // ← new
+router.get('/users',       protect, adminOnly, authController.getAllUsers);
 router.put('/users/:id/toggle', protect, adminOnly, authController.toggleUser);
 
 // OTP routes

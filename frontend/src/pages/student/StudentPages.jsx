@@ -2,7 +2,19 @@ import React, { useState, useEffect } from 'react';
 import api from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
 import { PageSpinner, StatusBadge, StatCard, EmptyState } from '../../components/common';
-import { FiBell, FiBook, FiCalendar, FiClipboard, FiDollarSign, FiLogOut, HiOutlineHandRaised } from '../../components/common/icons';
+import {
+  FiAlertCircle,
+  FiBell,
+  FiBook,
+  FiCalendar,
+  FiCheckCircle,
+  FiClipboard,
+  FiDollarSign,
+  FiEye,
+  FiInfo,
+  FiLogOut,
+  HiOutlineHandRaised,
+} from '../../components/common/icons';
 import toast from 'react-hot-toast';
 
 // ─── STUDENT DASHBOARD ───────────────────────────────────────────────────────
@@ -44,7 +56,7 @@ export function StudentDashboard() {
       {/* View Only Notice */}
       <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-50
         border border-blue-200 rounded-xl">
-        <span className="text-blue-500 text-base">👁️</span>
+        <FiEye className="text-blue-500 text-base shrink-0" />
         <p className="text-sm text-blue-700">
           You are in <strong>view only</strong> mode.
           Contact your parent to apply leave or request outpass.
@@ -102,7 +114,7 @@ export function StudentFees() {
       {/* View Only Notice */}
       <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-50
         border border-blue-200 rounded-xl mb-6">
-        <span className="text-blue-500 text-base">👁️</span>
+        <FiEye className="text-blue-500 text-base shrink-0" />
         <p className="text-sm text-blue-700">
           View only. To make a payment, ask your parent to login
           at <strong>Parent Portal</strong>.
@@ -172,7 +184,7 @@ export function StudentFees() {
                       <td className="px-4 py-2.5 text-right text-red-600 font-medium">
                         {h.due > 0
                           ? fmt(h.due)
-                          : <span className="text-green-500 text-xs font-semibold">Paid ✓</span>
+                          : <span className="text-green-500 text-xs font-semibold">Paid</span>
                         }
                       </td>
                     </tr>
@@ -186,7 +198,7 @@ export function StudentFees() {
                     <td className="px-4 py-3 text-right font-bold text-red-700">
                       {f.totalDue > 0
                         ? fmt(f.totalDue)
-                        : <span className="text-green-600">Fully Paid ✓</span>
+                        : <span className="text-green-600">Fully Paid</span>
                       }
                     </td>
                   </tr>
@@ -198,7 +210,7 @@ export function StudentFees() {
             {f.totalFine > 0 && (
               <div className="mb-4 px-4 py-2.5 bg-orange-50 border border-orange-200
                 rounded-xl flex items-center gap-2">
-                <span className="text-orange-500">⚠️</span>
+                <FiAlertCircle className="text-orange-500 shrink-0" />
                 <p className="text-sm text-orange-700">
                   Late fine applied: <strong>{fmt(f.totalFine)}</strong>
                 </p>
@@ -209,7 +221,8 @@ export function StudentFees() {
             {f.status !== 'paid' && f.totalDue > 0 && (
               <div className="text-center py-3 bg-gray-50 rounded-xl border border-gray-200">
                 <p className="text-sm text-gray-500">
-                  💡 Ask your parent to login and pay{' '}
+                  <FiInfo className="inline mr-1 align-[-2px]" />
+                  Ask your parent to login and pay{' '}
                   <strong className="text-red-600">{fmt(f.totalDue)}</strong>
                 </p>
               </div>
@@ -219,7 +232,8 @@ export function StudentFees() {
             {f.status === 'paid' && (
               <div className="text-center py-3 bg-green-50 rounded-xl border border-green-200">
                 <p className="text-green-700 font-semibold text-sm">
-                  ✅ All fees paid for this semester
+                  <FiCheckCircle className="inline mr-1 align-[-2px]" />
+                  All fees paid for this semester
                 </p>
               </div>
             )}
@@ -229,7 +243,9 @@ export function StudentFees() {
 
         {fees.length === 0 && (
           <div className="card text-center py-12 text-gray-400">
-            <p className="text-4xl mb-3">💰</p>
+            <div className="flex justify-center mb-3">
+              <FiDollarSign className="text-4xl" />
+            </div>
             <p className="font-medium">No fee records found</p>
             <p className="text-sm mt-1">Contact admin to assign your fees</p>
           </div>
@@ -328,7 +344,7 @@ export function StudentLeave() {
       {/* View Only Notice */}
       <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-50
         border border-blue-200 rounded-xl mb-6">
-        <span className="text-blue-500 text-base">👁️</span>
+        <FiEye className="text-blue-500 text-base shrink-0" />
         <p className="text-sm text-blue-700">
           View only. Only your <strong>parent</strong> can apply leave on your behalf.
         </p>
@@ -364,7 +380,9 @@ export function StudentLeave() {
         ))}
         {leaves.length === 0 && (
           <div className="card text-center py-12 text-gray-400">
-            <p className="text-4xl mb-3">📅</p>
+            <div className="flex justify-center mb-3">
+              <FiCalendar className="text-4xl" />
+            </div>
             <p className="font-medium">No leave requests yet</p>
             <p className="text-sm mt-1">
               Your parent can apply leave from the Parent Portal
@@ -402,7 +420,7 @@ export function StudentOutpass() {
       {/* View Only Notice */}
       <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-50
         border border-blue-200 rounded-xl mb-6">
-        <span className="text-blue-500 text-base">👁️</span>
+        <FiEye className="text-blue-500 text-base shrink-0" />
         <p className="text-sm text-blue-700">
           View only. Only your <strong>parent</strong> can request outpass on your behalf.
         </p>
@@ -433,7 +451,9 @@ export function StudentOutpass() {
         ))}
         {list.length === 0 && (
           <div className="card text-center py-12 text-gray-400">
-            <p className="text-4xl mb-3">🚪</p>
+            <div className="flex justify-center mb-3">
+              <FiLogOut className="text-4xl" />
+            </div>
             <p className="font-medium">No outpass requests yet</p>
             <p className="text-sm mt-1">
               Your parent can request outpass from the Parent Portal

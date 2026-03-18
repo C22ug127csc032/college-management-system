@@ -14,8 +14,14 @@ api.interceptors.request.use(cfg => {
 api.interceptors.response.use(
   res => res,
   err => {
-    if (err.response?.status === 401) {
+    const requestUrl = err.config?.url || '';
+    const isAuthAttempt =
+      requestUrl.includes('/auth/login') ||
+      requestUrl.includes('/auth/verify-otp');
+
+    if (err.response?.status === 401 && !isAuthAttempt) {
       localStorage.removeItem('token');
+      delete api.defaults.headers.common['Authorization'];
       window.location.href = '/login';
     }
     return Promise.reject(err);

@@ -26,6 +26,7 @@ import {
   FiTrendingDown,
   FiTrendingUp,
   FiUser,
+  FiUserPlus,
   FiUsers,
 } from '../../components/common/icons';
 
@@ -127,7 +128,7 @@ export default function Dashboard() {
           <div className="stat-card cursor-pointer hover:shadow-md transition-shadow"
             onClick={() => navigate('/admin/students/add')}>
             <div className="w-12 h-12 rounded-xl bg-yellow-50 text-yellow-600
-              flex items-center justify-center text-2xl shrink-0">🆕</div>
+              flex items-center justify-center text-2xl shrink-0"><FiUserPlus /></div>
             <div>
               <p className="text-2xl font-bold text-gray-900">
                 {studentStats?.newThisMonth || 0}

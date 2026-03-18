@@ -8,7 +8,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser]       = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // ── Restore session on page refresh ────────────────────────────────────────
+  // ── Restore session on page refresh ──────────────────────────────────────
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  // ── Complete login — store token and set user ───────────────────────────────
+  // ── Complete login — store token and set user ─────────────────────────────
   const completeLogin = ({ token, user: nextUser }) => {
     localStorage.setItem('token', token);
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -33,13 +33,35 @@ export const AuthProvider = ({ children }) => {
     return nextUser;
   };
 
-  // ── Password login — sends phone + password to backend ─────────────────────
+  // ── Password login ────────────────────────────────────────────────────────
   const login = async (phone, password) => {
     const r = await api.post('/auth/login', { phone, password });
-    return completeLogin(r.data);
+    return r.data;
   };
 
-  // ── Logout ──────────────────────────────────────────────────────────────────
+  // ── Set first password — student sets password on first login ─────────────
+  const setFirstPassword = async (newPassword, confirmPassword) => {
+    const r = await api.put('/auth/set-password', {
+      newPassword,
+      confirmPassword,
+    });
+    // Update user in state — isFirstLogin is now false
+    setUser(prev => ({ ...prev, isFirstLogin: false }));
+    return r.data;
+  };
+
+  // ── Change password — for logged in users ─────────────────────────────────
+  const changePassword = async (oldPassword, newPassword) => {
+    const r = await api.put('/auth/change-password', {
+      oldPassword,
+      newPassword,
+    });
+    // Update isFirstLogin in state if it was true
+    setUser(prev => ({ ...prev, isFirstLogin: false }));
+    return r.data;
+  };
+
+  // ── Logout ────────────────────────────────────────────────────────────────
   const logout = () => {
     localStorage.removeItem('token');
     delete api.defaults.headers.common['Authorization'];
@@ -54,6 +76,8 @@ export const AuthProvider = ({ children }) => {
       login,
       logout,
       completeLogin,
+      setFirstPassword,
+      changePassword,
     }}>
       {children}
     </AuthContext.Provider>
