@@ -237,23 +237,6 @@ export default function Login() {
             </div>
           )}
 
-          <div className="mt-6 pt-4 border-t border-gray-100">
-            <p className="text-xs text-gray-400 text-center mb-3">Other portals</p>
-            <div className="grid grid-cols-2 gap-3">
-              <a
-                href="/student/login"
-                className="flex items-center justify-center px-3 py-2.5 bg-indigo-50 text-indigo-700 rounded-xl text-sm font-medium hover:bg-indigo-100 transition-colors border border-indigo-200"
-              >
-                Student Login
-              </a>
-              <a
-                href="/parent/login"
-                className="flex items-center justify-center px-3 py-2.5 bg-green-50 text-green-700 rounded-xl text-sm font-medium hover:bg-green-100 transition-colors border border-green-200"
-              >
-                Parent Login
-              </a>
-            </div>
-          </div>
         </div>
       </div>
     </div>

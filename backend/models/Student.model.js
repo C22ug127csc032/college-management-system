@@ -1,78 +1,110 @@
 import mongoose from 'mongoose';
-import { v4 as uuidv4 } from 'uuid';
 
 const studentSchema = new mongoose.Schema({
+
+  // ── Register No ──────────────────────────────────────────────────────────
+  // Auto generated on creation. Admin can update after university enrollment.
   regNo: {
-    type: String,
-    unique: true,
-    default: () => 'REG' + Date.now().toString().slice(-8) + Math.floor(Math.random() * 100)
+    type:    String,
+    unique:  true,
+    sparse:  true,
+  },
+  admissionNo: {
+    type:    String,
+    unique:  true,
+    sparse:  true,
   },
 
-  // Personal Details
-  firstName:    { type: String, required: true },
-  lastName:     { type: String, required: true },
-  dob:          { type: Date },
-  gender:       { type: String, enum: ['Male', 'Female', 'Other'] },
-  bloodGroup:   { type: String },
-  religion:     { type: String },
-  category:     { type: String },
-  nationality:  { type: String, default: 'Indian' },
-  aadharNo:     { type: String },
-  photo:        { type: String },
+  // ── Personal Details ─────────────────────────────────────────────────────
+  firstName:   { type: String, required: true, trim: true },
+  lastName:    { type: String, required: true, trim: true },
+  dob:         { type: Date },
+  gender:      { type: String, enum: ['Male', 'Female', 'Other'] },
+  bloodGroup:  { type: String },
+  religion:    { type: String },
+  category:    { type: String, enum: ['General', 'OBC', 'SC', 'ST', 'EWS'] },
+  nationality: { type: String, default: 'Indian' },
+  aadharNo:    { type: String },
+  photo:       { type: String },
   address: {
-    street: String, city: String, state: String, pincode: String
+    street:  String,
+    city:    String,
+    state:   String,
+    pincode: String,
   },
 
-  // Contact
-  phone:        { type: String, required: true },
-  email:        { type: String },
+  // ── Contact ──────────────────────────────────────────────────────────────
+  phone: { type: String, required: true, unique: true },
+  email: { type: String },
 
-  // Parent Details
+  // ── Parent Details ───────────────────────────────────────────────────────
+  // email removed — not needed, OTP uses phone number
   father: {
     name:       { type: String },
+    phone:      { type: String }, // ← used for parent OTP registration
     occupation: { type: String },
-    phone:      { type: String },
-    email:      { type: String },
   },
   mother: {
     name:       { type: String },
+    phone:      { type: String }, // ← backup contact
     occupation: { type: String },
-    phone:      { type: String },
-    email:      { type: String },
   },
   guardian: {
-    name:       { type: String },
-    relation:   { type: String },
-    phone:      { type: String },
-    email:      { type: String },
+    name:     { type: String },
+    relation: { type: String },
+    phone:    { type: String },
   },
 
-  // Academic
-  course:       { type: mongoose.Schema.Types.ObjectId, ref: 'Course' },
-  className:    { type: String },
-  section:      { type: String },
-  semester:     { type: Number },
-  rollNo:       { type: String },
-  admissionDate:{ type: Date, default: Date.now },
-  academicYear: { type: String },
-  batch:        { type: String },
+  // Annual income — useful for scholarship records
+  annualIncome: {
+    type: String,
+    enum: ['', 'below_1L', '1L_3L', '3L_6L', '6L_10L', 'above_10L'],
+    default: '',
+  },
 
-  // Hostel
-  isHosteler:   { type: Boolean, default: false },
-  hostelRoom:   { type: String },
+  // ── Academic Details ─────────────────────────────────────────────────────
+  course:        { type: mongoose.Schema.Types.ObjectId, ref: 'Course' },
+  className:     { type: String },
+  section:       { type: String },
+  semester:      { type: Number },
+  rollNo:        { type: String },
+  admissionDate: { type: Date, default: Date.now },
+  academicYear:  { type: String },
+  batch:         { type: String },
+  admissionType: {
+    type: String,
+    enum: ['management', 'government', 'nri', 'lateral'],
+    default: 'management',
+  },
 
-  // Status
-  status:       { type: String, enum: ['active', 'inactive', 'graduated', 'dropped'], default: 'active' },
+  // ── Hostel ───────────────────────────────────────────────────────────────
+  isHosteler: { type: Boolean, default: false },
+  hostelRoom:  { type: String },
 
-  userRef:      { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  // ── Status ───────────────────────────────────────────────────────────────
+  // admission_pending = admitted but reg no not yet assigned by university
+  status: {
+    type: String,
+    enum: ['active', 'inactive', 'graduated', 'dropped', 'admission_pending'],
+    default: 'admission_pending', // ← starts as pending until reg no assigned
+  },
 
-  // Advance payment tracking
-  advanceAmount: { type: Number, default: 0 },
+  // ── References ───────────────────────────────────────────────────────────
+  userRef: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+
+  // ── Finance ──────────────────────────────────────────────────────────────
+  advanceAmount:   { type: Number, default: 0 },
   advanceAdjusted: { type: Boolean, default: false },
+
+  // ── Parent Registration OTP ──────────────────────────────────────────────
+  // Temporary OTP storage for secure parent registration
+  parentRegOTP:       { type: String },
+  parentRegOTPExpire: { type: Date },
 
 }, { timestamps: true });
 
-studentSchema.virtual('fullName').get(function() {
+// Virtual — full name
+studentSchema.virtual('fullName').get(function () {
   return `${this.firstName} ${this.lastName}`;
 });
 

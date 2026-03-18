@@ -230,15 +230,6 @@ export default function ParentLogin() {
             </p>
           </div>
 
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <button
-              type="button"
-              onClick={() => navigate('/login')}
-              className="w-full py-2.5 bg-gray-50 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-100 transition-colors border border-gray-200"
-            >
-              Back
-            </button>
-          </div>
         </div>
       </div>
     </div>

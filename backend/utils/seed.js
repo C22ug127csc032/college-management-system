@@ -16,10 +16,10 @@ async function seed() {
       name: 'Super Admin',
       phone: '8056712010',
       email: 'admin@cms.com',
-      password: 'Admin123',
+      password: 'Admin@123',
       role: 'super_admin',
     });
-    console.log('✅ Admin created: 8056712010 / Admin123');
+    console.log('✅ Admin created: 8056712010 / Admin@123');
   } else {
     console.log('Admin already exists');
   }
