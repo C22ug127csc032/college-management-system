@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getLoginPathForRole } from '../utils/authRedirect';
 
 const api = axios.create({
   baseURL: process.env.REACT_APP_API_URL || '/api',
@@ -20,9 +21,11 @@ api.interceptors.response.use(
       requestUrl.includes('/auth/verify-otp');
 
     if (err.response?.status === 401 && !isAuthAttempt) {
+      const userRole = localStorage.getItem('userRole');
       localStorage.removeItem('token');
+      localStorage.removeItem('userRole');
       delete api.defaults.headers.common['Authorization'];
-      window.location.href = '/login';
+      window.location.href = getLoginPathForRole(userRole);
     }
     return Promise.reject(err);
   }

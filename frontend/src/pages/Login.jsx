@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
+import { getHomePathForRole } from '../utils/authRedirect';
 
 const INVALID_LOGIN_MESSAGE = 'Invalid email or password';
 
@@ -24,7 +25,11 @@ export default function Login() {
     try {
       const data = await login(form.phone, form.password);
 
-      if (data.user.role === 'student' || data.user.role === 'parent') {
+      if (
+        data.user.role === 'student' ||
+        data.user.role === 'parent' ||
+        data.user.role === 'shop_operator'
+      ) {
         setLoginFailed(true);
         toast.error(INVALID_LOGIN_MESSAGE);
         return;
@@ -32,7 +37,7 @@ export default function Login() {
 
       const user = completeLogin(data);
       toast.success(`Welcome, ${user.name}!`);
-      navigate('/admin');
+      navigate(getHomePathForRole(user.role));
     } catch (err) {
       setLoginFailed(err.response?.status === 401);
       toast.error(INVALID_LOGIN_MESSAGE);
@@ -67,14 +72,18 @@ export default function Login() {
         otp: form.otp,
       });
 
-      if (r.data.user.role === 'student' || r.data.user.role === 'parent') {
+      if (
+        r.data.user.role === 'student' ||
+        r.data.user.role === 'parent' ||
+        r.data.user.role === 'shop_operator'
+      ) {
         toast.error(INVALID_LOGIN_MESSAGE);
         return;
       }
 
       const user = completeLogin(r.data);
       toast.success(`Welcome, ${user.name}!`);
-      navigate('/admin');
+      navigate(getHomePathForRole(user.role));
     } catch (err) {
       toast.error(err.response?.data?.message || 'Invalid OTP');
     } finally {
@@ -90,13 +99,13 @@ export default function Login() {
             C
           </div>
           <h1 className="text-3xl font-bold text-white">College Management</h1>
-          <p className="text-primary-300 mt-2">Admin & Staff Login</p>
+          <p className="text-primary-300 mt-2">Admin Portal Login</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           <div className="flex justify-center mb-6">
             <span className="px-4 py-1.5 bg-primary-50 text-primary-700 rounded-full text-sm font-medium border border-primary-200">
-              Admin / Staff Portal
+              Admin Portal
             </span>
           </div>
 

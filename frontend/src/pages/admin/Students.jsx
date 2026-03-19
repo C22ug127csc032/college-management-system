@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
+import { useAuth } from '../../context/AuthContext';
 import {
   PageHeader, StatusBadge, EmptyState,
   FilterBar, Pagination, PageSpinner,
@@ -366,6 +367,7 @@ function PromoteModal({ open, onClose, onDone, courses }) {
 // ── Main Students Component ───────────────────────────────────────────────────
 export default function Students() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [students, setStudents]       = useState([]);
   const [courses, setCourses]         = useState([]);
@@ -448,10 +450,15 @@ export default function Students() {
   const pendingCount = students.filter(
     s => !s.regNo || s.status === 'admission_pending'
   ).length;
+  const isClassTeacher = user?.role === 'class_teacher';
+  const teacherCourse = courses.find(c =>
+    c.name === user?.department || c.code === user?.department
+  );
+  const visibleCourses = isClassTeacher && teacherCourse ? [teacherCourse] : courses;
 
   const filteredClasses = classes.filter(cls => {
     if (!filters.course) return true;
-    const course = courses.find(c => c._id === filters.course);
+    const course = visibleCourses.find(c => c._id === filters.course);
     if (!course) return true;
     const code = course.code ||
       course.name.split(' ').filter(w => w.length > 2)
@@ -517,13 +524,15 @@ export default function Students() {
             value={filters.search}
             onChange={e => setFilter('search', e.target.value)} />
 
-          <select className="input w-48" value={filters.course}
-            onChange={e => handleCourseFilter(e.target.value)}>
-            <option value="">All Courses</option>
-            {courses.map(c => (
-              <option key={c._id} value={c._id}>{c.name}</option>
-            ))}
-          </select>
+          {!isClassTeacher && (
+            <select className="input w-48" value={filters.course}
+              onChange={e => handleCourseFilter(e.target.value)}>
+              <option value="">All Courses</option>
+              {visibleCourses.map(c => (
+                <option key={c._id} value={c._id}>{c.name}</option>
+              ))}
+            </select>
+          )}
 
           {classes.length > 0 && (
             <select className="input w-36" value={filters.className}
@@ -565,7 +574,7 @@ export default function Students() {
               <span className="inline-flex items-center gap-1.5 px-3 py-1
                 bg-blue-50 text-blue-700 text-xs font-medium rounded-full
                 border border-blue-200">
-                <FiBook className="shrink-0" /> {courses.find(c => c._id === filters.course)?.name}
+                <FiBook className="shrink-0" /> {visibleCourses.find(c => c._id === filters.course)?.name}
                 <button onClick={() => handleCourseFilter('')}
                   className="hover:text-blue-900"><FiX /></button>
               </span>
@@ -586,7 +595,7 @@ export default function Students() {
         {filters.className && (
           <ClassStrengthBar
             className={filters.className}
-            courseId={filters.course}
+            courseId={isClassTeacher ? teacherCourse?._id : filters.course}
           />
         )}
 
@@ -617,6 +626,8 @@ export default function Students() {
                   <tr>
                     <th className="table-header">Student</th>
                     <th className="table-header">Admission No</th>
+                    <th className="table-header">Reg No</th>
+                    <th className="table-header">Roll No</th>
                     <th className="table-header">Course</th>
                     <th className="table-header">Class</th>
                     <th className="table-header">Semester</th>
@@ -667,12 +678,17 @@ export default function Students() {
                               font-medium">
                               Pending
                             </span>
-                          : <span className="font-mono text-xs text-gray-600">
-                              {s.regNo || '–'}
-                            </span>
+                          : null
                         }
                       </td>
 
+                      <td className="table-cell font-mono text-xs text-gray-600">
+                        {s.regNo || '–'}
+                      </td>
+
+                      <td className="table-cell font-mono text-xs text-gray-600">
+                        {s.rollNo || '–'}
+                      </td>
                       {/* Course */}
                       <td className="table-cell text-gray-500 text-xs">
                         {s.course?.name || '–'}
@@ -817,7 +833,7 @@ export default function Students() {
         open={showPromote}
         onClose={() => setShowPromote(false)}
         onDone={() => { setShowPromote(false); fetchStudents(); }}
-        courses={courses}
+        courses={visibleCourses}
       />
     </div>
   );

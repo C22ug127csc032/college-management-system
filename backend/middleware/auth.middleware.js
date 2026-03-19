@@ -12,6 +12,7 @@ export const protect = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = await User.findById(decoded.id).select('-password');
+    if (req.user?.role === 'canteen_operator') req.user.role = 'shop_operator';
     if (!req.user || !req.user.isActive)
       return res.status(401).json({ success: false, message: 'Account deactivated' });
     next();
@@ -28,8 +29,8 @@ export const authorize = (...roles) => (req, res, next) => {
 
 export const adminOnly      = authorize('super_admin');
 export const adminOrTeacher = authorize('super_admin', 'class_teacher');
-export const hostelStaff    = authorize('super_admin', 'hostel_warden');
-export const shopStaff      = authorize('super_admin', 'shop_operator', 'canteen_operator');
+export const hostelStaff    = authorize('super_admin', 'hostel_warden', 'class_teacher');
+export const shopStaff      = authorize('super_admin', 'shop_operator');
 export const libStaff       = authorize('super_admin', 'librarian');
 export const parentOnly     = authorize('parent');
 export const studentOnly    = authorize('student');

@@ -43,10 +43,12 @@ export default function LeaveManagement() {
           ))}
         </FilterBar>
         {loading ? <PageSpinner /> : (
-          <Table headers={['Student', 'Type', 'From', 'To', 'Days', 'Reason', 'Status', 'Actions']}>
+          <Table headers={['Student', 'Reg No', 'Roll No', 'Type', 'From', 'To', 'Days', 'Reason', 'Status', 'Actions']}>
             {leaves.map(l => (
               <tr key={l._id} className="hover:bg-gray-50">
-                <td className="table-cell"><p className="font-medium">{l.student?.firstName} {l.student?.lastName}</p><p className="text-xs text-gray-400">{l.student?.regNo}</p></td>
+                <td className="table-cell"><p className="font-medium">{l.student?.firstName} {l.student?.lastName}</p></td>
+                <td className="table-cell font-mono text-xs text-gray-500">{l.student?.regNo || '–'}</td>
+                <td className="table-cell font-mono text-xs text-gray-500">{l.student?.rollNo || '–'}</td>
                 <td className="table-cell capitalize">{l.leaveType}</td>
                 <td className="table-cell">{new Date(l.fromDate).toLocaleDateString('en-IN')}</td>
                 <td className="table-cell">{new Date(l.toDate).toLocaleDateString('en-IN')}</td>
@@ -87,3 +89,5 @@ export default function LeaveManagement() {
     </div>
   );
 }
+
+

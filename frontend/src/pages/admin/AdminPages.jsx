@@ -746,10 +746,14 @@ export function ShopAdmin() {
 // ─── STAFF ────────────────────────────────────────────────────────────────────
 export function StaffManagement() {
   const [staff, setStaff] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [show, setShow] = useState(false);
   const [form, setForm] = useState({ name: '', phone: '', email: '', password: '', role: 'class_teacher', department: '' });
 
-  useEffect(() => { api.get('/staff').then(r => setStaff(r.data.staff)); }, []);
+  useEffect(() => {
+    api.get('/staff').then(r => setStaff(r.data.staff));
+    api.get('/courses').then(r => setCourses(r.data.courses || []));
+  }, []);
 
   const add = async e => {
     e.preventDefault();
@@ -757,7 +761,8 @@ export function StaffManagement() {
     setShow(false); api.get('/staff').then(r => setStaff(r.data.staff));
   };
 
-  const roleColors = { class_teacher: 'badge-blue', hostel_warden: 'badge-green', shop_operator: 'badge-yellow', canteen_operator: 'badge-yellow', librarian: 'badge-purple', super_admin: 'badge-red' };
+  const roleColors = { class_teacher: 'badge-blue', hostel_warden: 'badge-green', shop_operator: 'badge-yellow', librarian: 'badge-purple', super_admin: 'badge-red' };
+  const roleLabels = { shop_operator: 'operator', canteen_operator: 'operator' };
 
   return (
     <div>
@@ -768,7 +773,7 @@ export function StaffManagement() {
             <td className="table-cell font-medium">{s.name}</td>
             <td className="table-cell">{s.phone}</td>
             <td className="table-cell text-gray-500">{s.email || '–'}</td>
-            <td className="table-cell"><span className={roleColors[s.role] || 'badge-gray'}>{s.role?.replace('_', ' ')}</span></td>
+            <td className="table-cell"><span className={roleColors[s.role] || 'badge-gray'}>{roleLabels[s.role] || s.role?.replace(/_/g, ' ')}</span></td>
             <td className="table-cell">{s.department || '–'}</td>
             <td className="table-cell"><span className={s.isActive ? 'badge-green' : 'badge-red'}>{s.isActive ? 'Active' : 'Inactive'}</span></td>
           </tr>)}
@@ -784,10 +789,20 @@ export function StaffManagement() {
             <div><label className="label">Password *</label><input type="password" className="input" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} required /></div>
             <div><label className="label">Role</label>
               <select className="input" value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>
-                {['class_teacher','hostel_warden','shop_operator','canteen_operator','librarian','super_admin'].map(r => <option key={r} value={r}>{r.replace(/_/g, ' ')}</option>)}
+                {['class_teacher','hostel_warden','shop_operator','librarian','super_admin'].map(r => <option key={r} value={r}>{r.replace(/_/g, ' ')}</option>)}
               </select>
             </div>
-            <div><label className="label">Department</label><input className="input" value={form.department} onChange={e => setForm(f => ({ ...f, department: e.target.value }))} /></div>
+            <div>
+              <label className="label">{form.role === 'class_teacher' ? 'Course' : 'Department'}</label>
+              {form.role === 'class_teacher' ? (
+                <select className="input" value={form.department} onChange={e => setForm(f => ({ ...f, department: e.target.value }))}>
+                  <option value="">Select course</option>
+                  {courses.map(c => <option key={c._id} value={c.name}>{c.name}</option>)}
+                </select>
+              ) : (
+                <input className="input" value={form.department} onChange={e => setForm(f => ({ ...f, department: e.target.value }))} />
+              )}
+            </div>
           </div>
           <div className="flex gap-3 justify-end"><button type="button" onClick={() => setShow(false)} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">Add Staff</button></div>
         </form>

@@ -31,8 +31,8 @@ const studentFeesSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 studentFeesSchema.pre('save', function(next) {
-  this.totalDue = this.totalAmount + this.totalFine - this.totalPaid - this.advanceAdjusted;
-  if (this.totalDue <= 0) this.status = 'paid';
+  this.totalDue = Math.max(this.totalAmount + this.totalFine - this.totalPaid - this.advanceAdjusted, 0);
+  if (this.totalDue === 0) this.status = 'paid';
   else if (this.totalPaid > 0) this.status = 'partial';
   next();
 });

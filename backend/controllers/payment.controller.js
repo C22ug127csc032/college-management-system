@@ -14,7 +14,29 @@ export const createOrder = async (req, res) => {
   try {
     const razorpay = getRazorpay();
     const { amount, studentFeesId, studentId } = req.body;
-    const amountInPaise = Math.round(amount * 100);
+    const numericAmount = Number(amount);
+
+    if (!numericAmount || numericAmount <= 0) {
+      return res.status(400).json({ success: false, message: 'Enter a valid payment amount' });
+    }
+
+    if (studentFeesId) {
+      const sf = await StudentFees.findById(studentFeesId);
+      if (!sf) {
+        return res.status(404).json({ success: false, message: 'Assigned fee record not found' });
+      }
+      if (String(sf.student) !== String(studentId)) {
+        return res.status(400).json({ success: false, message: 'Selected fee does not belong to this student' });
+      }
+      if (sf.totalDue <= 0) {
+        return res.status(400).json({ success: false, message: 'This fee is already fully paid' });
+      }
+      if (numericAmount > sf.totalDue) {
+        return res.status(400).json({ success: false, message: `Payment exceeds remaining due of ₹${sf.totalDue}` });
+      }
+    }
+
+    const amountInPaise = Math.round(numericAmount * 100);
 
     const order = await razorpay.orders.create({
       amount: amountInPaise,
@@ -80,9 +102,30 @@ async function _recordPayment({ studentId, studentFeesId, amount, paymentMode,
 
   const student = await Student.findById(studentId).populate('course');
   const numericAmount = Number(amount);
+  let sf = null;
 
   if (!numericAmount || numericAmount <= 0) {
     throw new Error('Enter a valid payment amount');
+  }
+
+  if (!student) {
+    throw new Error('Student not found');
+  }
+
+  if (!isAdvance && studentFeesId) {
+    sf = await StudentFees.findById(studentFeesId);
+    if (!sf) {
+      throw new Error('Assigned fee record not found for this payment');
+    }
+    if (String(sf.student) !== String(studentId)) {
+      throw new Error('Selected fee does not belong to this student');
+    }
+    if (sf.totalDue <= 0) {
+      throw new Error('This fee is already fully paid');
+    }
+    if (numericAmount > sf.totalDue) {
+      throw new Error(`Only ₹${sf.totalDue} is pending for this fee`);
+    }
   }
 
   // Create payment record
@@ -115,24 +158,19 @@ async function _recordPayment({ studentId, studentFeesId, amount, paymentMode,
     });
   } else if (studentFeesId) {
     // Update student fees record
-    const sf = await StudentFees.findById(studentFeesId);
-    if (sf) {
-      sf.totalPaid += numericAmount;
-      let remainingAmount = numericAmount;
-      sf.feeHeads = sf.feeHeads.map(h => {
-        const due = h.amount - h.paid;
-        if (due > 0 && remainingAmount > 0) {
-          const pay = Math.min(due, remainingAmount);
-          h.paid += pay;
-          h.due = h.amount - h.paid;
-          remainingAmount -= pay;
-        }
-        return h;
-      });
-      await sf.save();
-    } else {
-      throw new Error('Assigned fee record not found for this payment');
-    }
+    sf.totalPaid += numericAmount;
+    let remainingAmount = numericAmount;
+    sf.feeHeads = sf.feeHeads.map(h => {
+      const due = Math.max((h.due ?? (h.amount - h.paid)) || 0, 0);
+      if (due > 0 && remainingAmount > 0) {
+        const pay = Math.min(due, remainingAmount);
+        h.paid += pay;
+        h.due = Math.max(h.amount - h.paid, 0);
+        remainingAmount -= pay;
+      }
+      return h;
+    });
+    await sf.save();
 
     // Ledger credit entry
     await Ledger.create({

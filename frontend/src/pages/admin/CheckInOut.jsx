@@ -9,6 +9,7 @@ export default function CheckInOut() {
   const [loading, setLoading]         = useState(true);
   const [studentId, setStudentId]     = useState('');
   const [studentName, setStudentName] = useState('');
+  const [studentRollNo, setStudentRollNo] = useState('');
   const [form, setForm]               = useState({
     studentRegNo: '', type: 'check_in', location: 'gate', remarks: '',
   });
@@ -36,11 +37,13 @@ export default function CheckInOut() {
       const r = await api.get(`/students/reg/${form.studentRegNo}`);
       setStudentId(r.data.student._id);
       setStudentName(`${r.data.student.firstName} ${r.data.student.lastName}`);
+      setStudentRollNo(r.data.student.rollNo || '');
       toast.success(`Found: ${r.data.student.firstName} ${r.data.student.lastName}`);
     } catch {
       toast.error('Student not found');
       setStudentId('');
       setStudentName('');
+      setStudentRollNo('');
     }
   };
 
@@ -59,6 +62,7 @@ export default function CheckInOut() {
       setForm(f => ({ ...f, studentRegNo: '', remarks: '' }));
       setStudentId('');
       setStudentName('');
+      setStudentRollNo('');
       fetchRecords();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to record');
@@ -110,7 +114,9 @@ export default function CheckInOut() {
 
             {studentName && (
               <p className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded">
-                <span className="inline-flex items-center gap-1"><FiCheck /> {studentName}</span>
+                <span className="inline-flex items-center gap-1">
+                  <FiCheck /> {studentName}{studentRollNo ? ` (Roll No: ${studentRollNo})` : ''}
+                </span>
               </p>
             )}
 
@@ -175,6 +181,8 @@ export default function CheckInOut() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="table-header">Student</th>
+                  <th className="table-header">Reg No</th>
+                  <th className="table-header">Roll No</th>
                   <th className="table-header">Type</th>
                   <th className="table-header">Location</th>
                   <th className="table-header">Time</th>
@@ -188,7 +196,12 @@ export default function CheckInOut() {
                       <p className="font-medium">
                         {r.student?.firstName} {r.student?.lastName}
                       </p>
-                      <p className="text-xs text-gray-400">{r.student?.regNo}</p>
+                    </td>
+                    <td className="table-cell font-mono text-xs text-gray-500">
+                      {r.student?.regNo || '–'}
+                    </td>
+                    <td className="table-cell font-mono text-xs text-gray-500">
+                      {r.student?.rollNo || '–'}
                     </td>
                     <td className="table-cell">
                       <span className={`badge-${r.type === 'check_in' ? 'green' : 'yellow'}`}>
@@ -213,3 +226,5 @@ export default function CheckInOut() {
     </div>
   );
 }
+
+

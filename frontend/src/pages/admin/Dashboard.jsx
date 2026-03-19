@@ -22,7 +22,6 @@ import {
   FiFileText,
   FiHome,
   FiPackage,
-  FiShoppingBag,
   FiTrendingDown,
   FiTrendingUp,
   FiUser,
@@ -265,7 +264,6 @@ export default function Dashboard() {
               { label: 'Manual Payment',     icon: FiCreditCard, path: '/admin/payments',   color: 'bg-purple-50 hover:bg-purple-100 text-purple-700' },
               { label: 'Publish Circular',   icon: FiFileText, path: '/admin/circulars',    color: 'bg-yellow-50 hover:bg-yellow-100 text-yellow-700' },
               { label: 'Issue Book',         icon: FiBook, path: '/admin/library',           color: 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700' },
-              { label: 'Top Up Wallet',      icon: FiCreditCard, path: '/admin/wallet',      color: 'bg-orange-50 hover:bg-orange-100 text-orange-700' },
               { label: 'View Reports',       icon: FiTrendingUp, path: '/admin/reports',     color: 'bg-red-50 hover:bg-red-100 text-red-700' },
               { label: 'Check In Student',   icon: FiClock, path: '/admin/checkin',          color: 'bg-teal-50 hover:bg-teal-100 text-teal-700' },
             ].map(action => (
@@ -436,13 +434,6 @@ export default function Dashboard() {
               iconBg: 'bg-green-100 text-green-600',
             },
             {
-              icon: FiShoppingBag, label: 'Shop & Canteen',
-              desc: 'Sales & billing',
-              path: '/admin/shop',
-              color: 'border-orange-200 bg-orange-50',
-              iconBg: 'bg-orange-100 text-orange-600',
-            },
-            {
               icon: FiTrendingDown, label: 'Expenses',
               desc: 'Institution expenses',
               path: '/admin/expense',
@@ -462,6 +453,13 @@ export default function Dashboard() {
               path: '/admin/reports',
               color: 'border-teal-200 bg-teal-50',
               iconBg: 'bg-teal-100 text-teal-600',
+            },
+            {
+              icon: FiFileText, label: 'Circulars',
+              desc: 'Notices and announcements',
+              path: '/admin/circulars',
+              color: 'border-orange-200 bg-orange-50',
+              iconBg: 'bg-orange-100 text-orange-600',
             },
           ].map(module => (
             <button

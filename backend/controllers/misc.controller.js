@@ -153,8 +153,8 @@ export const library = {
 };
 
 // ─── SHOP / CANTEEN CONTROLLER ───────────────────────────────────────────────
-import shopModels from '../models/Shop.model.js';
-const { ShopItem, ShopSale } = shopModels;
+import ShopItem from '../models/ShopItem.model.js';
+import Sale from '../models/Sale.model.js';
 
 export const shop = {
   addItem: async (req, res) => {
@@ -187,7 +187,7 @@ export const shop = {
         await item.save();
         saleItems.push({ item: item._id, itemName: item.name, qty: i.qty, price: item.price, total });
       }
-      const sale = await ShopSale.create({
+      const sale = await Sale.create({
         student: studentId, type, items: saleItems, totalAmount,
         paymentMode, status: paymentMode === 'credit' ? 'credit' : 'paid',
         creditDue: paymentMode === 'credit' ? totalAmount : 0,
@@ -207,7 +207,7 @@ export const shop = {
         if (startDate) query.date.$gte = new Date(startDate);
         if (endDate) query.date.$lte = new Date(endDate);
       }
-      const sales = await ShopSale.find(query)
+      const sales = await Sale.find(query)
         .populate('student', 'firstName lastName regNo')
         .sort('-date');
       const totalRevenue = sales.reduce((s, r) => s + (r.status === 'paid' ? r.totalAmount : 0), 0);

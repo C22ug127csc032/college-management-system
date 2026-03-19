@@ -1,13 +1,41 @@
 import CheckIn from '../models/CheckIn.model.js';
 import Student from '../models/Student.model.js';
+import Course from '../models/Course.model.js';
+import mongoose from 'mongoose';
 import utils_notifications from '../utils/notifications.js';
 const { sendSMS } = utils_notifications;
+
+const getTeacherCourseIds = async user => {
+  if (user?.role !== 'class_teacher' || !user.department) return [];
+
+  const filters = [
+    { name: user.department },
+    { code: String(user.department).toUpperCase() },
+  ];
+
+  if (mongoose.Types.ObjectId.isValid(user.department)) {
+    filters.unshift({ _id: user.department });
+  }
+
+  const courses = await Course.find({ $or: filters }).select('_id');
+  return courses.map(course => course._id);
+};
 
 export const record = async (req, res) => {
   try {
     const { studentId, type, location, remarks } = req.body;
     const student = await Student.findById(studentId);
     if (!student) return res.status(404).json({ success: false, message: 'Student not found' });
+
+    if (req.user.role === 'class_teacher') {
+      const teacherCourseIds = await getTeacherCourseIds(req.user);
+      const isAssignedStudent = teacherCourseIds.some(
+        courseId => String(courseId) === String(student.course)
+      );
+      if (!isAssignedStudent) {
+        return res.status(403).json({ success: false, message: 'Not authorized for this student' });
+      }
+    }
 
     const record = await CheckIn.create({ student: studentId, type, location, remarks, recordedBy: req.user.id });
 
@@ -35,9 +63,16 @@ export const getRecords = async (req, res) => {
       if (startDate) query.timestamp.$gte = new Date(startDate);
       if (endDate) query.timestamp.$lte = new Date(endDate);
     }
+    if (req.user.role === 'class_teacher') {
+      const teacherCourseIds = await getTeacherCourseIds(req.user);
+      const students = await Student.find({
+        course: { $in: teacherCourseIds },
+      }).select('_id');
+      query.student = { $in: students.map(student => student._id) };
+    }
     const total = await CheckIn.countDocuments(query);
     const records = await CheckIn.find(query)
-      .populate('student', 'firstName lastName regNo')
+      .populate('student', 'firstName lastName regNo rollNo')
       .populate('recordedBy', 'name')
       .sort('-timestamp')
       .skip((page - 1) * limit)

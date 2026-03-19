@@ -9,20 +9,28 @@ const generateToken = (id, role) =>
     { expiresIn: process.env.JWT_EXPIRE || '7d' }
   );
 
+const normalizeOperatorRole = role =>
+  role === 'canteen_operator' ? 'shop_operator' : role;
+
+const ensureUnifiedOperatorRole = async user => {
+  if (user?.role === 'canteen_operator') {
+    user.role = 'shop_operator';
+    await user.save();
+  }
+  return user;
+};
+
 // ── Helper — only for students ────────────────────────────────────────────────
 const ensureStudentUserByPhone = async phone => {
   const normalizedPhone = (phone || '').trim();
   if (!normalizedPhone) return null;
 
-  // Only create if a student record exists with this phone
   const student = await Student.findOne({ phone: normalizedPhone });
   if (!student) return null;
 
-  // Check if user already exists
   let user = await User.findOne({ phone: normalizedPhone });
   if (user) return user;
 
-  // Create student user with admissionNo as password
   user = await User.create({
     name:         `${student.firstName} ${student.lastName}`.trim(),
     phone:        student.phone,
@@ -54,7 +62,7 @@ export const login = async (req, res) => {
       });
     }
 
-    // ── Find user by phone or email ───────────────────────────────────────
+    // ── Find user ─────────────────────────────────────────────────────────
     let user = await User.findOne({
       $or: [
         { phone: loginValue },
@@ -62,30 +70,27 @@ export const login = async (req, res) => {
       ],
     }).populate('studentRef');
 
-    // ── If not found AND looks like a phone — try student auto-create ─────
-    // Only do this for student role or unknown role
-    // NEVER for admin/staff email logins
+    // ── Auto create student user if not found ─────────────────────────────
     if (!user && /^\d+$/.test(loginValue)) {
       user = await ensureStudentUserByPhone(loginValue);
     }
 
-    // ── No user found ─────────────────────────────────────────────────────
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid credentials. Check your phone/email and password.',
+        message: 'No account found with this phone or email.',
       });
     }
 
-    // ── Account active check ──────────────────────────────────────────────
+    user = await ensureUnifiedOperatorRole(user);
+
     if (!user.isActive) {
       return res.status(403).json({
         success: false,
-        message: 'Your account has been deactivated. Contact admin.',
+        message: 'Account deactivated. Contact admin.',
       });
     }
 
-    // ── Role check — portal specific ──────────────────────────────────────
     if (role && user.role !== role) {
       return res.status(403).json({
         success: false,
@@ -93,26 +98,75 @@ export const login = async (req, res) => {
       });
     }
 
-    // ── Verify password ───────────────────────────────────────────────────
-    const passwordMatches = await user.matchPassword(password);
+    // ── Try password as submitted ─────────────────────────────────────────
+    let passwordMatches = await user.matchPassword(password);
+
+    // ── Smart fallback for students ───────────────────────────────────────
+    // Handles 3 cases:
+    // 1. Student has old phone-as-password hash → migrate to admissionNo
+    // 2. Student has admissionNo hash but submitted plain admissionNo
+    // 3. Student has no admissionNo yet → allow phone as password
+    if (!passwordMatches && user.role === 'student') {
+      const student = await Student.findById(
+        user.studentRef?._id || user.studentRef
+      ).select('admissionNo phone firstName lastName');
+
+      if (student) {
+        const admNo    = student.admissionNo || '';
+        const phone    = student.phone || user.phone || '';
+
+        // Case 1 — submitted admissionNo but hash is wrong
+        // Force rehash and retry
+        if (admNo && password === admNo) {
+          user.password     = admNo;
+          user.isFirstLogin = true;
+          await user.save();
+          passwordMatches = await user.matchPassword(password);
+        }
+
+        // Case 2 — submitted phone number (old default password)
+        else if (password === phone) {
+          if (admNo) {
+            // Has admissionNo — migrate to admissionNo password
+            user.password     = admNo;
+            user.isFirstLogin = true;
+            await user.save();
+            // Return helpful error with the new password
+            return res.status(401).json({
+              success:  false,
+              message:  `Your default password has been updated to your Admission No. Please use: ${admNo}`,
+              hint:     admNo,
+              migrated: true,
+            });
+          } else {
+            // No admissionNo yet — allow phone as password temporarily
+            user.password = phone;
+            await user.save();
+            passwordMatches = await user.matchPassword(password);
+          }
+        }
+      }
+    }
 
     if (!passwordMatches) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid credentials. Check your phone/email and password.',
+        message: user.role === 'student'
+          ? 'Invalid password. Use your Admission No as default password (e.g. ADM2026001).'
+          : 'Invalid email/phone or password.',
       });
     }
 
-    // ── Login success ─────────────────────────────────────────────────────
+    // ── Success ───────────────────────────────────────────────────────────
     res.json({
       success: true,
-      token:   generateToken(user._id, user.role),
+      token:   generateToken(user._id, normalizeOperatorRole(user.role)),
       user: {
         _id:          user._id,
         name:         user.name,
         phone:        user.phone,
         email:        user.email,
-        role:         user.role,
+        role:         normalizeOperatorRole(user.role),
         studentRef:   user.studentRef,
         avatar:       user.avatar,
         isFirstLogin: user.isFirstLogin || false,
@@ -124,10 +178,11 @@ export const login = async (req, res) => {
   }
 };
 
-// ── POST /api/auth/register — Super Admin creates staff ───────────────────────
+// ── POST /api/auth/register ───────────────────────────────────────────────────
 export const register = async (req, res) => {
   try {
     const { name, phone, email, password, role, staffId, department } = req.body;
+    const normalizedRole = normalizeOperatorRole(role);
 
     const exists = await User.findOne({ phone });
     if (exists) {
@@ -139,14 +194,14 @@ export const register = async (req, res) => {
 
     const user = await User.create({
       name, phone, email, password,
-      role, staffId, department,
+      role: normalizedRole, staffId, department,
       isFirstLogin: false,
     });
 
     res.status(201).json({
       success: true,
       message: 'User created successfully',
-      user: { _id: user._id, name: user.name, role: user.role },
+      user: { _id: user._id, name: user.name, role: normalizeOperatorRole(user.role) },
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -159,7 +214,10 @@ export const getMe = async (req, res) => {
     const user = await User.findById(req.user.id)
       .select('-password')
       .populate('studentRef');
-    res.json({ success: true, user });
+    res.json({
+      success: true,
+      user: { ...user.toObject(), role: normalizeOperatorRole(user.role) },
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -196,7 +254,7 @@ export const changePassword = async (req, res) => {
   }
 };
 
-// ── PUT /api/auth/set-password — First login password setup ───────────────────
+// ── PUT /api/auth/set-password ────────────────────────────────────────────────
 export const setFirstPassword = async (req, res) => {
   try {
     const { newPassword, confirmPassword } = req.body;

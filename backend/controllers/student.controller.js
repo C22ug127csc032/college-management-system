@@ -2,6 +2,7 @@ import Student from '../models/Student.model.js';
 import User    from '../models/User.model.js';
 import Ledger  from '../models/Ledger.model.js';
 import Course  from '../models/Course.model.js';
+import mongoose from 'mongoose';
 import utils_notifications from '../utils/notifications.js';
 const { sendSMS } = utils_notifications;
 
@@ -27,6 +28,22 @@ const normalizeStudentPayload = body => {
   if (data.mother)   delete data.mother.email;
   if (data.guardian) delete data.guardian.email;
   return data;
+};
+
+const getTeacherCourseIds = async user => {
+  if (user?.role !== 'class_teacher' || !user.department) return [];
+
+  const filters = [
+    { name: user.department },
+    { code: String(user.department).toUpperCase() },
+  ];
+
+  if (mongoose.Types.ObjectId.isValid(user.department)) {
+    filters.unshift({ _id: user.department });
+  }
+
+  const courses = await Course.find({ $or: filters }).select('_id');
+  return courses.map(course => course._id);
 };
 
 // ── Generate Admission No — ADM2024001 format ─────────────────────────────────
@@ -92,10 +109,29 @@ export const getAllStudents = async (req, res) => {
     } = req.query;
 
     const query = {};
+    const teacherCourseIds = await getTeacherCourseIds(req.user);
+
+    if (req.user?.role === 'class_teacher') {
+      if (!teacherCourseIds.length) {
+        return res.json({
+          success: true,
+          students: [],
+          total: 0,
+          page: Number(page),
+          pages: 0,
+        });
+      }
+      query.course = { $in: teacherCourseIds };
+    }
+
     if (course)       query.course       = course;
     if (status)       query.status       = status;
     if (academicYear) query.academicYear = academicYear;
     if (className)    query.className    = className;
+
+    if (req.user?.role === 'class_teacher') {
+      query.course = { $in: teacherCourseIds };
+    }
     if (search) {
       query.$or = [
         { firstName:   { $regex: search, $options: 'i' } },
@@ -132,6 +168,21 @@ export const getStudent = async (req, res) => {
       .populate('course', 'name code department');
     if (!student)
       return res.status(404).json({ success: false, message: 'Student not found' });
+
+    if (req.user?.role === 'class_teacher') {
+      const teacherCourseIds = await getTeacherCourseIds(req.user);
+      const isAssignedStudent = teacherCourseIds.some(
+        courseId => String(courseId) === String(student.course?._id || student.course)
+      );
+
+      if (!isAssignedStudent) {
+        return res.status(403).json({
+          success: false,
+          message: 'Not authorized to view this student',
+        });
+      }
+    }
+
     res.json({ success: true, student });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -340,6 +391,17 @@ export const getStudentByRegNo = async (req, res) => {
       .populate('course', 'name code');
     if (!student)
       return res.status(404).json({ success: false, message: 'Student not found' });
+
+    if (req.user?.role === 'class_teacher') {
+      const teacherCourseIds = await getTeacherCourseIds(req.user);
+      const isAssignedStudent = teacherCourseIds.some(
+        courseId => String(courseId) === String(student.course?._id || student.course)
+      );
+      if (!isAssignedStudent) {
+        return res.status(404).json({ success: false, message: 'Student not found' });
+      }
+    }
+
     res.json({ success: true, student });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -354,6 +416,17 @@ export const getStudentByAdmissionNo = async (req, res) => {
     }).populate('course', 'name code');
     if (!student)
       return res.status(404).json({ success: false, message: 'Student not found' });
+
+    if (req.user?.role === 'class_teacher') {
+      const teacherCourseIds = await getTeacherCourseIds(req.user);
+      const isAssignedStudent = teacherCourseIds.some(
+        courseId => String(courseId) === String(student.course?._id || student.course)
+      );
+      if (!isAssignedStudent) {
+        return res.status(404).json({ success: false, message: 'Student not found' });
+      }
+    }
+
     res.json({ success: true, student });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -363,12 +436,18 @@ export const getStudentByAdmissionNo = async (req, res) => {
 // ── GET /api/students/stats/summary ──────────────────────────────────────────
 export const getStudentStats = async (req, res) => {
   try {
+    const teacherCourseIds = await getTeacherCourseIds(req.user);
+    const courseScope = req.user?.role === 'class_teacher'
+      ? { course: { $in: teacherCourseIds } }
+      : {};
+
     const [total, active, hostel, pending, newThisMonth] = await Promise.all([
-      Student.countDocuments(),
-      Student.countDocuments({ status: 'active' }),
-      Student.countDocuments({ isHosteler: true }),
-      Student.countDocuments({ status: 'admission_pending' }),
+      Student.countDocuments(courseScope),
+      Student.countDocuments({ ...courseScope, status: 'active' }),
+      Student.countDocuments({ ...courseScope, isHosteler: true }),
+      Student.countDocuments({ ...courseScope, status: 'admission_pending' }),
       Student.countDocuments({
+        ...courseScope,
         createdAt: { $gte: new Date(new Date().setDate(1)) },
       }),
     ]);

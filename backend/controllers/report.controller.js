@@ -3,7 +3,7 @@ import StudentFees from '../models/StudentFees.model.js';
 import Student from '../models/Student.model.js';
 import Expense from '../models/Expense.model.js';
 import { Inventory, InventoryTransaction } from '../models/Inventory.model.js';
-import { ShopSale } from '../models/Shop.model.js';
+import Sale from '../models/Sale.model.js';
 import { Book, BookIssue } from '../models/Library.model.js';
 import CheckIn from '../models/CheckIn.model.js';
 
@@ -41,7 +41,7 @@ export const getDashboard = async (req, res) => {
         { $group: { _id: null, total: { $sum: '$amount' } } },
       ]),
       Payment.find({ status: 'success' })
-        .populate('student', 'firstName lastName regNo')
+        .populate('student', 'firstName lastName regNo rollNo')
         .sort('-paymentDate')
         .limit(5),
       StudentFees.countDocuments({ status: 'overdue' }),
@@ -76,7 +76,7 @@ export const getFeesReport = async (req, res) => {
     const fees = await StudentFees.find(query)
       .populate({
         path: 'student',
-        select: 'firstName lastName regNo phone',
+        select: 'firstName lastName regNo rollNo phone',
         populate: { path: 'course', select: 'name' },
       })
       .sort('-createdAt');
@@ -110,7 +110,7 @@ export const getPaymentReport = async (req, res) => {
     }
 
     const payments = await Payment.find(query)
-      .populate('student', 'firstName lastName regNo')
+      .populate('student', 'firstName lastName regNo rollNo')
       .sort('-paymentDate');
 
     const totalAmount = payments.reduce((s, p) => s + p.amount, 0);
@@ -197,7 +197,7 @@ export const getLibraryReport = async (req, res) => {
 
     const issues = await BookIssue.find(query)
       .populate('book',    'title author')
-      .populate('student', 'firstName lastName regNo')
+      .populate('student', 'firstName lastName regNo rollNo')
       .sort('-issueDate');
 
     const totalBooks    = await Book.countDocuments({ isActive: true });
@@ -230,8 +230,8 @@ export const getShopReport = async (req, res) => {
       if (endDate)   query.date.$lte = new Date(endDate);
     }
 
-    const sales = await ShopSale.find(query)
-      .populate('student', 'firstName lastName regNo')
+    const sales = await Sale.find(query)
+      .populate('student', 'firstName lastName regNo rollNo')
       .sort('-date');
 
     const totalRevenue = sales
@@ -242,7 +242,7 @@ export const getShopReport = async (req, res) => {
       .filter(s => s.status === 'credit')
       .reduce((s, r) => s + r.totalAmount, 0);
 
-    const dailySales = await ShopSale.aggregate([
+    const dailySales = await Sale.aggregate([
       { $match: query },
       {
         $group: {
@@ -279,7 +279,7 @@ export const getAttendanceReport = async (req, res) => {
     }
 
     const records = await CheckIn.find(query)
-      .populate('student', 'firstName lastName regNo')
+      .populate('student', 'firstName lastName regNo rollNo')
       .sort('-timestamp')
       .limit(200);
 

@@ -5,11 +5,13 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Layouts
 import AdminLayout from './components/layout/AdminLayout';
+import OperatorLayout from './components/layout/OperatorLayout';
 import StudentLayout from './components/layout/StudentLayout';
 import ParentLayout from './components/layout/ParentLayout';
 
 // Auth Pages
 import Login from './pages/Login';
+import OperatorLogin from './pages/OperatorLogin';
 import StudentLogin from './pages/StudentLogin';
 import ParentLogin from './pages/ParentLogin';
 
@@ -29,11 +31,9 @@ import InventoryPage from './pages/admin/InventoryPage';
 import ExpensePage from './pages/admin/ExpensePage';
 import CircularsAdmin from './pages/admin/CircularsAdmin';
 import LibraryAdmin from './pages/admin/LibraryAdmin';
-import ShopAdmin from './pages/admin/ShopAdmin';
 import StaffManagement from './pages/admin/StaffManagement';
 import CoursesPage from './pages/admin/CoursesPage';
 import ReportsPage from './pages/admin/ReportsPage';
-import WalletAdmin from './pages/admin/WalletAdmin';
 import NotificationsPage from './pages/admin/NotificationsPage';
 
 // Student Pages
@@ -61,7 +61,11 @@ import ParentCirculars from './pages/parent/ParentCirculars';
 
 import SetPassword from './pages/student/SetPassword';
 
+import CanteenOperator from './pages/admin/CanteenOperator';
+import ShopOperator from './pages/admin/ShopOperator';
+
 import { FiAlertOctagon } from './components/common/icons';
+import { getHomePathForRole, OPERATOR_ROLES } from './utils/authRedirect';
 
 // ── Loader ────────────────────────────────────────────────────────────────────
 const Loader = () => (
@@ -71,19 +75,23 @@ const Loader = () => (
 );
 
 // ── Protected Route ───────────────────────────────────────────────────────────
-const ProtectedRoute = ({ children, roles }) => {
+const ProtectedRoute = ({ children, roles, redirectTo = '/login' }) => {
   const { user, loading } = useAuth();
   if (loading) return <Loader />;
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to={redirectTo} replace />;
   if (roles && !roles.includes(user.role))
     return <Navigate to="/unauthorized" replace />;
   return children;
 };
 
 const ADMIN_ROLES = [
-  'super_admin', 'class_teacher', 'hostel_warden',
-  'shop_operator', 'canteen_operator', 'librarian',
+  'super_admin', 'class_teacher', 'hostel_warden', 'librarian',
 ];
+
+const RoleHomeRedirect = () => {
+  const { user } = useAuth();
+  return <Navigate to={getHomePathForRole(user?.role)} replace />;
+};
 
 // ── App ───────────────────────────────────────────────────────────────────────
 export default function App() {
@@ -95,6 +103,7 @@ export default function App() {
 
           {/* ── Public Routes ─────────────────────────────────────────── */}
           <Route path="/login" element={<Login />} />
+          <Route path="/operator/login" element={<OperatorLogin />} />
           <Route path="/student/login" element={<StudentLogin />} />
           <Route path="/parent/login" element={<ParentLogin />} />
           <Route path="/parent/register" element={<ParentRegister />} />
@@ -132,12 +141,32 @@ export default function App() {
             <Route path="expense" element={<ExpensePage />} />
             <Route path="circulars" element={<CircularsAdmin />} />
             <Route path="library" element={<LibraryAdmin />} />
-            <Route path="shop" element={<ShopAdmin />} />
             <Route path="staff" element={<StaffManagement />} />
-            <Route path="courses" element={<CoursesPage />} />
+            <Route path="courses" element={
+              <ProtectedRoute roles={['super_admin']}>
+                <CoursesPage />
+              </ProtectedRoute>
+            } />
             <Route path="reports" element={<ReportsPage />} />
-            <Route path="wallet" element={<WalletAdmin />} />
             <Route path="notifications" element={<NotificationsPage />} />
+          </Route>
+
+          <Route path="/operator" element={
+            <ProtectedRoute roles={OPERATOR_ROLES} redirectTo="/operator/login">
+              <OperatorLayout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<RoleHomeRedirect />} />
+            <Route path="shop" element={
+              <ProtectedRoute roles={['shop_operator']} redirectTo="/operator/login">
+                <ShopOperator />
+              </ProtectedRoute>
+            } />
+            <Route path="canteen" element={
+              <ProtectedRoute roles={['shop_operator']} redirectTo="/operator/login">
+                <CanteenOperator />
+              </ProtectedRoute>
+            } />
           </Route>
 
           {/* ── Student Routes ────────────────────────────────────────── */}

@@ -196,7 +196,7 @@ export default function ReportsPage() {
                 </div>
               </div>
               <div className="card overflow-x-auto">
-                <Table headers={['Student', 'Reg No', 'Year/Sem', 'Total', 'Paid', 'Due', 'Status']}>
+                <Table headers={['Student', 'Reg No', 'Roll No', 'Year/Sem', 'Total', 'Paid', 'Due', 'Status']}>
                   {data.fees?.slice(0, 50).map(f => (
                     <tr key={f._id} className="hover:bg-gray-50">
                       <td className="table-cell font-medium">
@@ -204,6 +204,9 @@ export default function ReportsPage() {
                       </td>
                       <td className="table-cell font-mono text-xs text-gray-500">
                         {f.student?.regNo}
+                      </td>
+                      <td className="table-cell font-mono text-xs text-gray-500">
+                        {f.student?.rollNo || '–'}
                       </td>
                       <td className="table-cell text-sm">
                         {f.academicYear} / {f.semester}
@@ -265,7 +268,7 @@ export default function ReportsPage() {
                 </div>
               )}
               <div className="card overflow-x-auto">
-                <Table headers={['Receipt', 'Student', 'Date', 'Amount', 'Mode', 'Status']}>
+                <Table headers={['Receipt', 'Student', 'Reg No', 'Roll No', 'Date', 'Amount', 'Mode', 'Status']}>
                   {data.payments?.slice(0, 50).map(p => (
                     <tr key={p._id} className="hover:bg-gray-50">
                       <td className="table-cell font-mono text-xs">{p.receiptNo}</td>
@@ -273,7 +276,12 @@ export default function ReportsPage() {
                         <p className="font-medium">
                           {p.student?.firstName} {p.student?.lastName}
                         </p>
-                        <p className="text-xs text-gray-400">{p.student?.regNo}</p>
+                      </td>
+                      <td className="table-cell font-mono text-xs text-gray-500">
+                        {p.student?.regNo || '–'}
+                      </td>
+                      <td className="table-cell font-mono text-xs text-gray-500">
+                        {p.student?.rollNo || '–'}
                       </td>
                       <td className="table-cell">
                         {new Date(p.paymentDate).toLocaleDateString('en-IN')}
@@ -421,14 +429,19 @@ export default function ReportsPage() {
                 </div>
               )}
               <div className="card overflow-x-auto">
-                <Table headers={['Student', 'Book', 'Author', 'Issued', 'Due', 'Status', 'Fine']}>
+                <Table headers={['Student', 'Reg No', 'Roll No', 'Book', 'Author', 'Issued', 'Due', 'Status', 'Fine']}>
                   {data.issues?.map(i => (
                     <tr key={i._id} className="hover:bg-gray-50">
                       <td className="table-cell">
                         <p className="font-medium">
                           {i.student?.firstName} {i.student?.lastName}
                         </p>
-                        <p className="text-xs text-gray-400">{i.student?.regNo}</p>
+                      </td>
+                      <td className="table-cell font-mono text-xs text-gray-500">
+                        {i.student?.regNo || '–'}
+                      </td>
+                      <td className="table-cell font-mono text-xs text-gray-500">
+                        {i.student?.rollNo || '–'}
                       </td>
                       <td className="table-cell font-medium">{i.book?.title}</td>
                       <td className="table-cell text-gray-500">{i.book?.author}</td>
@@ -508,14 +521,19 @@ export default function ReportsPage() {
                 <p className="text-3xl font-bold text-gray-800">{data.total || 0}</p>
               </div>
               <div className="card overflow-x-auto">
-                <Table headers={['Student', 'Type', 'Location', 'Date & Time', 'Remarks']}>
+                <Table headers={['Student', 'Reg No', 'Roll No', 'Type', 'Location', 'Date & Time', 'Remarks']}>
                   {data.records?.map(r => (
                     <tr key={r._id} className="hover:bg-gray-50">
                       <td className="table-cell">
                         <p className="font-medium">
                           {r.student?.firstName} {r.student?.lastName}
                         </p>
-                        <p className="text-xs text-gray-400">{r.student?.regNo}</p>
+                      </td>
+                      <td className="table-cell font-mono text-xs text-gray-500">
+                        {r.student?.regNo || '–'}
+                      </td>
+                      <td className="table-cell font-mono text-xs text-gray-500">
+                        {r.student?.rollNo || '–'}
                       </td>
                       <td className="table-cell">
                         <span className={`badge-${r.type === 'check_in' ? 'green' : 'yellow'}`}>
@@ -541,3 +559,5 @@ export default function ReportsPage() {
     </div>
   );
 }
+
+

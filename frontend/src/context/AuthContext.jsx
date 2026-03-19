@@ -14,9 +14,13 @@ export const AuthProvider = ({ children }) => {
     if (token) {
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       api.get('/auth/me')
-        .then(r => setUser(r.data.user))
+        .then(r => {
+          setUser(r.data.user);
+          localStorage.setItem('userRole', r.data.user.role);
+        })
         .catch(() => {
           localStorage.removeItem('token');
+          localStorage.removeItem('userRole');
           delete api.defaults.headers.common['Authorization'];
         })
         .finally(() => setLoading(false));
@@ -28,6 +32,7 @@ export const AuthProvider = ({ children }) => {
   // ── Complete login — store token and set user ─────────────────────────────
   const completeLogin = ({ token, user: nextUser }) => {
     localStorage.setItem('token', token);
+    localStorage.setItem('userRole', nextUser.role);
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     setUser(nextUser);
     return nextUser;
@@ -64,6 +69,7 @@ export const AuthProvider = ({ children }) => {
   // ── Logout ────────────────────────────────────────────────────────────────
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('userRole');
     delete api.defaults.headers.common['Authorization'];
     setUser(null);
     toast.success('Logged out');

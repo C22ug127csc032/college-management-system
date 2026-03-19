@@ -16,7 +16,6 @@ import {
   FiLogOut,
   FiMenu,
   FiPackage,
-  FiShoppingBag,
   FiTarget,
   FiTrendingDown,
   FiTrendingUp,
@@ -25,61 +24,127 @@ import {
 } from '../common/icons';
 
 const ALL_NAV = [
+  // ── Dashboard ──────────────────────────────────────────────────────────────
   {
     to: '/admin', label: 'Dashboard', icon: FiBarChart2, exact: true,
-    roles: ['super_admin','class_teacher','hostel_warden','shop_operator','canteen_operator','librarian'],
+    roles: ['super_admin','class_teacher','hostel_warden','librarian'],
   },
-  { section: 'Students',        roles: ['super_admin','class_teacher'] },
-  { to: '/admin/students',      label: 'Students',      icon: FiUser, roles: ['super_admin','class_teacher'] },
-  { to: '/admin/courses',       label: 'Courses',       icon: FiTarget, roles: ['super_admin','class_teacher'] },
-  { section: 'Fees & Payments', roles: ['super_admin'] },
-  { to: '/admin/fees/structure',label: 'Fee Structure',  icon: FiClipboard, roles: ['super_admin'] },
-  { to: '/admin/fees/assign',   label: 'Assign Fees',   icon: FiEdit3, roles: ['super_admin'] },
-  { to: '/admin/fees/list',     label: 'Fees List',     icon: FiDollarSign, roles: ['super_admin','class_teacher'] },
-  { to: '/admin/payments',      label: 'Payments',      icon: FiCreditCard, roles: ['super_admin'] },
-  { to: '/admin/wallet',        label: 'Wallet Top-Up', icon: FiCreditCard, roles: ['super_admin'] },
-  { section: 'Hostel & Attendance', roles: ['super_admin','class_teacher','hostel_warden'] },
-  { to: '/admin/leave',         label: 'Leave',         icon: FiCalendar, roles: ['super_admin','class_teacher','hostel_warden'] },
-  { to: '/admin/outpass',       label: 'Outpass',       icon: FiLogOut, roles: ['super_admin','hostel_warden'] },
-  { to: '/admin/checkin',       label: 'Check In/Out',  icon: FiClock, roles: ['super_admin','hostel_warden'] },
-  { section: 'Shop & Canteen',  roles: ['super_admin','shop_operator','canteen_operator'] },
-  { to: '/admin/shop',          label: 'Shop & Canteen',icon: FiShoppingBag, roles: ['super_admin','shop_operator','canteen_operator'] },
-  { section: 'Library',         roles: ['super_admin','librarian'] },
-  { to: '/admin/library',       label: 'Library',       icon: FiBook, roles: ['super_admin','librarian'] },
-  { section: 'Administration',  roles: ['super_admin','class_teacher'] },
-  { to: '/admin/inventory',     label: 'Inventory',     icon: FiPackage, roles: ['super_admin'] },
-  { to: '/admin/expense',       label: 'Expenses',      icon: FiTrendingDown, roles: ['super_admin'] },
-  { to: '/admin/circulars',     label: 'Circulars',     icon: FiFileText, roles: ['super_admin','class_teacher'] },
+
+  // ── Students ───────────────────────────────────────────────────────────────
+  { section: 'Students', roles: ['super_admin','class_teacher'] },
+  {
+    to: '/admin/students', label: 'Students', icon: FiUser,
+    roles: ['super_admin','class_teacher'],
+  },
+  {
+    to: '/admin/courses', label: 'Courses', icon: FiTarget,
+    roles: ['super_admin'],
+  },
+
+  // ── Fees & Payments ────────────────────────────────────────────────────────
+  { section: 'Fees & Payments', roles: ['super_admin','class_teacher'] },
+  {
+    to: '/admin/fees/structure', label: 'Fee Structure', icon: FiClipboard,
+    roles: ['super_admin'],
+  },
+  {
+    to: '/admin/fees/assign', label: 'Assign Fees', icon: FiEdit3,
+    roles: ['super_admin'],
+  },
+  {
+    to: '/admin/fees/list', label: 'Fees List', icon: FiDollarSign,
+    roles: ['super_admin','class_teacher'],
+  },
+  {
+    to: '/admin/payments', label: 'Payments', icon: FiCreditCard,
+    roles: ['super_admin'],
+  },
+
+  // ── Hostel & Attendance ────────────────────────────────────────────────────
+  {
+    section: 'Hostel & Attendance',
+    roles: ['super_admin','class_teacher','hostel_warden'],
+  },
+  {
+    to: '/admin/leave', label: 'Leave', icon: FiCalendar,
+    roles: ['super_admin','class_teacher','hostel_warden'],
+  },
+  {
+    to: '/admin/outpass', label: 'Outpass', icon: FiLogOut,
+    roles: ['super_admin','hostel_warden'],
+  },
+  {
+    to: '/admin/checkin', label: 'Check In/Out', icon: FiClock,
+    roles: ['super_admin','hostel_warden','class_teacher'],
+  },
+
+  // ── Shop & Canteen ─────────────────────────────────────────────────────────
+
+  // ── Library ────────────────────────────────────────────────────────────────
+  { section: 'Library', roles: ['super_admin','librarian'] },
+  {
+    to: '/admin/library', label: 'Library', icon: FiBook,
+    roles: ['super_admin','librarian'],
+  },
+
+  // ── Administration ─────────────────────────────────────────────────────────
+  {
+    section: 'Administration',
+    roles: ['super_admin','class_teacher'],
+  },
+  {
+    to: '/admin/inventory', label: 'Inventory', icon: FiPackage,
+    roles: ['super_admin'],
+  },
+  {
+    to: '/admin/expense', label: 'Expenses', icon: FiTrendingDown,
+    roles: ['super_admin'],
+  },
+  {
+    to: '/admin/circulars', label: 'Circulars', icon: FiFileText,
+    roles: ['super_admin','class_teacher'],
+  },
+
+  // ── Settings & Reports ─────────────────────────────────────────────────────
   { section: 'Settings & Reports', roles: ['super_admin'] },
-  { to: '/admin/staff',         label: 'Staff',         icon: FiUsers, roles: ['super_admin'] },
-  { to: '/admin/reports',       label: 'Reports',       icon: FiTrendingUp, roles: ['super_admin'] },
+  {
+    to: '/admin/staff', label: 'Staff', icon: FiUsers,
+    roles: ['super_admin'],
+  },
+  {
+    to: '/admin/reports', label: 'Reports', icon: FiTrendingUp,
+    roles: ['super_admin'],
+  },
+
+  // ── Notifications ──────────────────────────────────────────────────────────
   {
     to: '/admin/notifications', label: 'Notifications', icon: FiBell,
-    roles: ['super_admin','class_teacher','hostel_warden','shop_operator','canteen_operator','librarian'],
+    roles: ['super_admin','class_teacher','hostel_warden','librarian'],
   },
 ];
 
 const roleConfig = {
-  super_admin:      { label: 'Super Admin',      color: 'bg-red-500' },
-  class_teacher:    { label: 'Class Teacher',    color: 'bg-blue-500' },
-  hostel_warden:    { label: 'Hostel Warden',    color: 'bg-green-500' },
-  shop_operator:    { label: 'Shop Operator',    color: 'bg-yellow-500' },
-  canteen_operator: { label: 'Canteen Operator', color: 'bg-orange-500' },
+  super_admin:      { label: 'Super Admin',      color: 'bg-red-500'    },
+  class_teacher:    { label: 'Class Teacher',    color: 'bg-blue-500'   },
+  hostel_warden:    { label: 'Hostel Warden',    color: 'bg-green-500'  },
+  shop_operator:    { label: 'Operator',         color: 'bg-yellow-500' },
   librarian:        { label: 'Librarian',        color: 'bg-purple-500' },
 };
 
 export default function AdminLayout() {
-  const { user, logout }        = useAuth();
-  const navigate                = useNavigate();
+  const { user, logout }              = useAuth();
+  const navigate                      = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen]   = useState(false);
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
-  const filteredNav  = ALL_NAV.filter(item =>
+  const filteredNav = ALL_NAV.filter(item =>
     !item.roles || item.roles.includes(user?.role)
   );
-  const currentRole  = roleConfig[user?.role] || { label: user?.role, color: 'bg-gray-500' };
+  const currentRole = roleConfig[user?.role] || {
+    label: user?.role, color: 'bg-gray-500',
+  };
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -87,11 +152,15 @@ export default function AdminLayout() {
       {/* Logo */}
       <div className="p-5 border-b border-primary-700">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center
-            text-primary-700 font-bold text-lg shrink-0">C</div>
+          <div className="w-9 h-9 bg-white rounded-lg flex items-center
+            justify-center text-primary-700 font-bold text-lg shrink-0">
+            C
+          </div>
           {sidebarOpen && (
             <div>
-              <p className="text-white font-bold text-sm leading-tight">College</p>
+              <p className="text-white font-bold text-sm leading-tight">
+                College
+              </p>
               <p className="text-primary-300 text-xs">Management System</p>
             </div>
           )}
@@ -114,7 +183,9 @@ export default function AdminLayout() {
           if (item.section) {
             return sidebarOpen
               ? <p key={i} className="text-primary-400 text-xs font-semibold
-                  uppercase tracking-wider px-3 pt-4 pb-1">{item.section}</p>
+                  uppercase tracking-wider px-3 pt-4 pb-1">
+                  {item.section}
+                </p>
               : <hr key={i} className="border-primary-700 my-2" />;
           }
           return (
@@ -123,7 +194,8 @@ export default function AdminLayout() {
               to={item.to}
               end={item.exact}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors
+                `flex items-center gap-3 px-3 py-2 rounded-lg text-sm
+                transition-colors
                 ${isActive
                   ? 'bg-white/20 text-white font-medium'
                   : 'text-primary-200 hover:bg-white/10 hover:text-white'}`
@@ -146,14 +218,17 @@ export default function AdminLayout() {
           </div>
           {sidebarOpen && (
             <div className="flex-1 min-w-0">
-              <p className="text-white text-sm font-medium truncate">{user?.name}</p>
+              <p className="text-white text-sm font-medium truncate">
+                {user?.name}
+              </p>
               <p className="text-primary-300 text-xs">{currentRole.label}</p>
             </div>
           )}
           <button
             onClick={handleLogout}
             title="Logout"
-            className="text-primary-300 hover:text-white transition-colors text-lg shrink-0"
+            className="text-primary-300 hover:text-white transition-colors
+              text-lg shrink-0"
           >
             <FiLogOut />
           </button>
@@ -174,14 +249,15 @@ export default function AdminLayout() {
       )}
 
       {/* Desktop Sidebar */}
-      <aside className={`hidden lg:flex flex-col bg-primary-800 transition-all duration-300
-        shrink-0 ${sidebarOpen ? 'w-60' : 'w-16'}`}>
+      <aside className={`hidden lg:flex flex-col bg-primary-800
+        transition-all duration-300 shrink-0
+        ${sidebarOpen ? 'w-60' : 'w-16'}`}>
         <SidebarContent />
       </aside>
 
       {/* Mobile Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-30 w-60 bg-primary-800 flex flex-col
-        lg:hidden transform transition-transform duration-300
+      <aside className={`fixed inset-y-0 left-0 z-30 w-60 bg-primary-800
+        flex flex-col lg:hidden transform transition-transform duration-300
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <SidebarContent />
       </aside>
@@ -193,8 +269,12 @@ export default function AdminLayout() {
         <header className="bg-white border-b border-gray-200 px-4 py-3
           flex items-center gap-3 shrink-0">
           <button
-            onClick={() => { setSidebarOpen(!sidebarOpen); setMobileOpen(!mobileOpen); }}
-            className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors"
+            onClick={() => {
+              setSidebarOpen(!sidebarOpen);
+              setMobileOpen(!mobileOpen);
+            }}
+            className="p-2 rounded-lg hover:bg-gray-100 text-gray-600
+              transition-colors"
           >
             <FiMenu />
           </button>
