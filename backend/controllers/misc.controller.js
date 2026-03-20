@@ -44,11 +44,22 @@ export const expense = {
 
 // ─── CIRCULAR CONTROLLER ─────────────────────────────────────────────────────
 import Circular from '../models/Circular.model.js';
+import { createNotifications, getCircularRecipientIds } from '../utils/appNotifications.js';
 
 export const circular = {
   create: async (req, res) => {
     try {
       const circular = await Circular.create({ ...req.body, publishedBy: req.user.id });
+      await createNotifications({
+        recipientIds: await getCircularRecipientIds({
+          audience: circular.audience || [],
+          courseId: circular.course || null,
+        }),
+        type: 'circular',
+        title: circular.title,
+        message: circular.content,
+        reference: String(circular._id),
+      });
       res.status(201).json({ success: true, circular });
     } catch (err) { res.status(500).json({ success: false, message: err.message }); }
   },

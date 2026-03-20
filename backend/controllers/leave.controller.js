@@ -3,6 +3,12 @@ import Student from '../models/Student.model.js';
 import Course from '../models/Course.model.js';
 import mongoose from 'mongoose';
 import utils_notifications from '../utils/notifications.js';
+import {
+  createNotifications,
+  getCourseTeacherRecipientIds,
+  getRoleRecipientIds,
+  getStudentNotificationRecipientIds,
+} from '../utils/appNotifications.js';
 const { sendSMS, sendEmail } = utils_notifications;
 
 const getTeacherCourseIds = async user => {
@@ -31,6 +37,29 @@ export const applyLeave = async (req, res) => {
       leaveType, fromDate, toDate, reason,
     });
     const student = await Student.findById(studentId);
+    const teacherRecipients = student?.course
+      ? await getCourseTeacherRecipientIds(student.course)
+      : [];
+    const adminRecipients = await getRoleRecipientIds(['super_admin']);
+
+    await createNotifications({
+      recipientIds: [...teacherRecipients, ...adminRecipients],
+      student: studentId,
+      type: 'leave_status',
+      title: 'New leave request',
+      message: `${student?.firstName || 'A student'} requested leave from ${fromDate} to ${toDate}.`,
+      reference: String(leave._id),
+    });
+
+    await createNotifications({
+      recipientIds: await getStudentNotificationRecipientIds(student),
+      student: studentId,
+      type: 'leave_status',
+      title: 'Leave request submitted',
+      message: `Your leave request from ${fromDate} to ${toDate} is pending approval.`,
+      reference: String(leave._id),
+    });
+
     if (student?.phone)
       await sendSMS(student.phone, `Leave application submitted for ${fromDate} to ${toDate}. Status: Pending.`);
     res.status(201).json({ success: true, leave });
@@ -97,6 +126,14 @@ export const updateLeaveStatus = async (req, res) => {
 
     const student = leave.student;
     const msg = `Leave request ${status}. ${remarks ? 'Remarks: ' + remarks : ''}`;
+    await createNotifications({
+      recipientIds: await getStudentNotificationRecipientIds(student),
+      student: student?._id,
+      type: 'leave_status',
+      title: `Leave ${status}`,
+      message: remarks ? `${msg}` : `Your leave request has been ${status}.`,
+      reference: String(leave._id),
+    });
     if (student?.phone) await sendSMS(student.phone, msg);
     if (student?.father?.phone) await sendSMS(student.father.phone, msg);
     res.json({ success: true, leave });

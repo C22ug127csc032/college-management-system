@@ -3,6 +3,7 @@ import Student from '../models/Student.model.js';
 import Course from '../models/Course.model.js';
 import mongoose from 'mongoose';
 import utils_notifications from '../utils/notifications.js';
+import { createNotifications, getStudentNotificationRecipientIds } from '../utils/appNotifications.js';
 const { sendSMS } = utils_notifications;
 
 const getTeacherCourseIds = async user => {
@@ -40,6 +41,14 @@ export const record = async (req, res) => {
     const record = await CheckIn.create({ student: studentId, type, location, remarks, recordedBy: req.user.id });
 
     const msg = `${student.firstName} ${student.lastName} has ${type === 'check_in' ? 'entered' : 'exited'} ${location} at ${new Date().toLocaleTimeString()}.`;
+    await createNotifications({
+      recipientIds: await getStudentNotificationRecipientIds(student),
+      student: student._id,
+      type: 'checkin',
+      title: type === 'check_in' ? 'Check-in recorded' : 'Check-out recorded',
+      message: msg,
+      reference: String(record._id),
+    });
     if (student.father?.phone) await sendSMS(student.father.phone, msg);
     if (student.mother?.phone) await sendSMS(student.mother.phone, msg);
     record.parentNotified = true;

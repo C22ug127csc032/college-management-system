@@ -3,6 +3,12 @@ import Student from '../models/Student.model.js';
 import Course from '../models/Course.model.js';
 import mongoose from 'mongoose';
 import utils_notifications from '../utils/notifications.js';
+import {
+  createNotifications,
+  getCourseTeacherRecipientIds,
+  getRoleRecipientIds,
+  getStudentNotificationRecipientIds,
+} from '../utils/appNotifications.js';
 const { sendSMS } = utils_notifications;
 
 const getTeacherCourseIds = async user => {
@@ -27,6 +33,29 @@ export const createOutpass = async (req, res) => {
     const outpass = await Outpass.create({
       student: studentId, requestedBy: req.user.id,
       exitDate, exitTime, expectedReturn, reason, destination,
+    });
+    const student = await Student.findById(studentId).select('firstName course userRef');
+    const teacherRecipients = student?.course
+      ? await getCourseTeacherRecipientIds(student.course)
+      : [];
+    const staffRecipients = await getRoleRecipientIds(['super_admin', 'hostel_warden']);
+
+    await createNotifications({
+      recipientIds: [...teacherRecipients, ...staffRecipients],
+      student: studentId,
+      type: 'outpass_status',
+      title: 'New outpass request',
+      message: `${student?.firstName || 'A student'} requested outpass for ${destination || 'outside visit'}.`,
+      reference: String(outpass._id),
+    });
+
+    await createNotifications({
+      recipientIds: await getStudentNotificationRecipientIds(student),
+      student: studentId,
+      type: 'outpass_status',
+      title: 'Outpass request submitted',
+      message: `Your outpass request for ${exitDate} is pending approval.`,
+      reference: String(outpass._id),
     });
     res.status(201).json({ success: true, outpass });
   } catch (err) {
@@ -86,6 +115,14 @@ export const updateOutpassStatus = async (req, res) => {
 
     const student = outpass.student;
     const msg = `Outpass request ${status} for exit on ${outpass.exitDate?.toDateString()}. ${remarks ? 'Remarks: ' + remarks : ''}`;
+    await createNotifications({
+      recipientIds: await getStudentNotificationRecipientIds(student),
+      student: student?._id,
+      type: 'outpass_status',
+      title: `Outpass ${status}`,
+      message: msg,
+      reference: String(outpass._id),
+    });
     if (student?.phone) await sendSMS(student.phone, msg);
     if (student?.father?.phone) await sendSMS(student.father.phone, msg);
     outpass.parentNotified = true;
@@ -118,6 +155,14 @@ export const markReturned = async (req, res) => {
 
     const student = outpass.student;
     const msg = `Student ${student?.firstName} has returned to hostel on ${new Date().toLocaleString()}.`;
+    await createNotifications({
+      recipientIds: await getStudentNotificationRecipientIds(student),
+      student: student?._id,
+      type: 'outpass_status',
+      title: 'Outpass closed',
+      message: msg,
+      reference: String(outpass._id),
+    });
     if (student?.father?.phone) await sendSMS(student.father.phone, msg);
 
     res.json({ success: true, outpass });

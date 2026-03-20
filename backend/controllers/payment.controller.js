@@ -1,4 +1,4 @@
-import getRazorpay from '../config/razorpay.js';
+﻿import getRazorpay from '../config/razorpay.js';
 import Payment from '../models/Payment.model.js';
 import StudentFees from '../models/StudentFees.model.js';
 import Ledger from '../models/Ledger.model.js';
@@ -8,6 +8,7 @@ import utils_pdfGenerator from '../utils/pdfGenerator.js';
 const { generateReceipt } = utils_pdfGenerator;
 import utils_notifications from '../utils/notifications.js';
 const { sendSMS, sendEmail } = utils_notifications;
+import { createNotifications, getStudentNotificationRecipientIds } from '../utils/appNotifications.js';
 
 // @POST /api/payments/create-order
 export const createOrder = async (req, res) => {
@@ -32,7 +33,7 @@ export const createOrder = async (req, res) => {
         return res.status(400).json({ success: false, message: 'This fee is already fully paid' });
       }
       if (numericAmount > sf.totalDue) {
-        return res.status(400).json({ success: false, message: `Payment exceeds remaining due of ₹${sf.totalDue}` });
+        return res.status(400).json({ success: false, message: `Payment exceeds remaining due of â‚¹${sf.totalDue}` });
       }
     }
 
@@ -124,7 +125,7 @@ async function _recordPayment({ studentId, studentFeesId, amount, paymentMode,
       throw new Error('This fee is already fully paid');
     }
     if (numericAmount > sf.totalDue) {
-      throw new Error(`Only ₹${sf.totalDue} is pending for this fee`);
+      throw new Error(`Only â‚¹${sf.totalDue} is pending for this fee`);
     }
   }
 
@@ -187,7 +188,15 @@ async function _recordPayment({ studentId, studentFeesId, amount, paymentMode,
   }
 
   // Notifications
-  const msg = `Dear Student, Payment of ₹${numericAmount} received. Receipt: ${payment.receiptNo}. Thank you.`;
+  await createNotifications({
+    recipientIds: await getStudentNotificationRecipientIds(student),
+    student: student._id,
+    type: 'payment_confirm',
+    title: 'Payment received',
+    message: `Payment of Rs ${numericAmount} received. Receipt: ${payment.receiptNo}.`,
+    reference: String(payment._id),
+  });
+  const msg = `Dear Student, Payment of â‚¹${numericAmount} received. Receipt: ${payment.receiptNo}. Thank you.`;
   if (student?.phone) await sendSMS(student.phone, msg);
   if (student?.father?.phone) await sendSMS(student.father.phone, msg);
   if (student?.email) await sendEmail(student.email, 'Payment Confirmation', msg);

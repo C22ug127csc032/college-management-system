@@ -15,6 +15,13 @@ import StudentFees from '../models/StudentFees.model.js';
 import Circular   from '../models/Circular.model.js';
 import Payment    from '../models/Payment.model.js';
 import User       from '../models/User.model.js';
+import Student    from '../models/Student.model.js';
+import {
+  createNotifications,
+  getCourseTeacherRecipientIds,
+  getRoleRecipientIds,
+  getStudentNotificationRecipientIds,
+} from '../utils/appNotifications.js';
 
 const router = express.Router();
 
@@ -43,6 +50,29 @@ router.post('/leave', async (req, res) => {
       appliedByRole: 'parent',
       leaveType, fromDate, toDate, reason,
     });
+    const student = await Student.findById(fullUser.studentRef).select('firstName course userRef');
+    const teacherRecipients = student?.course
+      ? await getCourseTeacherRecipientIds(student.course)
+      : [];
+    const adminRecipients = await getRoleRecipientIds(['super_admin']);
+
+    await createNotifications({
+      recipientIds: [...teacherRecipients, ...adminRecipients],
+      student: student?._id,
+      type: 'leave_status',
+      title: 'New leave request',
+      message: `${student?.firstName || 'A student'} requested leave from ${fromDate} to ${toDate}.`,
+      reference: String(leave._id),
+    });
+
+    await createNotifications({
+      recipientIds: await getStudentNotificationRecipientIds(student),
+      student: student?._id,
+      type: 'leave_status',
+      title: 'Leave request submitted',
+      message: `Your leave request from ${fromDate} to ${toDate} is pending approval.`,
+      reference: String(leave._id),
+    });
     res.status(201).json({ success: true, leave });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -69,6 +99,29 @@ router.post('/outpass', async (req, res) => {
       student:      fullUser.studentRef,
       requestedBy:  req.user._id,
       exitDate, exitTime, expectedReturn, reason, destination,
+    });
+    const student = await Student.findById(fullUser.studentRef).select('firstName course userRef');
+    const teacherRecipients = student?.course
+      ? await getCourseTeacherRecipientIds(student.course)
+      : [];
+    const staffRecipients = await getRoleRecipientIds(['super_admin', 'hostel_warden']);
+
+    await createNotifications({
+      recipientIds: [...teacherRecipients, ...staffRecipients],
+      student: student?._id,
+      type: 'outpass_status',
+      title: 'New outpass request',
+      message: `${student?.firstName || 'A student'} requested outpass for ${destination || 'outside visit'}.`,
+      reference: String(outpass._id),
+    });
+
+    await createNotifications({
+      recipientIds: await getStudentNotificationRecipientIds(student),
+      student: student?._id,
+      type: 'outpass_status',
+      title: 'Outpass request submitted',
+      message: `Your outpass request for ${exitDate} is pending approval.`,
+      reference: String(outpass._id),
     });
     res.status(201).json({ success: true, outpass });
   } catch (err) {

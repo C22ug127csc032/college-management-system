@@ -106,6 +106,13 @@ function PromoteModal({ open, onClose, onDone, courses }) {
       });
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    if (courses.length === 1) {
+      setSelectedCourse(courses[0]._id);
+    }
+  }, [courses, open]);
+
   // Preview students when class selected
   useEffect(() => {
     if (!selectedClass) { setPreview(null); return; }
@@ -229,21 +236,22 @@ function PromoteModal({ open, onClose, onDone, courses }) {
             </div>
           ) : (
             <>
-              {/* Course select */}
-              <div>
-                <label className="label">Course</label>
-                <select className="input" value={selectedCourse}
-                  onChange={e => {
-                    setSelectedCourse(e.target.value);
-                    setSelectedClass('');
-                    setPreview(null);
-                  }}>
-                  <option value="">Select course...</option>
-                  {courses.map(c => (
-                    <option key={c._id} value={c._id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
+              {courses.length > 1 && (
+                <div>
+                  <label className="label">Course</label>
+                  <select className="input" value={selectedCourse}
+                    onChange={e => {
+                      setSelectedCourse(e.target.value);
+                      setSelectedClass('');
+                      setPreview(null);
+                    }}>
+                    <option value="">Select course...</option>
+                    {courses.map(c => (
+                      <option key={c._id} value={c._id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Class select */}
               <div>
