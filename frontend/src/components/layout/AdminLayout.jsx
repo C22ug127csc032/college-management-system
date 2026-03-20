@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import NotificationBell from '../common/NotificationBell';
 import {
@@ -134,8 +134,15 @@ const roleConfig = {
 export default function AdminLayout() {
   const { user, logout }              = useAuth();
   const navigate                      = useNavigate();
+  const location                      = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen]   = useState(false);
+  const desktopNavRef                 = useRef(null);
+  const mobileNavRef                  = useRef(null);
+  const sidebarScrollPositions        = useRef({
+    desktop: 0,
+    mobile: 0,
+  });
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
@@ -146,7 +153,16 @@ export default function AdminLayout() {
     label: user?.role, color: 'bg-gray-500',
   };
 
-  const SidebarContent = () => (
+  useEffect(() => {
+    if (desktopNavRef.current) {
+      desktopNavRef.current.scrollTop = sidebarScrollPositions.current.desktop;
+    }
+    if (mobileNavRef.current) {
+      mobileNavRef.current.scrollTop = sidebarScrollPositions.current.mobile;
+    }
+  }, [location.pathname, mobileOpen, sidebarOpen]);
+
+  const SidebarContent = ({ expanded, navRef, navKey }) => (
     <div className="flex flex-col h-full">
 
       {/* Logo */}
@@ -156,7 +172,7 @@ export default function AdminLayout() {
             justify-center text-primary-700 font-bold text-lg shrink-0">
             C
           </div>
-          {sidebarOpen && (
+          {expanded && (
             <div>
               <p className="text-white font-bold text-sm leading-tight">
                 College
@@ -168,7 +184,7 @@ export default function AdminLayout() {
       </div>
 
       {/* Role Badge */}
-      {sidebarOpen && (
+      {expanded && (
         <div className="px-4 py-2 border-b border-primary-700">
           <span className={`inline-flex items-center px-2.5 py-1 rounded-full
             text-xs font-medium text-white ${currentRole.color}`}>
@@ -178,10 +194,16 @@ export default function AdminLayout() {
       )}
 
       {/* Nav Items */}
-      <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-0.5">
+      <nav
+        ref={navRef}
+        className="flex-1 overflow-y-auto py-4 px-2 space-y-0.5"
+        onScroll={e => {
+          sidebarScrollPositions.current[navKey] = e.currentTarget.scrollTop;
+        }}
+      >
         {filteredNav.map((item, i) => {
           if (item.section) {
-            return sidebarOpen
+            return expanded
               ? <p key={i} className="text-primary-400 text-xs font-semibold
                   uppercase tracking-wider px-3 pt-4 pb-1">
                   {item.section}
@@ -200,10 +222,16 @@ export default function AdminLayout() {
                   ? 'bg-white/20 text-white font-medium'
                   : 'text-primary-200 hover:bg-white/10 hover:text-white'}`
               }
-              onClick={() => setMobileOpen(false)}
+              onClick={e => {
+                const navElement = e.currentTarget.closest('nav');
+                if (navElement) {
+                  sidebarScrollPositions.current[navKey] = navElement.scrollTop;
+                }
+                setMobileOpen(false);
+              }}
             >
               <item.icon className="text-base shrink-0" />
-              {sidebarOpen && <span>{item.label}</span>}
+              {expanded && <span>{item.label}</span>}
             </NavLink>
           );
         })}
@@ -216,7 +244,7 @@ export default function AdminLayout() {
             justify-center text-white text-sm font-bold shrink-0">
             {user?.name?.charAt(0) || 'A'}
           </div>
-          {sidebarOpen && (
+          {expanded && (
             <div className="flex-1 min-w-0">
               <p className="text-white text-sm font-medium truncate">
                 {user?.name}
@@ -252,14 +280,22 @@ export default function AdminLayout() {
       <aside className={`hidden lg:flex flex-col bg-primary-800
         transition-all duration-300 shrink-0
         ${sidebarOpen ? 'w-60' : 'w-16'}`}>
-        <SidebarContent />
+        <SidebarContent
+          expanded={sidebarOpen}
+          navRef={desktopNavRef}
+          navKey="desktop"
+        />
       </aside>
 
       {/* Mobile Sidebar */}
       <aside className={`fixed inset-y-0 left-0 z-30 w-60 bg-primary-800
         flex flex-col lg:hidden transform transition-transform duration-300
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <SidebarContent />
+        <SidebarContent
+          expanded
+          navRef={mobileNavRef}
+          navKey="mobile"
+        />
       </aside>
 
       {/* Main Content */}
@@ -278,10 +314,10 @@ export default function AdminLayout() {
           >
             <FiMenu />
           </button>
-          <h1 className="text-gray-800 font-semibold text-sm hidden sm:block">
+          <h1 className="text-gray-800 font-semibold text-sm flex-1 min-w-0 truncate">
             College Management System
           </h1>
-          <div className="ml-auto flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <NotificationBell />
             <span className={`hidden sm:inline-flex items-center px-2.5 py-1
               rounded-full text-xs font-medium text-white ${currentRole.color}`}>

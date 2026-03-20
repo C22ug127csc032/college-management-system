@@ -447,6 +447,35 @@ export default function Students() {
     }
   };
 
+  const handleGenerateRollNos = async () => {
+    const selectedCourseId = isClassTeacher
+      ? teacherCourse?._id
+      : filters.course;
+
+    if (!selectedCourseId) {
+      toast.error('Select a course first to generate roll numbers');
+      return;
+    }
+
+    const selectedCourse = visibleCourses.find(c => c._id === selectedCourseId);
+    const confirmMessage =
+      `Generate course-wise roll numbers for ${selectedCourse?.name || 'this course'}?\n\n` +
+      `Rule: Male students first, then female students, both sorted by student name.\n` +
+      `Roll numbers will restart batch-wise inside the selected course.`;
+
+    if (!window.confirm(confirmMessage)) return;
+
+    try {
+      const r = await api.post('/students/generate-roll-nos', {
+        courseId: selectedCourseId,
+      });
+      toast.success(r.data.message);
+      fetchStudents();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to generate roll numbers');
+    }
+  };
+
   const pendingCount = students.filter(
     s => !s.regNo || s.status === 'admission_pending'
   ).length;
@@ -466,6 +495,264 @@ export default function Students() {
     return cls.startsWith(code);
   });
 
+  const getGenderSortRank = gender => {
+    const normalizedGender = (gender || '').trim().toLowerCase();
+    if (normalizedGender === 'male') return 0;
+    if (normalizedGender === 'female') return 1;
+    return 2;
+  };
+
+  const getRollNoColor = gender => {
+    const normalizedGender = (gender || '').trim().toLowerCase();
+    if (normalizedGender === 'male') return 'text-blue-600';
+    if (normalizedGender === 'female') return 'text-red-600';
+    return 'text-gray-600';
+  };
+
+  const sortedStudents = [...students].sort((a, b) => {
+    const courseNameA = a.course?.name || '';
+    const courseNameB = b.course?.name || '';
+    const courseDiff = courseNameA.localeCompare(courseNameB, undefined, {
+      sensitivity: 'base',
+    });
+    if (courseDiff !== 0) return courseDiff;
+
+    const batchA = a.batch || '';
+    const batchB = b.batch || '';
+    const batchDiff = batchA.localeCompare(batchB, undefined, {
+      sensitivity: 'base',
+    });
+    if (batchDiff !== 0) return batchDiff;
+
+    const rollNoA = Number.parseInt(String(a.rollNo || '').match(/(\d+)$/)?.[1], 10);
+    const rollNoB = Number.parseInt(String(b.rollNo || '').match(/(\d+)$/)?.[1], 10);
+    const hasNumericRollA = !Number.isNaN(rollNoA);
+    const hasNumericRollB = !Number.isNaN(rollNoB);
+
+    if (hasNumericRollA && hasNumericRollB && rollNoA !== rollNoB) {
+      return rollNoA - rollNoB;
+    }
+
+    const genderRankDiff =
+      getGenderSortRank(a.gender) - getGenderSortRank(b.gender);
+
+    if (genderRankDiff !== 0) return genderRankDiff;
+
+    const studentNameA = `${a.firstName || ''} ${a.lastName || ''}`.trim();
+    const studentNameB = `${b.firstName || ''} ${b.lastName || ''}`.trim();
+
+    return studentNameA.localeCompare(studentNameB, undefined, {
+      sensitivity: 'base',
+    });
+  });
+
+  const showCourseGroups = !filters.course;
+  const groupedStudents = sortedStudents.reduce((groups, student) => {
+    const courseKey = student.course?._id || student.course?.name || 'uncategorized';
+    const existingGroup = groups.find(group => group.key === courseKey);
+
+    if (existingGroup) {
+      existingGroup.students.push(student);
+      return groups;
+    }
+
+    groups.push({
+      key: courseKey,
+      title: student.course?.code || student.course?.name || 'Unassigned Course',
+      subtitle: student.course?.name || 'No course assigned',
+      students: [student],
+    });
+    return groups;
+  }, []);
+
+  const renderStudentRow = s => (
+    <tr key={s._id}
+      className="hover:bg-gray-50 transition-colors cursor-pointer"
+      onClick={() => navigate(`/admin/students/${s._id}`)}>
+
+      <td className="table-cell">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-primary-100
+            text-primary-700 font-bold text-xs flex items-center
+            justify-center shrink-0 overflow-hidden">
+            {s.photo
+              ? <img src={s.photo} alt=""
+                  className="w-8 h-8 object-cover" />
+              : s.firstName?.[0]}
+          </div>
+          <div>
+            <p className="font-medium text-gray-800">
+              {s.firstName} {s.lastName}
+            </p>
+            <p className="text-xs text-gray-400">
+              {s.batch || 'â€“'}
+            </p>
+          </div>
+        </div>
+      </td>
+
+      <td className="table-cell">
+        <div className="font-mono text-xs text-gray-600 mb-1">
+          {s.admissionNo || 'â€“'}
+        </div>
+        {!s.regNo ||
+          s.status === 'admission_pending'
+          ? <span className="inline-flex items-center gap-1
+              text-xs text-orange-600 bg-orange-50 border
+              border-orange-200 px-2 py-0.5 rounded-full
+              font-medium">
+              Pending
+            </span>
+          : null
+        }
+      </td>
+
+      <td className="table-cell font-mono text-xs text-gray-600">
+        {s.regNo || '-'}
+      </td>
+
+      <td className={`table-cell font-mono text-xs font-semibold ${
+        getRollNoColor(s.gender)
+      }`}>
+        {s.rollNo || '-'}
+      </td>
+
+      {!s.hideCourseColumn && (
+        <td className="table-cell text-gray-500 text-xs">
+          {s.course?.name || 'â€“'}
+        </td>
+      )}
+
+      <td className="table-cell">
+        {s.className
+          ? <button
+              onClick={e => {
+                e.stopPropagation();
+                setFilter('className', s.className);
+              }}
+              className="inline-flex items-center px-2 py-0.5
+                bg-blue-50 text-blue-700 text-xs font-semibold
+                rounded-md border border-blue-100
+                hover:bg-blue-100 transition-colors">
+              {s.className}
+            </button>
+          : <span className="text-gray-300 text-xs">
+              Not assigned
+            </span>
+        }
+      </td>
+
+      <td className="table-cell text-center text-gray-500 text-xs">
+        {s.semester ? `Sem ${s.semester}` : 'â€“'}
+      </td>
+
+      <td className="table-cell font-mono text-xs text-gray-500">
+        {s.phone}
+      </td>
+
+      <td className="table-cell text-center">
+        {s.isHosteler
+          ? <span className="text-purple-600 text-xs font-medium">
+              <span className="inline-flex items-center gap-1">
+                <FiHome className="shrink-0" />
+                {s.hostelRoom || 'Yes'}
+              </span>
+            </span>
+          : <span className="text-gray-300 text-xs">â€“</span>
+        }
+      </td>
+
+      <td className="table-cell">
+        {s.status === 'admission_pending'
+          ? <span className="inline-flex items-center gap-1
+              text-xs text-yellow-700 bg-yellow-50 border
+              border-yellow-200 px-2 py-0.5 rounded-full">
+              <FiClock className="shrink-0" />
+              Enrollment
+            </span>
+          : <StatusBadge status={s.status} />
+        }
+      </td>
+
+      <td className="table-cell"
+        onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-1.5 whitespace-nowrap">
+          <button
+            onClick={() => navigate(`/admin/students/${s._id}`)}
+            className="text-xs text-primary-600
+              hover:text-primary-800 font-medium hover:underline">
+            View
+          </button>
+          <span className="text-gray-200">|</span>
+          <button
+            onClick={() => navigate(`/admin/students/${s._id}/edit`)}
+            className="text-xs text-gray-500 hover:text-gray-800
+              font-medium hover:underline">
+            Edit
+          </button>
+          {s.status === 'active' && s.semester && (
+            <>
+              <span className="text-gray-200">|</span>
+              <button
+                onClick={e => handlePromoteSingle(
+                  e, s._id,
+                  `${s.firstName} ${s.lastName}`,
+                  s.semester
+                )}
+                className="text-xs text-green-600
+                  hover:text-green-800 font-medium
+                  hover:underline">
+                +Sem
+              </button>
+            </>
+          )}
+          {s.status !== 'inactive' && (
+            <>
+              <span className="text-gray-200">|</span>
+              <button
+                onClick={e => handleDeactivate(
+                  e, s._id,
+                  `${s.firstName} ${s.lastName}`
+                )}
+                className="text-xs text-red-500
+                  hover:text-red-700 font-medium hover:underline">
+                Deactivate
+              </button>
+            </>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+
+  const renderStudentsTable = (courseStudents, hideCourseColumn = false) => (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="table-header">Student</th>
+            <th className="table-header">Admission No</th>
+            <th className="table-header">Reg No</th>
+            <th className="table-header">Roll No</th>
+            {!hideCourseColumn && <th className="table-header">Course</th>}
+            <th className="table-header">Class</th>
+            <th className="table-header">Semester</th>
+            <th className="table-header">Phone</th>
+            <th className="table-header">Hostel</th>
+            <th className="table-header">Status</th>
+            <th className="table-header">Actions</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-50">
+          {courseStudents.map(s => renderStudentRow({
+            ...s,
+            hideCourseColumn,
+          }))}
+        </tbody>
+      </table>
+    </div>
+  );
+
   return (
     <div>
       <PageHeader
@@ -479,6 +766,12 @@ export default function Students() {
             >
               <FiTrendingUp />
               Promote Class
+            </button>
+            <button
+              onClick={handleGenerateRollNos}
+              className="btn-secondary"
+            >
+              Generate Roll No
             </button>
             <button
               className="btn-primary"
@@ -620,6 +913,19 @@ export default function Students() {
         {/* ── Table ── */}
         {loading ? <PageSpinner /> : (
           <>
+            {showCourseGroups ? (
+              <div className="space-y-8">
+                {groupedStudents.map(group => (
+                  <section key={group.key} className="rounded-2xl border border-gray-100 bg-white overflow-hidden">
+                    <div className="px-5 py-4 border-b border-gray-100 bg-slate-50">
+                      <h2 className="text-xl font-bold text-slate-900">{group.title}</h2>
+                      <p className="text-sm text-slate-500 mt-1">{group.subtitle}</p>
+                    </div>
+                    {renderStudentsTable(group.students, true)}
+                  </section>
+                ))}
+              </div>
+            ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50">
@@ -638,7 +944,7 @@ export default function Students() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {students.map(s => (
+                  {sortedStudents.map(s => (
                     <tr key={s._id}
                       className="hover:bg-gray-50 transition-colors cursor-pointer"
                       onClick={() => navigate(`/admin/students/${s._id}`)}>
@@ -683,11 +989,13 @@ export default function Students() {
                       </td>
 
                       <td className="table-cell font-mono text-xs text-gray-600">
-                        {s.regNo || '–'}
+                        {s.regNo || '-'}
                       </td>
 
-                      <td className="table-cell font-mono text-xs text-gray-600">
-                        {s.rollNo || '–'}
+                      <td className={`table-cell font-mono text-xs font-semibold ${
+                        getRollNoColor(s.gender)
+                      }`}>
+                        {s.rollNo || '-'}
                       </td>
                       {/* Course */}
                       <td className="table-cell text-gray-500 text-xs">
@@ -806,6 +1114,7 @@ export default function Students() {
                 </tbody>
               </table>
             </div>
+            )}
 
             {students.length === 0 && (
               <EmptyState

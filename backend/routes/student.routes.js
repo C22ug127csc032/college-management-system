@@ -10,6 +10,7 @@ r.get('/stats/summary',             protect, adminOrTeacher, c.getStudentStats);
 r.get('/adm/:admissionNo',          protect,                 c.getStudentByAdmissionNo);
 r.get('/reg/:regNo',                protect,                 c.getStudentByRegNo);
 r.get('/class-strength/:className', protect, adminOrTeacher, c.getClassStrength);
+r.post('/generate-roll-nos',        protect, adminOnly,      c.generateCourseWiseRollNos);
 
 // ── Promote routes ────────────────────────────────────────────────────────────
 r.post('/promote',        protect, adminOnly, c.promoteClass);

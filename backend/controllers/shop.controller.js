@@ -3,6 +3,20 @@ import Sale     from '../models/Sale.model.js';
 import Wallet   from '../models/Wallet.model.js';
 import Student  from '../models/Student.model.js';
 
+const buildItemCodePrefix = type => (type === 'canteen' ? 'CAN' : 'SHP');
+
+const generateItemCode = async type => {
+  const prefix = buildItemCodePrefix(type);
+
+  for (let serial = 1; serial < 100000; serial += 1) {
+    const code = `${prefix}${String(serial).padStart(4, '0')}`;
+    const exists = await ShopItem.exists({ code });
+    if (!exists) return code;
+  }
+
+  throw new Error('Unable to generate item code');
+};
+
 // ── GET /api/shop/items?type=shop|canteen ─────────────────────────────────────
 export const getItems = async (req, res) => {
   try {
@@ -24,7 +38,7 @@ export const getItems = async (req, res) => {
 export const addItem = async (req, res) => {
   try {
     const {
-      name, price, unit, stock,
+      name, code, price, unit, stock,
       minStockAlert, type, isAvailable,
     } = req.body;
 
@@ -34,8 +48,22 @@ export const addItem = async (req, res) => {
       itemType = req.user.role === 'canteen_operator' ? 'canteen' : 'shop';
     }
 
+    const normalizedCode = String(code || '').trim().toUpperCase();
+    const nextCode = normalizedCode || await generateItemCode(itemType);
+
+    if (await ShopItem.exists({ code: nextCode })) {
+      return res.status(400).json({
+        success: false,
+        message: 'Item code already exists',
+      });
+    }
+
     const item = await ShopItem.create({
-      name, price, unit, stock,
+      name,
+      code:          nextCode,
+      price,
+      unit,
+      stock,
       minStockAlert: minStockAlert || 5,
       type:          itemType,
       isAvailable:   isAvailable !== false,
@@ -44,7 +72,8 @@ export const addItem = async (req, res) => {
 
     res.status(201).json({ success: true, item });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    const status = err.code === 11000 ? 400 : 500;
+    res.status(status).json({ success: false, message: err.message });
   }
 };
 

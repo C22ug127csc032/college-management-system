@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 
 const shopItemSchema = new mongoose.Schema({
   name:         { type: String, required: true, trim: true },
+  code:         { type: String, unique: true, uppercase: true, trim: true, sparse: true },
   price:        { type: Number, required: true, min: 0 },
   unit:         { type: String, default: 'piece' },
   stock:        { type: Number, default: 0 },

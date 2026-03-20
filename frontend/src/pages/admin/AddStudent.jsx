@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../../api/axios';
 import { PageHeader } from '../../components/common';
@@ -77,28 +77,28 @@ export default function AddStudent() {
   const [checkingStrength, setCheckingStrength] = useState(false);
 
   const [form, setForm] = useState({
-    // ── Personal ──
+    // -- Personal --
     firstName: '', lastName: '', dob: '',
     gender: '', bloodGroup: '', phone: '', email: '',
     aadharNo: '', religion: '', category: '',
-    // ── Address ──
+    // -- Address --
     'address.street': '', 'address.city': '',
     'address.state': '', 'address.pincode': '',
-    // ── Father ──
+    // -- Father --
     'father.name': '', 'father.phone': '', 'father.occupation': '',
-    // ── Mother ──
+    // -- Mother --
     'mother.name': '', 'mother.phone': '', 'mother.occupation': '',
-    // ── Guardian ──
+    // -- Guardian --
     'guardian.name': '', 'guardian.relation': '', 'guardian.phone': '',
-    // ── Annual income ──
+    // -- Annual income --
     annualIncome: '',
-    // ── Academic — fill on admission day ──
+    // -- Academic — fill on admission day --
     course: '', academicYear: '', batch: '',
     semester: '', admissionDate: new Date().toISOString().slice(0, 10),
     admissionType: 'management',
-    // ── Academic — fill AFTER enrollment ──
+    // -- Academic — fill AFTER enrollment --
     regNo: '', rollNo: '', section: '', className: '',
-    // ── Hostel ──
+    // -- Hostel --
     isHosteler: false, hostelRoom: '',
   });
 
@@ -107,7 +107,7 @@ export default function AddStudent() {
     api.get('/courses').then(r => setCourses(r.data.courses));
   }, []);
 
-  // ── Auto fill className from batch + section ──────────────────────────────
+  // -- Auto fill className from batch + section ------------------------------
   // Uses BATCH YEAR (not semester) — all students in same batch = same class
   useEffect(() => {
     if (form.course && form.batch && form.section) {
@@ -121,10 +121,10 @@ export default function AddStudent() {
             .map(w => w[0].toUpperCase())
             .join('');
 
-        // Get joining year from batch — "2024-2027" → "24"
+        // Get joining year from batch — "2024-2027" ? "24"
         const joiningYear = form.batch.split('-')[0]?.slice(-2) || '';
 
-        // Combine → BCA-24A
+        // Combine ? BCA-24A
         const autoClass = `${code}-${joiningYear}${form.section}`;
         setForm(f => ({ ...f, className: autoClass }));
       }
@@ -133,7 +133,7 @@ export default function AddStudent() {
     }
   }, [form.course, form.batch, form.section, courses]);
 
-  // ── Check class strength when className changes ───────────────────────────
+  // -- Check class strength when className changes ---------------------------
   useEffect(() => {
     if (!form.className || !form.course) {
       setClassStrength(null);
@@ -238,12 +238,6 @@ export default function AddStudent() {
   const handleSubmit = async e => {
     e.preventDefault();
 
-    // Block submit if class is full
-    if (classStrength?.full) {
-      toast.error(`Class ${form.className} is full (${classStrength.count}/${classStrength.max}). Please assign Section B.`);
-      return;
-    }
-
     setLoading(true);
     try {
       const fd     = new FormData();
@@ -310,7 +304,7 @@ export default function AddStudent() {
         subtitle={
           isEdit
             ? 'Update student profile'
-            : 'Fill admission details. Register No and Roll No can be added after university enrollment.'
+            : 'Fill admission details. Register No is added after university enrollment.'
         }
         action={
           <button onClick={() => navigate(-1)}
@@ -322,7 +316,7 @@ export default function AddStudent() {
 
       <form onSubmit={handleSubmit}>
 
-        {/* ── Admission Day Divider ── */}
+        {/* -- Admission Day Divider -- */}
         {!isEdit && (
           <div className="flex items-center gap-3 mb-4">
             <div className="flex-1 h-px bg-gray-200" />
@@ -334,7 +328,7 @@ export default function AddStudent() {
           </div>
         )}
 
-        {/* ── Personal Details ── */}
+        {/* -- Personal Details -- */}
         <Section title={
           <span className="flex items-center gap-2">
             <FiClipboard /> Personal Details
@@ -353,7 +347,7 @@ export default function AddStudent() {
             options={['General', 'OBC', 'SC', 'ST', 'EWS']} />
         </Section>
 
-        {/* ── Address ── */}
+        {/* -- Address -- */}
         <Section title={
           <span className="flex items-center gap-2">
             <FiHome /> Address
@@ -365,7 +359,7 @@ export default function AddStudent() {
           <Field label="Pincode" name="address.pincode" value={form['address.pincode']} onChange={handleChange} />
         </Section>
 
-        {/* ── Parent Details ── */}
+        {/* -- Parent Details -- */}
         <div className="card mb-4">
           <h3 className="section-title border-b border-gray-100 pb-3 mb-4
             flex items-center gap-2">
@@ -409,17 +403,17 @@ export default function AddStudent() {
               <select className="input" name="annualIncome"
                 value={form.annualIncome} onChange={handleChange}>
                 <option value="">Select range</option>
-                <option value="below_1L">Below ₹1 Lakh</option>
-                <option value="1L_3L">₹1 – 3 Lakhs</option>
-                <option value="3L_6L">₹3 – 6 Lakhs</option>
-                <option value="6L_10L">₹6 – 10 Lakhs</option>
-                <option value="above_10L">Above ₹10 Lakhs</option>
+                <option value="below_1L">Below 1 Lakh</option>
+                <option value="1L_3L">1 - 3 Lakhs</option>
+                <option value="3L_6L">3 - 6 Lakhs</option>
+                <option value="6L_10L">6 - 10 Lakhs</option>
+                <option value="above_10L">Above 10 Lakhs</option>
               </select>
             </div>
           </div>
         </div>
 
-        {/* ── Academic Details ── */}
+        {/* -- Academic Details -- */}
         <div className="card mb-4">
           <h3 className="section-title border-b border-gray-100 pb-3 mb-4
             flex items-center gap-2">
@@ -446,7 +440,7 @@ export default function AddStudent() {
           </div>
         </div>
 
-        {/* ── Photo & Hostel ── */}
+        {/* -- Photo & Hostel -- */}
         <div className="card mb-4">
           <h3 className="section-title border-b border-gray-100 pb-3 mb-4
             flex items-center gap-2">
@@ -486,9 +480,9 @@ export default function AddStudent() {
           </div>
         </div>
 
-        {/* ══════════════════════════════════════════════════════════════
+        {/* --------------------------------------------------------------
             SECTION 2 — FILL AFTER UNIVERSITY ENROLLMENT (Edit only)
-        ══════════════════════════════════════════════════════════════ */}
+        -------------------------------------------------------------- */}
         {isEdit && (
           <>
             <div className="flex items-center gap-3 my-6">
@@ -511,8 +505,9 @@ export default function AddStudent() {
                     University Enrollment Details
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    Fill after university assigns Register Number
-                    and college allocates Roll No, Section and Class.
+                    Fill Register Number after university enrollment.
+                    Roll No, Section and Class are assigned automatically
+                    when admin generates roll numbers.
                   </p>
                 </div>
                 {enrollmentDone && (
@@ -527,8 +522,7 @@ export default function AddStudent() {
               </div>
 
               {/* Fields */}
-              <div className="grid grid-cols-1 sm:grid-cols-2
-                lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
                 {/* Register No */}
                 <div>
@@ -549,180 +543,13 @@ export default function AddStudent() {
                     onChange={handleChange}
                   />
                 </div>
-
-                {/* Roll No */}
-                <div>
-                  <label className="label">
-                    Roll No
-                    {!form.rollNo && (
-                      <span className="ml-2 text-xs text-orange-500 font-normal">
-                        (not assigned yet)
-                      </span>
-                    )}
-                  </label>
-                  <input
-                    className="input"
-                    name="rollNo"
-                    placeholder="e.g. 001"
-                    value={form.rollNo}
-                    onChange={handleChange}
-                  />
-                </div>
-
-                {/* Section */}
-                <div>
-                  <label className="label">
-                    Section
-                    {!form.section && (
-                      <span className="ml-2 text-xs text-orange-500 font-normal">
-                        (not assigned yet)
-                      </span>
-                    )}
-                  </label>
-                  <select className="input" name="section"
-                    value={form.section} onChange={handleChange}>
-                    <option value="">Select...</option>
-                    {['A', 'B', 'C', 'D', 'E'].map(s => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Class — auto filled */}
-                <div>
-                  <label className="label">
-                    Class
-                    {form.className && (
-                      <span className="ml-2 text-xs text-green-500 font-normal">
-                        (auto filled)
-                      </span>
-                    )}
-                  </label>
-                  <input
-                    className={`input font-mono ${form.className
-                      ? 'bg-green-50 text-green-800 border-green-200'
-                      : 'bg-gray-50 text-gray-400'}`}
-                    name="className"
-                    placeholder="Auto filled"
-                    value={form.className}
-                    onChange={handleChange}
-                    readOnly={!!(form.course && form.batch && form.section)}
-                  />
-                </div>
               </div>
-
-              {/* Auto fill message */}
-              {form.section && form.course && form.batch && (
-                <div className="mt-3 flex items-center gap-2 text-xs
-                  text-green-600">
-                  <FiCheckCircle className="shrink-0" />
-                  <span>
-                    Class auto filled as <strong>{form.className}</strong>{' '}
-                    from Course + Batch {form.batch} + Section {form.section}
-                  </span>
-                </div>
-              )}
-
-              {/* ── Class Strength Indicator ── */}
-              {form.className && form.course && (
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  {checkingStrength ? (
-                    <div className="flex items-center gap-2 text-xs
-                      text-gray-400">
-                      <div className="w-3 h-3 border-2 border-gray-300
-                        border-t-primary-500 rounded-full animate-spin" />
-                      Checking class strength...
-                    </div>
-                  ) : classStrength ? (
-                    <div className={`p-4 rounded-xl border ${
-                      classStrength.full
-                        ? 'bg-red-50 border-red-200'
-                        : classStrength.percentage >= 80
-                          ? 'bg-yellow-50 border-yellow-200'
-                          : 'bg-green-50 border-green-200'
-                    }`}>
-
-                      {/* Header row */}
-                      <div className="flex items-center justify-between mb-2">
-                        <p className={`text-xs font-semibold ${
-                          classStrength.full
-                            ? 'text-red-700'
-                            : classStrength.percentage >= 80
-                              ? 'text-yellow-700'
-                              : 'text-green-700'
-                        }`}>
-                          <span className="inline-flex items-center gap-1">
-                            {classStrength.full
-                              ? <FiAlertCircle className="shrink-0" />
-                              : classStrength.percentage >= 80
-                                ? <FiAlertTriangle className="shrink-0" />
-                                : <FiCheckCircle className="shrink-0" />}
-                            <span>
-                              {classStrength.full
-                                ? 'Class Full'
-                                : classStrength.percentage >= 80
-                                  ? 'Almost Full'
-                                  : 'Seats Available'}
-                            </span>
-                          </span>
-                          {' — '}{form.className}
-                        </p>
-                        <span className={`text-sm font-bold ${
-                          classStrength.full
-                            ? 'text-red-600'
-                            : classStrength.percentage >= 80
-                              ? 'text-yellow-600'
-                              : 'text-green-600'
-                        }`}>
-                          {classStrength.count} / {classStrength.max}
-                        </span>
-                      </div>
-
-                      {/* Progress bar */}
-                      <div className="w-full bg-white rounded-full h-2.5
-                        mb-2 overflow-hidden border border-white/50">
-                        <div
-                          className={`h-2.5 rounded-full transition-all
-                            duration-500 ${
-                            classStrength.full
-                              ? 'bg-red-500'
-                              : classStrength.percentage >= 80
-                                ? 'bg-yellow-500'
-                                : 'bg-green-500'
-                          }`}
-                          style={{
-                            width: `${Math.min(classStrength.percentage, 100)}%`,
-                          }}
-                        />
-                      </div>
-
-                      {/* Message */}
-                      <p className={`text-xs ${
-                        classStrength.full
-                          ? 'text-red-600'
-                          : classStrength.percentage >= 80
-                            ? 'text-yellow-600'
-                            : 'text-green-600'
-                      }`}>
-                        {classStrength.full
-                          ? `Class is full. Please assign Section B → ${
-                              form.className.replace(/[A-E]$/, '') + 'B'
-                            }`
-                          : `${classStrength.remaining} seat${
-                              classStrength.remaining !== 1 ? 's' : ''
-                            } remaining out of ${classStrength.max}`
-                        }
-                      </p>
-                    </div>
-                  ) : null}
-                </div>
-              )}
 
             </div>
           </>
         )}
 
-        {/* ── Submit Buttons ── */}
+        {/* -- Submit Buttons -- */}
         <div className="flex gap-3 justify-end mb-6">
           <button type="button" onClick={() => navigate(-1)}
             className="btn-secondary">
@@ -730,16 +557,12 @@ export default function AddStudent() {
           </button>
           <button
             type="submit"
-            disabled={loading || classStrength?.full}
-            className={`btn-primary px-8 ${
-              classStrength?.full ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
+            disabled={loading}
+            className="btn-primary px-8"
           >
             {loading
               ? 'Saving...'
-              : classStrength?.full
-                ? 'Class Full — Cannot Save'
-                : isEdit ? 'Update Student' : 'Create Student'}
+              : isEdit ? 'Update Student' : 'Create Student'}
           </button>
         </div>
 

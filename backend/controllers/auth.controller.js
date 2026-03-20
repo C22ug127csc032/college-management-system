@@ -183,8 +183,19 @@ export const register = async (req, res) => {
   try {
     const { name, phone, email, password, role, staffId, department } = req.body;
     const normalizedRole = normalizeOperatorRole(role);
+    const cleanName = String(name || '').trim();
+    const cleanPhone = String(phone || '').trim();
+    const cleanEmail = String(email || '').trim().toLowerCase();
+    const cleanDepartment = String(department || '').trim();
 
-    const exists = await User.findOne({ phone });
+    if (!cleanName || !cleanPhone || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name, phone and password are required',
+      });
+    }
+
+    const exists = await User.findOne({ phone: cleanPhone });
     if (exists) {
       return res.status(400).json({
         success: false,
@@ -192,9 +203,24 @@ export const register = async (req, res) => {
       });
     }
 
+    if (cleanEmail) {
+      const emailExists = await User.findOne({ email: cleanEmail });
+      if (emailExists) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email already registered',
+        });
+      }
+    }
+
     const user = await User.create({
-      name, phone, email, password,
-      role: normalizedRole, staffId, department,
+      name: cleanName,
+      phone: cleanPhone,
+      email: cleanEmail || undefined,
+      password,
+      role: normalizedRole,
+      staffId,
+      department: cleanDepartment || undefined,
       isFirstLogin: false,
     });
 
@@ -204,7 +230,12 @@ export const register = async (req, res) => {
       user: { _id: user._id, name: user.name, role: normalizeOperatorRole(user.role) },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    const status = err.code === 11000 ? 400 : 500;
+    const message =
+      err.code === 11000
+        ? 'Phone or email already registered'
+        : err.message;
+    res.status(status).json({ success: false, message });
   }
 };
 

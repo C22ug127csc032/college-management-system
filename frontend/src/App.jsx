@@ -102,9 +102,9 @@ export default function App() {
         <Routes>
 
           {/* ── Public Routes ─────────────────────────────────────────── */}
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<StudentLogin />} />
+          <Route path="/admin/login" element={<Login />} />
           <Route path="/operator/login" element={<OperatorLogin />} />
-          <Route path="/student/login" element={<StudentLogin />} />
           <Route path="/parent/login" element={<ParentLogin />} />
           <Route path="/parent/register" element={<ParentRegister />} />
           <Route path="/unauthorized" element={

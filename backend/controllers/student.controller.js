@@ -81,6 +81,173 @@ const generateNextRegNo = async () => {
   return `REG${String(latestNumber + 1).padStart(10, '0')}`;
 };
 
+const getGenderSortRank = gender => {
+  const normalizedGender = String(gender || '').trim().toLowerCase();
+  if (normalizedGender === 'male') return 0;
+  if (normalizedGender === 'female') return 1;
+  return 2;
+};
+
+const getStudentNameForSort = student =>
+  `${student.firstName || ''} ${student.lastName || ''}`.trim();
+
+const getRollNoYearPrefix = student => {
+  const batchStartYear = String(student.batch || '').split('-')[0]?.trim();
+  if (/^\d{4}$/.test(batchStartYear)) return batchStartYear.slice(-2);
+
+  const admissionYear = student.admissionDate
+    ? new Date(student.admissionDate).getFullYear()
+    : null;
+  if (admissionYear) return String(admissionYear).slice(-2);
+
+  return String(new Date().getFullYear()).slice(-2);
+};
+
+const buildFormattedRollNo = ({ student, courseCode, serialNumber }) =>
+  `${getRollNoYearPrefix(student)}${courseCode}${String(serialNumber).padStart(3, '0')}`;
+
+const getSectionLabel = index => {
+  const baseCharCode = 'A'.charCodeAt(0);
+  let label = '';
+  let current = index;
+
+  do {
+    label = String.fromCharCode(baseCharCode + (current % 26)) + label;
+    current = Math.floor(current / 26) - 1;
+  } while (current >= 0);
+
+  return label;
+};
+
+const compareStudentsForRollNo = (a, b) => {
+  const genderDiff = getGenderSortRank(a.gender) - getGenderSortRank(b.gender);
+  if (genderDiff !== 0) return genderDiff;
+
+  const nameDiff = getStudentNameForSort(a).localeCompare(
+    getStudentNameForSort(b),
+    undefined,
+    { sensitivity: 'base' }
+  );
+  if (nameDiff !== 0) return nameDiff;
+
+  const admissionDateA = a.admissionDate ? new Date(a.admissionDate).getTime() : 0;
+  const admissionDateB = b.admissionDate ? new Date(b.admissionDate).getTime() : 0;
+  if (admissionDateA !== admissionDateB) return admissionDateA - admissionDateB;
+
+  return String(a._id).localeCompare(String(b._id));
+};
+
+const compareStudentsAlphabetically = (a, b) => {
+  const nameDiff = getStudentNameForSort(a).localeCompare(
+    getStudentNameForSort(b),
+    undefined,
+    { sensitivity: 'base' }
+  );
+  if (nameDiff !== 0) return nameDiff;
+
+  const admissionDateA = a.admissionDate ? new Date(a.admissionDate).getTime() : 0;
+  const admissionDateB = b.admissionDate ? new Date(b.admissionDate).getTime() : 0;
+  if (admissionDateA !== admissionDateB) return admissionDateA - admissionDateB;
+
+  return String(a._id).localeCompare(String(b._id));
+};
+
+const assignSectionsForCourseBatch = async ({ courseId, batch }) => {
+  if (!courseId || !batch) return;
+
+  const course = await Course.findById(courseId).select('code');
+  if (!course) return;
+
+  const courseCode = String(course.code || '')
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
+
+  const students = await Student.find({ course: courseId, batch }).select(
+    '_id firstName lastName admissionDate section className'
+  );
+
+  const sortedStudents = [...students].sort(compareStudentsAlphabetically);
+  const operations = [];
+
+  sortedStudents.forEach((student, index) => {
+    const section = getSectionLabel(Math.floor(index / 60));
+    const className = `${courseCode}-${section}`;
+
+    if (student.section !== section || student.className !== className) {
+      operations.push({
+        updateOne: {
+          filter: { _id: student._id },
+          update: { $set: { section, className } },
+        },
+      });
+    }
+  });
+
+  if (operations.length) {
+    await Student.bulkWrite(operations);
+  }
+};
+
+const generateRollNosForCourse = async courseId => {
+  const course = await Course.findById(courseId).select('code');
+  if (!course) throw new Error('Course not found');
+
+  const courseCode = String(course.code || '')
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
+
+  const students = await Student.find({ course: courseId }).select(
+    '_id course batch firstName lastName gender admissionDate rollNo'
+  );
+
+  const groupedByBatch = students.reduce((acc, student) => {
+    const batchKey = String(student.batch || '').trim() || '__NO_BATCH__';
+    if (!acc.has(batchKey)) acc.set(batchKey, []);
+    acc.get(batchKey).push(student);
+    return acc;
+  }, new Map());
+
+  const operations = [];
+  const summary = [];
+
+  for (const [batchKey, batchStudents] of groupedByBatch.entries()) {
+    if (batchKey !== '__NO_BATCH__') {
+      await assignSectionsForCourseBatch({ courseId, batch: batchKey });
+    }
+
+    const sortedStudents = [...batchStudents].sort(compareStudentsForRollNo);
+
+    sortedStudents.forEach((student, index) => {
+      const nextRollNo = buildFormattedRollNo({
+        student,
+        courseCode,
+        serialNumber: index + 1,
+      });
+      if (student.rollNo !== nextRollNo) {
+        operations.push({
+          updateOne: {
+            filter: { _id: student._id },
+            update: { $set: { rollNo: nextRollNo } },
+          },
+        });
+      }
+    });
+
+    summary.push({
+      batch: batchKey === '__NO_BATCH__' ? '' : batchKey,
+      total: sortedStudents.length,
+    });
+  }
+
+  if (operations.length) {
+    await Student.bulkWrite(operations);
+  }
+
+  return summary;
+};
+
 // ── Check class strength ──────────────────────────────────────────────────────
 const checkClassStrength = async (courseId, className) => {
   if (!className || !courseId) return { full: false, count: 0, max: 60 };
@@ -195,6 +362,9 @@ export const createStudent = async (req, res) => {
     const data = normalizeStudentPayload(req.body);
     if (req.file) data.photo = `/uploads/${req.file.filename}`;
     data.email = data.email || undefined;
+    delete data.rollNo;
+    delete data.section;
+    delete data.className;
 
     // Check phone already exists
     const existingUser = await User.findOne({ phone: data.phone });
@@ -231,6 +401,10 @@ export const createStudent = async (req, res) => {
     }
 
     const student = await Student.create(data);
+    await assignSectionsForCourseBatch({
+      courseId: student.course,
+      batch: student.batch,
+    });
 
     // ── Create student login account ──────────────────────────────────────
     // Default password = admissionNo (NOT phone number anymore)
@@ -285,9 +459,12 @@ export const updateStudent = async (req, res) => {
     const data = normalizeStudentPayload(req.body);
     if (req.file) data.photo = `/uploads/${req.file.filename}`;
     data.email = data.email || undefined;
+    delete data.rollNo;
+    delete data.section;
+    delete data.className;
 
     const existing = await Student.findById(req.params.id)
-      .select('userRef regNo admissionNo status className');
+      .select('userRef regNo admissionNo status className course batch');
     if (!existing)
       return res.status(404).json({ success: false, message: 'Student not found' });
 
@@ -336,6 +513,21 @@ export const updateStudent = async (req, res) => {
         name:  `${student.firstName} ${student.lastName}`,
         phone: student.phone,
         email: student.email,
+      });
+    }
+
+    await assignSectionsForCourseBatch({
+      courseId: student.course?._id || student.course,
+      batch: student.batch,
+    });
+
+    if (
+      String(existing.course || '') !== String(student.course?._id || student.course) ||
+      String(existing.batch || '') !== String(student.batch || '')
+    ) {
+      await assignSectionsForCourseBatch({
+        courseId: existing.course,
+        batch: existing.batch,
       });
     }
 
@@ -575,6 +767,38 @@ export const promoteSingle = async (req, res) => {
   }
 };
 
+// POST /api/students/generate-roll-nos
+export const generateCourseWiseRollNos = async (req, res) => {
+  try {
+    const { courseId } = req.body;
+
+    if (!courseId) {
+      return res.status(400).json({
+        success: false,
+        message: 'courseId is required',
+      });
+    }
+
+    const course = await Course.findById(courseId).select('name code');
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: 'Course not found',
+      });
+    }
+
+    const summary = await generateRollNosForCourse(courseId);
+
+    res.json({
+      success: true,
+      message: `Roll numbers generated for ${course.name}`,
+      summary,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 export default {
   getAllStudents,
   getStudent,
@@ -588,4 +812,5 @@ export default {
   getClassStrength,
   promoteClass,
   promoteSingle,
+  generateCourseWiseRollNos,
 };

@@ -757,8 +757,31 @@ export function StaffManagement() {
 
   const add = async e => {
     e.preventDefault();
-    await api.post('/auth/register', form); toast.success('Staff added');
-    setShow(false); api.get('/staff').then(r => setStaff(r.data.staff));
+    try {
+      const payload = {
+        ...form,
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+        email: form.email.trim(),
+        password: form.password,
+        department: form.department.trim(),
+      };
+
+      await api.post('/auth/register', payload);
+      toast.success('Staff added');
+      setShow(false);
+      setForm({
+        name: '',
+        phone: '',
+        email: '',
+        password: '',
+        role: 'class_teacher',
+        department: '',
+      });
+      api.get('/staff').then(r => setStaff(r.data.staff));
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to add staff');
+    }
   };
 
   const roleColors = { class_teacher: 'badge-blue', hostel_warden: 'badge-green', shop_operator: 'badge-yellow', librarian: 'badge-purple', super_admin: 'badge-red' };
