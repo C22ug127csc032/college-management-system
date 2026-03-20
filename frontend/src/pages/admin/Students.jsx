@@ -570,6 +570,16 @@ export default function Students() {
       className="hover:bg-gray-50 transition-colors cursor-pointer"
       onClick={() => navigate(`/admin/students/${s._id}`)}>
 
+      <td className={`table-cell font-mono text-xs font-semibold ${
+        getRollNoColor(s.gender)
+      }`}>
+        {s.rollNo || '-'}
+      </td>
+
+      <td className="table-cell font-mono text-xs text-gray-600">
+        {s.regNo || '-'}
+      </td>
+
       <td className="table-cell">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-primary-100
@@ -605,16 +615,6 @@ export default function Students() {
             </span>
           : null
         }
-      </td>
-
-      <td className="table-cell font-mono text-xs text-gray-600">
-        {s.regNo || '-'}
-      </td>
-
-      <td className={`table-cell font-mono text-xs font-semibold ${
-        getRollNoColor(s.gender)
-      }`}>
-        {s.rollNo || '-'}
       </td>
 
       {!s.hideCourseColumn && (
@@ -730,10 +730,10 @@ export default function Students() {
       <table className="w-full text-sm">
         <thead className="bg-gray-50">
           <tr>
+            <th className="table-header">Roll No</th>
+            <th className="table-header">Reg No</th>
             <th className="table-header">Student</th>
             <th className="table-header">Admission No</th>
-            <th className="table-header">Reg No</th>
-            <th className="table-header">Roll No</th>
             {!hideCourseColumn && <th className="table-header">Course</th>}
             <th className="table-header">Class</th>
             <th className="table-header">Semester</th>
@@ -930,10 +930,10 @@ export default function Students() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th className="table-header">Roll No</th>
+                    <th className="table-header">Reg No</th>
                     <th className="table-header">Student</th>
                     <th className="table-header">Admission No</th>
-                    <th className="table-header">Reg No</th>
-                    <th className="table-header">Roll No</th>
                     <th className="table-header">Course</th>
                     <th className="table-header">Class</th>
                     <th className="table-header">Semester</th>
@@ -944,173 +944,7 @@ export default function Students() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {sortedStudents.map(s => (
-                    <tr key={s._id}
-                      className="hover:bg-gray-50 transition-colors cursor-pointer"
-                      onClick={() => navigate(`/admin/students/${s._id}`)}>
-
-                      {/* Student */}
-                      <td className="table-cell">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-lg bg-primary-100
-                            text-primary-700 font-bold text-xs flex items-center
-                            justify-center shrink-0 overflow-hidden">
-                            {s.photo
-                              ? <img src={s.photo} alt=""
-                                  className="w-8 h-8 object-cover" />
-                              : s.firstName?.[0]}
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-800">
-                              {s.firstName} {s.lastName}
-                            </p>
-                            <p className="text-xs text-gray-400">
-                              {s.batch || '–'}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Admission No */}
-                      <td className="table-cell">
-                        <div className="font-mono text-xs text-gray-600 mb-1">
-                          {s.admissionNo || '–'}
-                        </div>
-                        {!s.regNo ||
-                          s.status === 'admission_pending'
-                          ? <span className="inline-flex items-center gap-1
-                              text-xs text-orange-600 bg-orange-50 border
-                              border-orange-200 px-2 py-0.5 rounded-full
-                              font-medium">
-                              Pending
-                            </span>
-                          : null
-                        }
-                      </td>
-
-                      <td className="table-cell font-mono text-xs text-gray-600">
-                        {s.regNo || '-'}
-                      </td>
-
-                      <td className={`table-cell font-mono text-xs font-semibold ${
-                        getRollNoColor(s.gender)
-                      }`}>
-                        {s.rollNo || '-'}
-                      </td>
-                      {/* Course */}
-                      <td className="table-cell text-gray-500 text-xs">
-                        {s.course?.name || '–'}
-                      </td>
-
-                      {/* Class — clickable */}
-                      <td className="table-cell">
-                        {s.className
-                          ? <button
-                              onClick={e => {
-                                e.stopPropagation();
-                                setFilter('className', s.className);
-                              }}
-                              className="inline-flex items-center px-2 py-0.5
-                                bg-blue-50 text-blue-700 text-xs font-semibold
-                                rounded-md border border-blue-100
-                                hover:bg-blue-100 transition-colors">
-                              {s.className}
-                            </button>
-                          : <span className="text-gray-300 text-xs">
-                              Not assigned
-                            </span>
-                        }
-                      </td>
-
-                      {/* Semester */}
-                      <td className="table-cell text-center text-gray-500 text-xs">
-                        {s.semester ? `Sem ${s.semester}` : '–'}
-                      </td>
-
-                      {/* Phone */}
-                      <td className="table-cell font-mono text-xs text-gray-500">
-                        {s.phone}
-                      </td>
-
-                      {/* Hostel */}
-                      <td className="table-cell text-center">
-                        {s.isHosteler
-                          ? <span className="text-purple-600 text-xs font-medium">
-                              <span className="inline-flex items-center gap-1">
-                                <FiHome className="shrink-0" />
-                                {s.hostelRoom || 'Yes'}
-                              </span>
-                            </span>
-                          : <span className="text-gray-300 text-xs">–</span>
-                        }
-                      </td>
-
-                      {/* Status */}
-                      <td className="table-cell">
-                        {s.status === 'admission_pending'
-                          ? <span className="inline-flex items-center gap-1
-                              text-xs text-yellow-700 bg-yellow-50 border
-                              border-yellow-200 px-2 py-0.5 rounded-full">
-                              <FiClock className="shrink-0" />
-                              Enrollment
-                            </span>
-                          : <StatusBadge status={s.status} />
-                        }
-                      </td>
-
-                      {/* Actions */}
-                      <td className="table-cell"
-                        onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center gap-1.5 whitespace-nowrap">
-                          <button
-                            onClick={() => navigate(`/admin/students/${s._id}`)}
-                            className="text-xs text-primary-600
-                              hover:text-primary-800 font-medium hover:underline">
-                            View
-                          </button>
-                          <span className="text-gray-200">|</span>
-                          <button
-                            onClick={() => navigate(
-                              `/admin/students/${s._id}/edit`
-                            )}
-                            className="text-xs text-gray-500 hover:text-gray-800
-                              font-medium hover:underline">
-                            Edit
-                          </button>
-                          {s.status === 'active' && s.semester && (
-                            <>
-                              <span className="text-gray-200">|</span>
-                              <button
-                                onClick={e => handlePromoteSingle(
-                                  e, s._id,
-                                  `${s.firstName} ${s.lastName}`,
-                                  s.semester
-                                )}
-                                className="text-xs text-green-600
-                                  hover:text-green-800 font-medium
-                                  hover:underline">
-                                +Sem
-                              </button>
-                            </>
-                          )}
-                          {s.status !== 'inactive' && (
-                            <>
-                              <span className="text-gray-200">|</span>
-                              <button
-                                onClick={e => handleDeactivate(
-                                  e, s._id,
-                                  `${s.firstName} ${s.lastName}`
-                                )}
-                                className="text-xs text-red-500
-                                  hover:text-red-700 font-medium hover:underline">
-                                Deactivate
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {sortedStudents.map(s => renderStudentRow(s))}
                 </tbody>
               </table>
             </div>
