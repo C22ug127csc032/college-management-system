@@ -3,6 +3,7 @@ import api, { downloadPaymentReceipt } from '../../api/axios';
 import { PageHeader, Table, StatusBadge, FilterBar, EmptyState, Modal, PageSpinner, StatCard, Pagination } from '../../components/common';
 import { FiAlertOctagon, FiBell, FiCheckCircle, FiClock, FiCreditCard, FiDollarSign, FiLogOut, FiPackage, FiTarget, FiTrendingDown, FiUsers } from '../../components/common/icons';
 import toast from 'react-hot-toast';
+import { isValidIndianPhone, sanitizePhoneField } from '../../utils/phone';
 
 const SearchableStudentSelect = ({ students, value, onChange, placeholder = 'Select Student...' }) => {
   const [query, setQuery] = useState('');
@@ -687,9 +688,15 @@ export function LibraryAdmin() {
   const [issueForm, setIssueForm] = useState(initialIssueForm);
 
   useEffect(() => {
-    api.get('/library/books').then(r => setBooks(r.data.books));
-    api.get('/library/issues').then(r => setIssues(r.data.issues));
-    api.get('/students?limit=500').then(r => setStudents(r.data.students));
+    api.get('/library/books')
+      .then(r => setBooks(r.data.books))
+      .catch(() => toast.error('Failed to load books'));
+    api.get('/library/issues')
+      .then(r => setIssues(r.data.issues))
+      .catch(() => toast.error('Failed to load issues'));
+    api.get('/library/students?limit=500')
+      .then(r => setStudents(r.data.students))
+      .catch(() => toast.error('Failed to load students'));
   }, []);
 
   const addBook = async e => {
@@ -851,10 +858,16 @@ export function StaffManagement() {
   const add = async e => {
     e.preventDefault();
     try {
+      const phone = sanitizePhoneField(form.phone);
+      if (!isValidIndianPhone(phone)) {
+        toast.error('Phone number must be a valid 10-digit Indian mobile number');
+        return;
+      }
+
       const payload = {
         ...form,
         name: form.name.trim(),
-        phone: form.phone.trim(),
+        phone,
         email: form.email.trim(),
         password: form.password,
         department: form.department.trim(),
@@ -900,7 +913,7 @@ export function StaffManagement() {
         <form onSubmit={add} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div><label className="label">Name *</label><input className="input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required /></div>
-            <div><label className="label">Phone *</label><input className="input" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} required /></div>
+            <div><label className="label">Phone *</label><input className="input" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: sanitizePhoneField(e.target.value) }))} inputMode="numeric" maxLength={10} required /></div>
             <div><label className="label">Email</label><input type="email" className="input" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
             <div><label className="label">Password *</label><input type="password" className="input" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} required /></div>
             <div><label className="label">Role</label>

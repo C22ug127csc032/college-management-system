@@ -8,6 +8,7 @@ import CheckIn    from '../models/CheckIn.model.js';
 import Payment    from '../models/Payment.model.js';
 import jwt        from 'jsonwebtoken';
 import { sendSMS } from '../utils/notifications.js';
+import { assertValidIndianPhone } from '../utils/phone.js';
 
 const generateToken = (id, role) =>
   jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: '7d' });
@@ -147,6 +148,7 @@ export const register = async (req, res) => {
       name, phone, email, password,
       admissionNo, relation,
     } = req.body;
+    const normalizedPhone = assertValidIndianPhone(phone);
 
     // Find student by admission no
     const student = await Student.findOne({
@@ -161,7 +163,7 @@ export const register = async (req, res) => {
     }
 
     // Check if this phone is already registered
-    const existingPhone = await User.findOne({ phone });
+    const existingPhone = await User.findOne({ phone: normalizedPhone });
     if (existingPhone) {
       return res.status(400).json({
         success: false,
@@ -186,7 +188,7 @@ export const register = async (req, res) => {
     // Create parent user
     const user = await User.create({
       name,
-      phone,
+      phone: normalizedPhone,
       email:      email || undefined,
       password,
       role:       'parent',
@@ -211,7 +213,8 @@ export const register = async (req, res) => {
     });
   } catch (err) {
     console.error('Parent register error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    const status = /phone number/i.test(err.message) ? 400 : 500;
+    res.status(status).json({ success: false, message: err.message });
   }
 };
 
@@ -220,7 +223,8 @@ export const register = async (req, res) => {
 export const sendOTP = async (req, res) => {
   try {
     const { phone } = req.body;
-    const user = await User.findOne({ phone, role: 'parent' });
+    const normalizedPhone = assertValidIndianPhone(phone);
+    const user = await User.findOne({ phone: normalizedPhone, role: 'parent' });
     if (!user)
       return res.status(404).json({ success: false, message: 'Parent not found' });
 
@@ -230,12 +234,13 @@ export const sendOTP = async (req, res) => {
     await user.save();
 
     await sendSMS(
-      phone,
+      normalizedPhone,
       `Your College Portal login OTP is: ${otp}. Valid for 10 minutes.`
     );
-    res.json({ success: true, message: `OTP sent to ${phone}` });
+    res.json({ success: true, message: `OTP sent to ${normalizedPhone}` });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    const status = /phone number/i.test(err.message) ? 400 : 500;
+    res.status(status).json({ success: false, message: err.message });
   }
 };
 
@@ -243,8 +248,9 @@ export const sendOTP = async (req, res) => {
 // For existing parent login via OTP
 export const verifyOTP = async (req, res) => {
   try {
-    const { phone, otp } = req.body;
-    const user = await User.findOne({ phone, role: 'parent' })
+    const { otp } = req.body;
+    const normalizedPhone = assertValidIndianPhone(req.body.phone);
+    const user = await User.findOne({ phone: normalizedPhone, role: 'parent' })
       .populate('studentRef');
 
     if (!user)
@@ -271,7 +277,8 @@ export const verifyOTP = async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    const status = /phone number/i.test(err.message) ? 400 : 500;
+    res.status(status).json({ success: false, message: err.message });
   }
 };
 

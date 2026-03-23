@@ -1,6 +1,7 @@
 import User    from '../models/User.model.js';
 import Student from '../models/Student.model.js';
 import jwt     from 'jsonwebtoken';
+import { assertValidIndianPhone, isValidIndianPhone, normalizePhone } from '../utils/phone.js';
 
 const generateToken = (id, role) =>
   jwt.sign(
@@ -22,7 +23,7 @@ const ensureUnifiedOperatorRole = async user => {
 
 // ── Helper — only for students ────────────────────────────────────────────────
 const ensureStudentUserByPhone = async phone => {
-  const normalizedPhone = (phone || '').trim();
+  const normalizedPhone = normalizePhone(phone);
   if (!normalizedPhone) return null;
 
   const student = await Student.findOne({ phone: normalizedPhone });
@@ -54,6 +55,7 @@ export const login = async (req, res) => {
   try {
     const { identifier, phone, password, role } = req.body;
     const loginValue = (identifier || phone || '').trim();
+    const normalizedPhone = normalizePhone(loginValue);
 
     if (!loginValue || !password) {
       return res.status(400).json({
@@ -61,18 +63,29 @@ export const login = async (req, res) => {
         message: 'Phone/Email and password are required',
       });
     }
+    if (/^\d+$/.test(loginValue) && !isValidIndianPhone(loginValue)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number must be a valid 10-digit Indian mobile number',
+      });
+    }
 
     // ── Find user ─────────────────────────────────────────────────────────
-    let user = await User.findOne({
-      $or: [
-        { phone: loginValue },
-        { email: loginValue.toLowerCase() },
-      ],
-    }).populate('studentRef');
+    const loginQueries = [];
+    if (isValidIndianPhone(loginValue)) {
+      loginQueries.push({ phone: normalizedPhone });
+    }
+    if (loginValue.includes('@')) {
+      loginQueries.push({ email: loginValue.toLowerCase() });
+    }
+
+    let user = loginQueries.length
+      ? await User.findOne({ $or: loginQueries }).populate('studentRef')
+      : null;
 
     // ── Auto create student user if not found ─────────────────────────────
-    if (!user && /^\d+$/.test(loginValue)) {
-      user = await ensureStudentUserByPhone(loginValue);
+    if (!user && /^\d+$/.test(loginValue) && isValidIndianPhone(loginValue)) {
+      user = await ensureStudentUserByPhone(normalizedPhone);
     }
 
     if (!user) {
@@ -174,7 +187,8 @@ export const login = async (req, res) => {
     });
   } catch (err) {
     console.error('Login error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    const status = /phone number/i.test(err.message) ? 400 : 500;
+    res.status(status).json({ success: false, message: err.message });
   }
 };
 
@@ -184,7 +198,7 @@ export const register = async (req, res) => {
     const { name, phone, email, password, role, staffId, department } = req.body;
     const normalizedRole = normalizeOperatorRole(role);
     const cleanName = String(name || '').trim();
-    const cleanPhone = String(phone || '').trim();
+    const cleanPhone = assertValidIndianPhone(phone);
     const cleanEmail = String(email || '').trim().toLowerCase();
     const cleanDepartment = String(department || '').trim();
 
@@ -235,7 +249,7 @@ export const register = async (req, res) => {
       err.code === 11000
         ? 'Phone or email already registered'
         : err.message;
-    res.status(status).json({ success: false, message });
+    res.status(/phone number/i.test(message) ? 400 : status).json({ success: false, message });
   }
 };
 

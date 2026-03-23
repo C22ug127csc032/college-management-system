@@ -7,6 +7,7 @@ import { FiCheck, FiClock } from '../../components/common/icons';
 export default function CheckInOut() {
   const [records, setRecords]         = useState([]);
   const [loading, setLoading]         = useState(true);
+  const [courses, setCourses]         = useState([]);
   const [studentId, setStudentId]     = useState('');
   const [studentName, setStudentName] = useState('');
   const [studentRollNo, setStudentRollNo] = useState('');
@@ -14,7 +15,7 @@ export default function CheckInOut() {
     studentRegNo: '', type: 'check_in', location: 'gate', remarks: '',
   });
   const [filters, setFilters] = useState({
-    startDate: '', endDate: '', type: '', location: '',
+    startDate: '', endDate: '', type: '', location: '', department: '',
   });
 
   const fetchRecords = useCallback(async () => {
@@ -24,12 +25,18 @@ export default function CheckInOut() {
     if (filters.endDate)   params.endDate   = filters.endDate;
     if (filters.type)      params.type      = filters.type;
     if (filters.location)  params.location  = filters.location;
+    if (filters.department) params.department = filters.department;
     const r = await api.get('/checkin', { params });
     setRecords(r.data.records);
     setLoading(false);
   }, [filters]);
 
   useEffect(() => { fetchRecords(); }, [fetchRecords]);
+  useEffect(() => {
+    api.get('/courses')
+      .then(r => setCourses(r.data.courses || []))
+      .catch(() => {});
+  }, []);
 
   const findStudent = async () => {
     if (!form.studentRegNo) return;
@@ -70,6 +77,11 @@ export default function CheckInOut() {
   };
 
   const setFilter = (k, v) => setFilters(f => ({ ...f, [k]: v }));
+  const departments = [...new Set(
+    courses
+      .map(course => course.department?.trim())
+      .filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 
   const todayIn  = records.filter(r => r.type === 'check_in').length;
   const todayOut = records.filter(r => r.type === 'check_out').length;
@@ -174,6 +186,13 @@ export default function CheckInOut() {
               <option value="hostel">Hostel</option>
               <option value="campus">Campus</option>
             </select>
+            <select className="input w-48" value={filters.department}
+              onChange={e => setFilter('department', e.target.value)}>
+              <option value="">All Departments</option>
+              {departments.map(department => (
+                <option key={department} value={department}>{department}</option>
+              ))}
+            </select>
           </FilterBar>
 
           {loading ? <PageSpinner /> : (
@@ -181,6 +200,7 @@ export default function CheckInOut() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="table-header">Student</th>
+                  <th className="table-header">Department</th>
                   <th className="table-header">Reg No</th>
                   <th className="table-header">Roll No</th>
                   <th className="table-header">Type</th>
@@ -196,6 +216,9 @@ export default function CheckInOut() {
                       <p className="font-medium">
                         {r.student?.firstName} {r.student?.lastName}
                       </p>
+                    </td>
+                    <td className="table-cell text-xs text-gray-500">
+                      {r.student?.course?.department || 'â€“'}
                     </td>
                     <td className="table-cell font-mono text-xs text-gray-500">
                       {r.student?.regNo || '–'}

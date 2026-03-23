@@ -10,6 +10,7 @@ import {
   FiShield,
   FiUser,
 } from '../../components/common/icons';
+import { isValidIndianPhone, sanitizePhoneField } from '../../utils/phone';
 
 const STEPS = ['Find Student', 'Verify OTP', 'Create Account'];
 
@@ -80,8 +81,13 @@ export default function ParentRegister() {
 
   const handleRegister = async e => {
     e.preventDefault();
+    const phone = sanitizePhoneField(form.phone);
     if (form.password !== form.confirmPassword) {
       toast.error('Passwords do not match');
+      return;
+    }
+    if (!isValidIndianPhone(phone)) {
+      toast.error('Enter a valid 10-digit Indian mobile number');
       return;
     }
     if (form.password.length < 6) {
@@ -92,7 +98,7 @@ export default function ParentRegister() {
     try {
       const r = await api.post('/parent/register', {
         name: form.name,
-        phone: form.phone,
+        phone,
         email: form.email || undefined,
         password: form.password,
         admissionNo: admissionNo.trim().toUpperCase(),
@@ -331,7 +337,9 @@ export default function ParentRegister() {
                   className="input"
                   placeholder="Your phone - used to login"
                   value={form.phone}
-                  onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+                  onChange={e => setForm(f => ({ ...f, phone: sanitizePhoneField(e.target.value) }))}
+                  inputMode="numeric"
+                  maxLength={10}
                   required
                 />
               </div>

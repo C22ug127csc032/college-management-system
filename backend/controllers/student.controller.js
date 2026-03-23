@@ -4,6 +4,7 @@ import Ledger  from '../models/Ledger.model.js';
 import Course  from '../models/Course.model.js';
 import mongoose from 'mongoose';
 import utils_notifications from '../utils/notifications.js';
+import { assertValidIndianPhone, normalizePhone } from '../utils/phone.js';
 const { sendSMS } = utils_notifications;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -17,6 +18,14 @@ const normalizeStudentPayload = body => {
   const data = { ...body };
   ['address', 'father', 'mother', 'guardian'].forEach(key => {
     if (key in data) data[key] = parseMaybeJson(data[key]);
+  });
+  if ('phone' in data) {
+    data.phone = normalizePhone(data.phone);
+  }
+  ['father', 'mother', 'guardian'].forEach(key => {
+    if (data[key]?.phone) {
+      data[key].phone = normalizePhone(data[key].phone);
+    }
   });
   if ('isHosteler' in data) {
     data.isHosteler = data.isHosteler === true || data.isHosteler === 'true';
@@ -362,6 +371,10 @@ export const createStudent = async (req, res) => {
     const data = normalizeStudentPayload(req.body);
     if (req.file) data.photo = `/uploads/${req.file.filename}`;
     data.email = data.email || undefined;
+    assertValidIndianPhone(data.phone, 'Student phone number');
+    if (data.father?.phone) assertValidIndianPhone(data.father.phone, 'Father phone number');
+    if (data.mother?.phone) assertValidIndianPhone(data.mother.phone, 'Mother phone number');
+    if (data.guardian?.phone) assertValidIndianPhone(data.guardian.phone, 'Guardian phone number');
     delete data.rollNo;
     delete data.section;
     delete data.className;
@@ -448,7 +461,11 @@ export const createStudent = async (req, res) => {
       student,
     });
   } catch (err) {
-    const status = err.code === 11000 ? 409 : 500;
+    const status = /phone number/i.test(err.message)
+      ? 400
+      : err.code === 11000
+        ? 409
+        : 500;
     res.status(status).json({ success: false, message: err.message });
   }
 };
@@ -459,6 +476,10 @@ export const updateStudent = async (req, res) => {
     const data = normalizeStudentPayload(req.body);
     if (req.file) data.photo = `/uploads/${req.file.filename}`;
     data.email = data.email || undefined;
+    if ('phone' in data) assertValidIndianPhone(data.phone, 'Student phone number');
+    if (data.father?.phone) assertValidIndianPhone(data.father.phone, 'Father phone number');
+    if (data.mother?.phone) assertValidIndianPhone(data.mother.phone, 'Mother phone number');
+    if (data.guardian?.phone) assertValidIndianPhone(data.guardian.phone, 'Guardian phone number');
     delete data.rollNo;
     delete data.section;
     delete data.className;
@@ -533,7 +554,8 @@ export const updateStudent = async (req, res) => {
 
     res.json({ success: true, student });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    const status = /phone number/i.test(err.message) ? 400 : 500;
+    res.status(status).json({ success: false, message: err.message });
   }
 };
 

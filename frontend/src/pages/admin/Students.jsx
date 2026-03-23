@@ -443,18 +443,6 @@ export default function Students() {
     }
   };
 
-  const handlePromoteSingle = async (e, studentId, name, semester) => {
-    e.stopPropagation();
-    if (!window.confirm(`Promote ${name} to Semester ${semester + 1}?`)) return;
-    try {
-      const r = await api.post('/students/promote-single', { studentId });
-      toast.success(r.data.message);
-      fetchStudents();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Promotion failed');
-    }
-  };
-
   const handleGenerateRollNos = async () => {
     const selectedCourseId = isClassTeacher
       ? teacherCourse?._id
@@ -651,7 +639,7 @@ export default function Students() {
       </td>
 
       <td className="table-cell text-center text-gray-500 text-xs">
-        {s.semester ? `Sem ${s.semester}` : 'â€“'}
+        {s.semester ? `Sem ${s.semester}` : '-'}
       </td>
 
       <td className="table-cell font-mono text-xs text-gray-500">
@@ -666,7 +654,7 @@ export default function Students() {
                 {s.hostelRoom || 'Yes'}
               </span>
             </span>
-          : <span className="text-gray-300 text-xs">â€“</span>
+          : <span className="text-gray-300 text-xs">-</span>
         }
       </td>
 
@@ -698,22 +686,6 @@ export default function Students() {
               font-medium hover:underline">
             Edit
           </button>
-          {s.status === 'active' && s.semester && (
-            <>
-              <span className="text-gray-200">|</span>
-              <button
-                onClick={e => handlePromoteSingle(
-                  e, s._id,
-                  `${s.firstName} ${s.lastName}`,
-                  s.semester
-                )}
-                className="text-xs text-green-600
-                  hover:text-green-800 font-medium
-                  hover:underline">
-                +Sem
-              </button>
-            </>
-          )}
           {s.status !== 'inactive' && (
             <>
               <span className="text-gray-200">|</span>

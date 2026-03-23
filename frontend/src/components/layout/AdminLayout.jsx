@@ -85,6 +85,7 @@ const ALL_NAV = [
   {
     to: '/admin/library', label: 'Library', icon: FiBook,
     roles: ['super_admin','librarian'],
+    exact: true,
   },
 
   // ── Administration ─────────────────────────────────────────────────────────
@@ -146,9 +147,18 @@ export default function AdminLayout() {
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
-  const filteredNav = ALL_NAV.filter(item =>
-    !item.roles || item.roles.includes(user?.role)
-  );
+  const filteredNav = ALL_NAV
+    .filter(item => !item.roles || item.roles.includes(user?.role))
+    .map(item => {
+      if (user?.role === 'librarian' && item.to === '/admin') {
+        return {
+          ...item,
+          to: '/admin/library/dashboard',
+          exact: true,
+        };
+      }
+      return item;
+    });
   const currentRole = roleConfig[user?.role] || {
     label: user?.role, color: 'bg-gray-500',
   };
@@ -182,16 +192,6 @@ export default function AdminLayout() {
           )}
         </div>
       </div>
-
-      {/* Role Badge */}
-      {expanded && (
-        <div className="px-4 py-2 border-b border-primary-700">
-          <span className={`inline-flex items-center px-2.5 py-1 rounded-full
-            text-xs font-medium text-white ${currentRole.color}`}>
-            {currentRole.label}
-          </span>
-        </div>
-      )}
 
       {/* Nav Items */}
       <nav
@@ -249,7 +249,6 @@ export default function AdminLayout() {
               <p className="text-white text-sm font-medium truncate">
                 {user?.name}
               </p>
-              <p className="text-primary-300 text-xs">{currentRole.label}</p>
             </div>
           )}
           <button

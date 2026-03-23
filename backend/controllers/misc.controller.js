@@ -45,6 +45,7 @@ export const expense = {
 // ─── CIRCULAR CONTROLLER ─────────────────────────────────────────────────────
 import Circular from '../models/Circular.model.js';
 import { createNotifications, getCircularRecipientIds } from '../utils/appNotifications.js';
+import Student from '../models/Student.model.js';
 
 export const circular = {
   create: async (req, res) => {
@@ -115,6 +116,29 @@ export const library = {
       ];
       const books = await Book.find(query).sort('title');
       res.json({ success: true, books });
+    } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  },
+  getStudents: async (req, res) => {
+    try {
+      const { limit = 500, search } = req.query;
+      const query = { status: { $in: ['active', 'admission_pending'] } };
+
+      if (search?.trim()) {
+        const regex = new RegExp(search.trim(), 'i');
+        query.$or = [
+          { firstName: regex },
+          { lastName: regex },
+          { regNo: regex },
+          { admissionNo: regex },
+        ];
+      }
+
+      const students = await Student.find(query)
+        .select('firstName lastName regNo admissionNo')
+        .sort({ firstName: 1, lastName: 1 })
+        .limit(Number(limit));
+
+      res.json({ success: true, students });
     } catch (err) { res.status(500).json({ success: false, message: err.message }); }
   },
   issueBook: async (req, res) => {
