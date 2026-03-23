@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
+  FiAlertTriangle,
   FiBookOpen,
   FiCalendar,
   FiCreditCard,
@@ -13,43 +14,36 @@ import {
 } from '../common/icons';
 
 const NAV = [
-  { to: '/student',           label: 'Dashboard',  icon: FiHome,       exact: true },
-  { to: '/student/fees',      label: 'My Fees',    icon: FiCreditCard              },
-  { to: '/student/ledger',    label: 'Ledger',     icon: FiBookOpen               },
-  { to: '/student/wallet',    label: 'Wallet',     icon: FiCreditCard             },
-  { to: '/student/leave',     label: 'Leave',      icon: FiCalendar               },
-  { to: '/student/outpass',   label: 'Outpass',    icon: FiLogOut                 },
-  { to: '/student/circulars', label: 'Circulars',  icon: FiFileText               },
-  { to: '/student/profile',   label: 'My Profile', icon: FiUser                   },
+  { to: '/student', label: 'Dashboard', icon: FiHome, exact: true },
+  { to: '/student/fees', label: 'My Fees', icon: FiCreditCard },
+  { to: '/student/ledger', label: 'Ledger', icon: FiBookOpen },
+  { to: '/student/wallet', label: 'Wallet', icon: FiCreditCard },
+  { to: '/student/leave', label: 'Leave', icon: FiCalendar },
+  { to: '/student/outpass', label: 'Outpass', icon: FiLogOut },
+  { to: '/student/circulars', label: 'Circulars', icon: FiFileText },
+  { to: '/student/profile', label: 'My Profile', icon: FiUser },
 ];
 
 export default function StudentLayout() {
-  const { user, logout }    = useAuth();
-  const navigate            = useNavigate();
-  const location            = useLocation();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = () => { logout(); navigate('/student/login'); };
 
-  // ── Force password change on first login ────────────────────────────────
   useEffect(() => {
-    if (
-      user?.isFirstLogin &&
-      location.pathname !== '/student/set-password'
-    ) {
+    if (user?.isFirstLogin && location.pathname !== '/student/set-password') {
       navigate('/student/set-password', { replace: true });
     }
   }, [user, location.pathname, navigate]);
 
-  // Show nothing while redirecting to set-password
   if (user?.isFirstLogin && location.pathname !== '/student/set-password') {
     return null;
   }
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-
-      {/* Mobile Overlay */}
       {mobileOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-20 lg:hidden"
@@ -57,21 +51,12 @@ export default function StudentLayout() {
         />
       )}
 
-      {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-30 w-60 bg-indigo-900
-        flex flex-col transform transition-transform duration-300
-        lg:relative lg:translate-x-0
-        ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-
-        {/* Header */}
+      <aside className={`fixed inset-y-0 left-0 z-30 w-60 bg-indigo-900 flex flex-col transform transition-transform duration-300 lg:relative lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-5 border-b border-indigo-700">
           <p className="text-white font-bold">Student Portal</p>
-          <p className="text-indigo-300 text-xs mt-0.5 truncate">
-            {user?.name}
-          </p>
+          <p className="text-indigo-300 text-xs mt-0.5 truncate">{user?.name}</p>
         </div>
 
-        {/* Nav — disabled when isFirstLogin */}
         <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-0.5">
           {NAV.map(item => (
             <NavLink
@@ -79,17 +64,19 @@ export default function StudentLayout() {
               to={item.to}
               end={item.exact}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm
-                transition-colors
-                ${user?.isFirstLogin
-                  ? 'text-indigo-400 cursor-not-allowed opacity-50 pointer-events-none'
-                  : isActive
-                    ? 'bg-white/20 text-white font-medium'
-                    : 'text-indigo-200 hover:bg-white/10 hover:text-white'
+                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                  user?.isFirstLogin
+                    ? 'text-indigo-400 cursor-not-allowed opacity-50 pointer-events-none'
+                    : isActive
+                      ? 'bg-white/20 text-white font-medium'
+                      : 'text-indigo-200 hover:bg-white/10 hover:text-white'
                 }`
               }
               onClick={e => {
-                if (user?.isFirstLogin) { e.preventDefault(); return; }
+                if (user?.isFirstLogin) {
+                  e.preventDefault();
+                  return;
+                }
                 setMobileOpen(false);
               }}
             >
@@ -99,13 +86,10 @@ export default function StudentLayout() {
           ))}
         </nav>
 
-        {/* Logout */}
         <div className="p-3 border-t border-indigo-700">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-2 px-3 py-2
-              text-indigo-300 hover:text-white text-sm transition-colors
-              rounded-lg hover:bg-white/10"
+            className="w-full flex items-center gap-2 px-3 py-2 text-indigo-300 hover:text-white text-sm transition-colors rounded-lg hover:bg-white/10"
           >
             <FiLogOut className="shrink-0" />
             <span>Logout</span>
@@ -113,25 +97,19 @@ export default function StudentLayout() {
         </div>
       </aside>
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="bg-white border-b border-gray-200 px-4 py-3
-          flex items-center gap-3 shrink-0">
+        <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 shrink-0">
           <button
             onClick={() => setMobileOpen(true)}
             className="p-2 rounded-lg hover:bg-gray-100 lg:hidden"
           >
             <FiMenu />
           </button>
-          <span className="text-gray-700 font-medium text-sm">
-            Student Portal
-          </span>
+          <span className="text-gray-700 font-medium text-sm">Student Portal</span>
 
-          {/* First login warning banner in header */}
           {user?.isFirstLogin && (
-            <div className="ml-3 flex items-center gap-2 px-3 py-1
-              bg-yellow-50 border border-yellow-200 rounded-lg">
-              <span className="text-yellow-500 text-sm">⚠️</span>
+            <div className="ml-3 flex items-center gap-2 px-3 py-1 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <FiAlertTriangle className="text-yellow-500 text-sm shrink-0" />
               <p className="text-xs text-yellow-700 font-medium">
                 Please set your password to continue
               </p>

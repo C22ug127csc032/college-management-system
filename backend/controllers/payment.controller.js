@@ -3,6 +3,7 @@ import Payment from '../models/Payment.model.js';
 import StudentFees from '../models/StudentFees.model.js';
 import Ledger from '../models/Ledger.model.js';
 import Student from '../models/Student.model.js';
+import Course from '../models/Course.model.js';
 import crypto from 'crypto';
 import utils_pdfGenerator from '../utils/pdfGenerator.js';
 const { generateReceipt } = utils_pdfGenerator;
@@ -244,7 +245,7 @@ export const downloadReceipt = async (req, res) => {
 // @GET /api/payments  (Admin - all payments)
 export const getAllPayments = async (req, res) => {
   try {
-    const { startDate, endDate, mode, status, page = 1, limit = 20 } = req.query;
+    const { startDate, endDate, mode, status, search, department, page = 1, limit = 20 } = req.query;
     const query = {};
     if (mode) query.paymentMode = mode;
     if (status) query.status = status;
@@ -253,9 +254,43 @@ export const getAllPayments = async (req, res) => {
       if (startDate) query.paymentDate.$gte = new Date(startDate);
       if (endDate) query.paymentDate.$lte = new Date(endDate);
     }
+
+    if (search || department) {
+      const studentQuery = {};
+
+      if (search?.trim()) {
+        const regex = new RegExp(search.trim(), 'i');
+        studentQuery.$or = [
+          { firstName: regex },
+          { lastName: regex },
+          { regNo: regex },
+          { phone: regex },
+        ];
+      }
+
+      if (department?.trim()) {
+        const regex = new RegExp(`^${department.trim()}$`, 'i');
+        const courses = await Course.find({
+          $or: [
+            { department: regex },
+            { name: regex },
+            { code: regex },
+          ],
+        }).select('_id');
+        studentQuery.course = { $in: courses.map(course => course._id) };
+      }
+
+      const matchingStudents = await Student.find(studentQuery).select('_id');
+      query.student = { $in: matchingStudents.map(student => student._id) };
+    }
+
     const total = await Payment.countDocuments(query);
     const payments = await Payment.find(query)
-      .populate('student', 'firstName lastName regNo phone')
+      .populate({
+        path: 'student',
+        select: 'firstName lastName regNo phone course',
+        populate: { path: 'course', select: 'name department code' },
+      })
       .sort('-paymentDate')
       .skip((page - 1) * limit)
       .limit(Number(limit));

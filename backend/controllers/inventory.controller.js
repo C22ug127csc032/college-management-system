@@ -1,11 +1,63 @@
 import models_Inventory_model from '../models/Inventory.model.js';
 const { Inventory, InventoryTransaction } = models_Inventory_model;
 
+const slugifyInventoryName = value =>
+  String(value || '')
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 24);
+
+const generateInventoryCode = async name => {
+  const base = slugifyInventoryName(name) || 'ITEM';
+  let attempt = 1;
+
+  while (attempt < 10000) {
+    const code = `${base}-${String(attempt).padStart(3, '0')}`;
+    const exists = await Inventory.exists({ code });
+    if (!exists) return code;
+    attempt += 1;
+  }
+
+  return `${base}-${Date.now()}`;
+};
+
 export const createItem = async (req, res) => {
   try {
-    const item = await Inventory.create(req.body);
+    const payload = { ...req.body };
+    payload.name = String(payload.name || '').trim();
+    payload.code = String(payload.code || '').trim().toUpperCase();
+
+    if (!payload.name) {
+      return res.status(400).json({ success: false, message: 'Name is required' });
+    }
+
+    if (!payload.code) {
+      payload.code = await generateInventoryCode(payload.name);
+    }
+
+    const numericFields = ['openingStock', 'currentStock', 'minStockAlert', 'purchasePrice', 'sellingPrice'];
+    for (const field of numericFields) {
+      if (payload[field] === '' || payload[field] === undefined || payload[field] === null) continue;
+      payload[field] = Number(payload[field]);
+    }
+
+    if (payload.openingStock === undefined && payload.currentStock !== undefined) {
+      payload.openingStock = payload.currentStock;
+    }
+    if (payload.currentStock === undefined && payload.openingStock !== undefined) {
+      payload.currentStock = payload.openingStock;
+    }
+
+    const item = await Inventory.create(payload);
     res.status(201).json({ success: true, item });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) {
+    if (err?.code === 11000) {
+      return res.status(409).json({ success: false, message: 'Inventory code already exists. Try again.' });
+    }
+    res.status(500).json({ success: false, message: err.message });
+  }
 };
 
 export const getAllItems = async (req, res) => {

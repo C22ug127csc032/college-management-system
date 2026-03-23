@@ -2,26 +2,31 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
+import {
+  FiArrowRight,
+  FiCheckCircle,
+  FiInfo,
+  FiLock,
+} from '../../components/common/icons';
 
 export default function SetPassword() {
   const { user, setFirstPassword } = useAuth();
-  const navigate                   = useNavigate();
+  const navigate = useNavigate();
 
-  const [form, setForm]       = useState({
-    newPassword:     '',
+  const [form, setForm] = useState({
+    newPassword: '',
     confirmPassword: '',
   });
   const [loading, setLoading] = useState(false);
   const [strength, setStrength] = useState(0);
 
-  // ── Password strength checker ───────────────────────────────────────────
   const checkStrength = password => {
     let score = 0;
-    if (password.length >= 6)                     score++;
-    if (password.length >= 8)                     score++;
-    if (/[A-Z]/.test(password))                   score++;
-    if (/[0-9]/.test(password))                   score++;
-    if (/[^A-Za-z0-9]/.test(password))            score++;
+    if (password.length >= 6) score++;
+    if (password.length >= 8) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
     return score;
   };
 
@@ -32,14 +37,7 @@ export default function SetPassword() {
   };
 
   const strengthLabel = ['', 'Very Weak', 'Weak', 'Fair', 'Strong', 'Very Strong'];
-  const strengthColor = [
-    '',
-    'bg-red-500',
-    'bg-orange-500',
-    'bg-yellow-500',
-    'bg-blue-500',
-    'bg-green-500',
-  ];
+  const strengthColor = ['', 'bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-blue-500', 'bg-green-500'];
 
   const handleSubmit = async e => {
     e.preventDefault();
@@ -67,15 +65,11 @@ export default function SetPassword() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900
-      via-indigo-800 to-indigo-700 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-indigo-800 to-indigo-700 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-
-        {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-white rounded-2xl flex items-center
-            justify-center text-indigo-700 text-3xl mx-auto mb-4 shadow-xl">
-            🔐
+          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-indigo-700 text-3xl mx-auto mb-4 shadow-xl">
+            <FiLock />
           </div>
           <h1 className="text-3xl font-bold text-white">Set Your Password</h1>
           <p className="text-indigo-300 mt-2">
@@ -84,14 +78,11 @@ export default function SetPassword() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-2xl p-8">
-
-          {/* Info box */}
-          <div className="flex items-start gap-3 p-3 bg-indigo-50
-            border border-indigo-200 rounded-xl mb-6">
-            <span className="text-indigo-500 text-lg mt-0.5">ℹ️</span>
+          <div className="flex items-start gap-3 p-3 bg-indigo-50 border border-indigo-200 rounded-xl mb-6">
+            <FiInfo className="text-indigo-500 text-lg mt-0.5 shrink-0" />
             <div>
               <p className="text-sm font-semibold text-indigo-800">
-                First Login — Password Setup Required
+                First Login - Password Setup Required
               </p>
               <p className="text-xs text-indigo-600 mt-0.5">
                 Your default password was your Admission No.
@@ -101,8 +92,6 @@ export default function SetPassword() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-
-            {/* New Password */}
             <div>
               <label className="label">
                 New Password <span className="text-red-500">*</span>
@@ -116,24 +105,20 @@ export default function SetPassword() {
                 required
               />
 
-              {/* Strength bar */}
               {form.newPassword && (
                 <div className="mt-2">
                   <div className="flex gap-1 mb-1">
                     {[1, 2, 3, 4, 5].map(i => (
                       <div
                         key={i}
-                        className={`h-1.5 flex-1 rounded-full transition-all
-                          ${i <= strength
-                            ? strengthColor[strength]
-                            : 'bg-gray-200'}`}
+                        className={`h-1.5 flex-1 rounded-full transition-all ${i <= strength ? strengthColor[strength] : 'bg-gray-200'}`}
                       />
                     ))}
                   </div>
                   <p className={`text-xs font-medium ${
                     strength <= 2 ? 'text-red-500'
-                    : strength === 3 ? 'text-yellow-500'
-                    : 'text-green-500'
+                      : strength === 3 ? 'text-yellow-500'
+                        : 'text-green-500'
                   }`}>
                     {strengthLabel[strength]}
                   </p>
@@ -141,7 +126,6 @@ export default function SetPassword() {
               )}
             </div>
 
-            {/* Confirm Password */}
             <div>
               <label className="label">
                 Confirm Password <span className="text-red-500">*</span>
@@ -151,59 +135,46 @@ export default function SetPassword() {
                 className="input"
                 placeholder="Re-enter new password"
                 value={form.confirmPassword}
-                onChange={e => setForm(f => ({
-                  ...f, confirmPassword: e.target.value,
-                }))}
+                onChange={e => setForm(f => ({ ...f, confirmPassword: e.target.value }))}
                 required
               />
-              {/* Match indicator */}
               {form.confirmPassword && (
                 <p className={`text-xs mt-1 font-medium ${
-                  form.newPassword === form.confirmPassword
-                    ? 'text-green-500'
-                    : 'text-red-500'
+                  form.newPassword === form.confirmPassword ? 'text-green-500' : 'text-red-500'
                 }`}>
-                  {form.newPassword === form.confirmPassword
-                    ? '✓ Passwords match'
-                    : '✗ Passwords do not match'
-                  }
+                  {form.newPassword === form.confirmPassword ? 'Passwords match' : 'Passwords do not match'}
                 </p>
               )}
             </div>
 
-            {/* Password tips */}
             <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
               <p className="text-xs text-gray-500 font-medium mb-1">
                 Password tips:
               </p>
               <ul className="text-xs text-gray-400 space-y-0.5">
-                <li className={form.newPassword.length >= 8
-                  ? 'text-green-500' : ''}>
-                  {form.newPassword.length >= 8 ? '✓' : '○'} At least 8 characters
+                <li className={form.newPassword.length >= 8 ? 'text-green-500' : ''}>
+                  {form.newPassword.length >= 8 ? 'Pass' : 'Need'}: At least 8 characters
                 </li>
-                <li className={/[A-Z]/.test(form.newPassword)
-                  ? 'text-green-500' : ''}>
-                  {/[A-Z]/.test(form.newPassword) ? '✓' : '○'} One uppercase letter
+                <li className={/[A-Z]/.test(form.newPassword) ? 'text-green-500' : ''}>
+                  {/[A-Z]/.test(form.newPassword) ? 'Pass' : 'Need'}: One uppercase letter
                 </li>
-                <li className={/[0-9]/.test(form.newPassword)
-                  ? 'text-green-500' : ''}>
-                  {/[0-9]/.test(form.newPassword) ? '✓' : '○'} One number
+                <li className={/[0-9]/.test(form.newPassword) ? 'text-green-500' : ''}>
+                  {/[0-9]/.test(form.newPassword) ? 'Pass' : 'Need'}: One number
                 </li>
               </ul>
             </div>
 
             <button
               type="submit"
-              disabled={
-                loading ||
-                form.newPassword.length < 6 ||
-                form.newPassword !== form.confirmPassword
-              }
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700
-                text-white font-semibold rounded-lg transition-colors
-                disabled:opacity-50"
+              disabled={loading || form.newPassword.length < 6 || form.newPassword !== form.confirmPassword}
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50"
             >
-              {loading ? 'Setting Password...' : 'Set Password & Continue →'}
+              {loading ? 'Setting Password...' : (
+                <span className="inline-flex items-center gap-2">
+                  <span>Set Password & Continue</span>
+                  <FiArrowRight />
+                </span>
+              )}
             </button>
           </form>
         </div>

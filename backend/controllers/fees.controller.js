@@ -193,7 +193,7 @@ export const getAllStudentFees = async (req, res) => {
 
     const total = await StudentFees.countDocuments(query);
     const fees = await StudentFees.find(query)
-      .populate({ path: 'student', select: 'firstName lastName regNo phone course', populate: { path: 'course', select: 'name' } })
+      .populate({ path: 'student', select: 'firstName lastName regNo phone course', populate: { path: 'course', select: 'name department code' } })
       .sort('-createdAt')
       .skip((page - 1) * limit)
       .limit(Number(limit));

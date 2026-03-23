@@ -4,7 +4,7 @@ import { PageHeader } from '../../components/common';
 import toast from 'react-hot-toast';
 import {
   FiSearch, FiPlus, FiMinus, FiShoppingCart,
-  FiPackage, FiTrendingUp,
+  FiPackage, FiTrendingUp, FiShoppingBag, FiClipboard, FiBarChart2, FiCheckCircle, FiCreditCard, FiX,
 } from '../../components/common/icons';
 
 export default function ShopOperator() {
@@ -175,14 +175,14 @@ export default function ShopOperator() {
 
   return (
     <div>
-      <PageHeader title="🛒 Shop" subtitle="Bill students for stationery purchases" />
+      <PageHeader title={<span className="inline-flex items-center gap-2"><FiShoppingBag /> Shop</span>} subtitle="Bill students for stationery purchases" />
 
       {/* Tabs */}
       <div className="flex gap-2 mb-6">
         {[
-          { key: 'billing', label: '🧾 Billing'  },
-          { key: 'items',   label: '📦 Items'     },
-          { key: 'sales',   label: '📊 Sales'     },
+          { key: 'billing', label: <span className="inline-flex items-center gap-2"><FiClipboard /> Billing</span>  },
+          { key: 'items',   label: <span className="inline-flex items-center gap-2"><FiPackage /> Items</span>     },
+          { key: 'sales',   label: <span className="inline-flex items-center gap-2"><FiBarChart2 /> Sales</span>     },
         ].map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={`px-4 py-2 rounded-lg text-sm font-medium
@@ -246,7 +246,7 @@ export default function ShopOperator() {
                       </p>
                     </div>
                     <button onClick={handleReset}
-                      className="text-gray-400 hover:text-gray-600">✕</button>
+                      className="text-gray-400 hover:text-gray-600"><FiX /></button>
                   </div>
                 </div>
               )}
@@ -303,10 +303,10 @@ export default function ShopOperator() {
               <div className="card border-2 border-green-200 bg-green-50">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-bold text-green-700">
-                    ✅ Bill Created
+                    <span className="inline-flex items-center gap-1"><FiCheckCircle /><span>Bill Created</span></span>
                   </p>
                   <button onClick={() => setLastBill(null)}
-                    className="text-green-400 text-xs">✕</button>
+                    className="text-green-400 text-xs"><FiX /></button>
                 </div>
                 <p className="font-mono text-green-800 font-bold">
                   {lastBill.billNo}
@@ -387,7 +387,7 @@ export default function ShopOperator() {
                             ? 'bg-blue-600 text-white border-blue-600'
                             : 'bg-white text-gray-600 border-gray-200'
                         }`}>
-                        {mode === 'wallet' ? '💳 Wallet' : '💵 Cash'}
+                        <span className="inline-flex items-center gap-2">{mode === 'wallet' ? <FiCreditCard /> : <span className="font-bold">Rs</span>}<span>{mode === 'wallet' ? 'Wallet' : 'Cash'}</span></span>
                       </button>
                     ))}
                   </div>
@@ -506,7 +506,7 @@ export default function ShopOperator() {
                       {item.name}
                       {item.stock <= item.minStockAlert && (
                         <span className="ml-2 text-xs text-red-500">
-                          ⚠️ Low stock
+                          Low stock
                         </span>
                       )}
                     </td>
@@ -546,7 +546,7 @@ export default function ShopOperator() {
                             ? 'bg-green-100 text-green-700'
                             : 'bg-gray-100 text-gray-500'
                         }`}>
-                        {item.isAvailable ? '✓ Available' : '✗ Hidden'}
+                        {item.isAvailable ? 'Available' : 'Hidden'}
                       </button>
                     </td>
                     <td className="table-cell">
@@ -601,9 +601,6 @@ export default function ShopOperator() {
               <input type="date" className="input w-44"
                 value={saleDate}
                 onChange={e => setSaleDate(e.target.value)} />
-              <button onClick={fetchSales} className="btn-secondary text-sm">
-                Load
-              </button>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -644,8 +641,7 @@ export default function ShopOperator() {
                             ? 'bg-blue-100 text-blue-700'
                             : 'bg-green-100 text-green-700'
                         }`}>
-                          {sale.paymentMode === 'wallet' ? '💳' : '💵'}{' '}
-                          {sale.paymentMode}
+                          <span className="inline-flex items-center gap-1">{sale.paymentMode === 'wallet' ? <FiCreditCard /> : <span className="font-bold">Rs</span>}<span>{sale.paymentMode}</span></span>
                         </span>
                       </td>
                       <td className="table-cell text-xs text-gray-500">

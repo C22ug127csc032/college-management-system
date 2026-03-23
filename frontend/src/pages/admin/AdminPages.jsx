@@ -222,7 +222,7 @@ export function PaymentsAdmin() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const [filters, setFilters] = useState({ startDate: '', endDate: '', mode: '' });
+  const [filters, setFilters] = useState({ startDate: '', endDate: '', mode: '', search: '', department: '' });
   const [showManual, setShowManual] = useState(false);
   const [students, setStudents] = useState([]);
   const [studentFeesOptions, setStudentFeesOptions] = useState([]);
@@ -245,6 +245,48 @@ export function PaymentsAdmin() {
       .catch(() => setStudentFeesOptions([]));
   }, [manualForm.studentId]);
   const selectedFee = studentFeesOptions.find(f => f._id === manualForm.studentFeesId);
+  const departments = [...new Set(
+    students
+      .map(student => student.course?.department?.trim())
+      .filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
+  const groupedPayments = payments.reduce((groups, payment) => {
+    const department = payment.student?.course?.department || 'Unassigned Department';
+    const existingGroup = groups.find(group => group.key === department);
+
+    if (existingGroup) {
+      existingGroup.payments.push(payment);
+      return groups;
+    }
+
+    groups.push({
+      key: department,
+      title: department,
+      payments: [payment],
+    });
+    return groups;
+  }, []);
+
+  const renderPaymentsTable = paymentRows => (
+    <Table headers={['Receipt No', 'Student', 'Date', 'Amount', 'Mode', 'Status', 'Receipt']}>
+      {paymentRows.map(p => (
+        <tr key={p._id} className="hover:bg-gray-50">
+          <td className="table-cell font-mono text-xs">{p.receiptNo}</td>
+          <td className="table-cell"><p className="font-medium">{p.student?.firstName} {p.student?.lastName}</p><p className="text-xs text-gray-400">{p.student?.regNo}</p><p className="text-xs text-gray-400 mt-0.5">{p.student?.course?.name || 'No Course'}</p></td>
+          <td className="table-cell">{new Date(p.paymentDate).toLocaleDateString('en-IN')}</td>
+          <td className="table-cell font-semibold text-green-600">â‚¹{p.amount?.toLocaleString('en-IN')}</td>
+          <td className="table-cell uppercase text-xs">{p.paymentMode}</td>
+          <td className="table-cell"><StatusBadge status={p.status} /></td>
+          <td className="table-cell">
+            <button type="button" onClick={() => handleReceiptDownload(p._id)} className="text-primary-600 text-xs hover:underline">
+              PDF
+            </button>
+          </td>
+        </tr>
+      ))}
+    </Table>
+  );
   const handleReceiptDownload = async (paymentId) => {
     try {
       await downloadPaymentReceipt(paymentId);
@@ -269,11 +311,16 @@ export function PaymentsAdmin() {
       <PageHeader title="Payments" action={<button onClick={() => setShowManual(true)} className="btn-primary">+ Manual Payment</button>} />
       <div className="card">
         <FilterBar>
-          <input type="date" className="input w-40" value={filters.startDate} onChange={e => setFilters(f => ({ ...f, startDate: e.target.value }))} />
-          <input type="date" className="input w-40" value={filters.endDate} onChange={e => setFilters(f => ({ ...f, endDate: e.target.value }))} />
-          <select className="input w-36" value={filters.mode} onChange={e => setFilters(f => ({ ...f, mode: e.target.value }))}>
+          <input className="input w-56" placeholder="Search student / reg no / phone" value={filters.search} onChange={e => { setFilters(f => ({ ...f, search: e.target.value })); setPage(1); }} />
+          <input type="date" className="input w-40" value={filters.startDate} onChange={e => { setFilters(f => ({ ...f, startDate: e.target.value })); setPage(1); }} />
+          <input type="date" className="input w-40" value={filters.endDate} onChange={e => { setFilters(f => ({ ...f, endDate: e.target.value })); setPage(1); }} />
+          <select className="input w-36" value={filters.mode} onChange={e => { setFilters(f => ({ ...f, mode: e.target.value })); setPage(1); }}>
             <option value="">All Modes</option>
             {['online','cash','cheque','dd','neft'].map(m => <option key={m} value={m}>{m.toUpperCase()}</option>)}
+          </select>
+          <select className="input w-48" value={filters.department} onChange={e => { setFilters(f => ({ ...f, department: e.target.value })); setPage(1); }}>
+            <option value="">All Departments</option>
+            {departments.map(department => <option key={department} value={department}>{department}</option>)}
           </select>
         </FilterBar>
         {loading ? <PageSpinner /> : (
@@ -342,14 +389,15 @@ export function FeesList() {
   const [fees, setFees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState({});
-  const [filters, setFilters] = useState({ status: '', academicYear: '' });
+  const [filters, setFilters] = useState({ status: '', academicYear: '', department: '' });
 
   useEffect(() => {
+    setLoading(true);
     Promise.all([
-      api.get('/fees/all', { params: filters }),
-      api.get('/fees/summary', { params: filters }),
+      api.get('/fees/all', { params: { status: filters.status, academicYear: filters.academicYear } }),
+      api.get('/fees/summary', { params: { status: filters.status, academicYear: filters.academicYear } }),
     ]).then(([f, s]) => { setFees(f.data.fees); setSummary(s.data.summary); }).finally(() => setLoading(false));
-  }, [filters]);
+  }, [filters.status, filters.academicYear]);
 
   const fmt = n => '₹' + (n || 0).toLocaleString('en-IN');
 
@@ -393,29 +441,39 @@ export function FeesList() {
 
 // ─── INVENTORY ───────────────────────────────────────────────────────────────
 export function InventoryPage() {
+  const initialInventoryForm = { name: '', category: 'general', unit: 'pcs', currentStock: 0, minStockAlert: 5, purchasePrice: 0 };
+  const initialTxnForm = { type: 'purchase', quantity: '', unitPrice: '', remarks: '' };
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [showTxn, setShowTxn] = useState(null);
-  const [form, setForm] = useState({ name: '', category: 'general', unit: 'pcs', currentStock: 0, minStockAlert: 5, purchasePrice: 0 });
-  const [txnForm, setTxnForm] = useState({ type: 'purchase', quantity: '', unitPrice: '', remarks: '' });
+  const [transactions, setTransactions] = useState([]);
+  const [form, setForm] = useState(initialInventoryForm);
+  const [txnForm, setTxnForm] = useState(initialTxnForm);
 
-  const fetch = async () => { const r = await api.get('/inventory'); setItems(r.data.items); setLoading(false); };
+  const fetch = async () => {
+    const [itemsRes, txnsRes] = await Promise.all([
+      api.get('/inventory'),
+      api.get('/inventory/transactions'),
+    ]);
+    setItems(itemsRes.data.items);
+    setTransactions(txnsRes.data.transactions || []);
+    setLoading(false);
+  };
   useEffect(() => { fetch(); }, []);
 
   const addItem = async e => {
     e.preventDefault();
-    await api.post('/inventory', form); toast.success('Item added'); setShowAdd(false); fetch();
+    await api.post('/inventory', form); toast.success('Item added'); setShowAdd(false); setForm(initialInventoryForm); fetch();
   };
   const addTxn = async e => {
     e.preventDefault();
     await api.post('/inventory/transactions', { inventoryId: showTxn._id, ...txnForm });
-    toast.success('Transaction recorded'); setShowTxn(null); fetch();
+    toast.success('Transaction recorded'); setShowTxn(null); setTxnForm(initialTxnForm); fetch();
   };
-
   return (
     <div>
-      <PageHeader title="Inventory" action={<button onClick={() => setShowAdd(true)} className="btn-primary">+ Add Item</button>} />
+      <PageHeader title="Inventory" action={<button onClick={() => { setForm(initialInventoryForm); setShowAdd(true); }} className="btn-primary">+ Add Item</button>} />
       <div className="card">
         {loading ? <PageSpinner /> : (
           <Table headers={['Name', 'Category', 'Stock', 'Min Alert', 'Unit Price', 'Actions']}>
@@ -423,17 +481,46 @@ export function InventoryPage() {
               <tr key={item._id} className={`hover:bg-gray-50 ${item.currentStock <= item.minStockAlert ? 'bg-red-50' : ''}`}>
                 <td className="table-cell font-medium">{item.name}</td>
                 <td className="table-cell capitalize">{item.category}</td>
-                <td className="table-cell"><span className={`font-semibold ${item.currentStock <= item.minStockAlert ? 'text-red-600' : 'text-gray-800'}`}>{item.currentStock} {item.unit}</span></td>
+                <td className="table-cell">
+                  <span className={`font-semibold ${item.currentStock <= item.minStockAlert ? 'text-red-600' : 'text-gray-800'}`}>{item.currentStock} {item.unit}</span>
+                  <p className="text-xs text-gray-400 mt-1">Opening: {item.openingStock || 0} {item.unit}</p>
+                </td>
                 <td className="table-cell text-gray-500">{item.minStockAlert}</td>
                 <td className="table-cell">₹{item.purchasePrice}</td>
-                <td className="table-cell"><button onClick={() => { setShowTxn(item); setTxnForm({ type: 'purchase', quantity: '', unitPrice: '', remarks: '' }); }} className="text-primary-600 text-sm hover:underline">+ Transaction</button></td>
+                <td className="table-cell">
+                  <div className="flex flex-col items-start gap-1">
+                    <button onClick={() => { setShowTxn(item); setTxnForm(initialTxnForm); }} className="text-primary-600 text-sm hover:underline">+ Transaction</button>
+                  </div>
+                </td>
               </tr>
             ))}
           </Table>
         )}
         {!loading && items.length === 0 && <EmptyState message="No inventory items" icon={<FiPackage />} />}
       </div>
-      <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add Inventory Item">
+      <div className="card mt-6">
+        <div className="mb-4">
+          <h3 className="section-title">Inventory Transactions</h3>
+          <p className="text-sm text-gray-500">All purchase, usage, adjustment, and return entries are listed below.</p>
+        </div>
+        {loading ? <PageSpinner /> : (
+          <Table headers={['Date', 'Item', 'Type', 'Quantity', 'Unit Price', 'Total', 'Remarks']}>
+            {transactions.map(txn => (
+              <tr key={txn._id} className="hover:bg-gray-50">
+                <td className="table-cell">{new Date(txn.date || txn.createdAt).toLocaleString('en-IN')}</td>
+                <td className="table-cell font-medium">{txn.inventory?.name || '-'}</td>
+                <td className="table-cell capitalize">{txn.type}</td>
+                <td className="table-cell">{txn.quantity} {txn.inventory?.unit || ''}</td>
+                <td className="table-cell">{txn.unitPrice ? `₹${Number(txn.unitPrice).toLocaleString('en-IN')}` : '-'}</td>
+                <td className="table-cell">{txn.totalAmount ? `₹${Number(txn.totalAmount).toLocaleString('en-IN')}` : '-'}</td>
+                <td className="table-cell text-gray-600">{txn.remarks || '-'}</td>
+              </tr>
+            ))}
+          </Table>
+        )}
+        {!loading && transactions.length === 0 && <EmptyState message="No inventory transactions recorded yet" icon={<FiClock />} />}
+      </div>
+      <Modal open={showAdd} onClose={() => { setShowAdd(false); setForm(initialInventoryForm); }} title="Add Inventory Item">
         <form onSubmit={addItem} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div><label className="label">Name *</label><input className="input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required /></div>
@@ -447,7 +534,7 @@ export function InventoryPage() {
             <div><label className="label">Min Alert</label><input type="number" className="input" value={form.minStockAlert} onChange={e => setForm(f => ({ ...f, minStockAlert: e.target.value }))} /></div>
             <div><label className="label">Purchase Price</label><input type="number" className="input" value={form.purchasePrice} onChange={e => setForm(f => ({ ...f, purchasePrice: e.target.value }))} /></div>
           </div>
-          <div className="flex gap-3 justify-end"><button type="button" onClick={() => setShowAdd(false)} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">Add Item</button></div>
+          <div className="flex gap-3 justify-end"><button type="button" onClick={() => { setShowAdd(false); setForm(initialInventoryForm); }} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">Add Item</button></div>
         </form>
       </Modal>
       <Modal open={!!showTxn} onClose={() => setShowTxn(null)} title={`Transaction – ${showTxn?.name}`}>
@@ -458,9 +545,11 @@ export function InventoryPage() {
             </select>
           </div>
           <div><label className="label">Quantity *</label><input type="number" className="input" value={txnForm.quantity} onChange={e => setTxnForm(f => ({ ...f, quantity: e.target.value }))} required /></div>
-          <div><label className="label">Unit Price</label><input type="number" className="input" value={txnForm.unitPrice} onChange={e => setTxnForm(f => ({ ...f, unitPrice: e.target.value }))} /></div>
+          {txnForm.type === 'purchase' && (
+            <div><label className="label">Unit Price</label><input type="number" className="input" value={txnForm.unitPrice} onChange={e => setTxnForm(f => ({ ...f, unitPrice: e.target.value }))} /></div>
+          )}
           <div><label className="label">Remarks</label><input className="input" value={txnForm.remarks} onChange={e => setTxnForm(f => ({ ...f, remarks: e.target.value }))} /></div>
-          <div className="flex gap-3 justify-end"><button type="button" onClick={() => setShowTxn(null)} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">Record</button></div>
+          <div className="flex gap-3 justify-end"><button type="button" onClick={() => { setShowTxn(null); setTxnForm(initialTxnForm); }} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">Record</button></div>
         </form>
       </Modal>
     </div>
@@ -469,11 +558,12 @@ export function InventoryPage() {
 
 // ─── EXPENSE ──────────────────────────────────────────────────────────────────
 export function ExpensePage() {
+  const initialExpenseForm = { title: '', category: 'miscellaneous', amount: '', date: new Date().toISOString().slice(0, 10), paymentMode: 'cash', description: '' };
   const [expenses, setExpenses] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [show, setShow] = useState(false);
-  const [form, setForm] = useState({ title: '', category: 'miscellaneous', amount: '', date: new Date().toISOString().slice(0, 10), paymentMode: 'cash', description: '' });
+  const [form, setForm] = useState(initialExpenseForm);
 
   const fetch = async () => {
     const r = await api.get('/expense');
@@ -483,12 +573,12 @@ export function ExpensePage() {
 
   const add = async e => {
     e.preventDefault();
-    await api.post('/expense', form); toast.success('Expense added'); setShow(false); fetch();
+    await api.post('/expense', form); toast.success('Expense added'); setShow(false); setForm(initialExpenseForm); fetch();
   };
 
   return (
     <div>
-      <PageHeader title="Expense Management" action={<button onClick={() => setShow(true)} className="btn-primary">+ Add Expense</button>} />
+      <PageHeader title="Expense Management" action={<button onClick={() => { setForm(initialExpenseForm); setShow(true); }} className="btn-primary">+ Add Expense</button>} />
       <div className="card mb-4 flex gap-4 items-center">
         <div className="text-2xl font-bold text-gray-800">₹{total.toLocaleString('en-IN')}</div>
         <div className="text-sm text-gray-500">Total Expenses</div>
@@ -509,7 +599,7 @@ export function ExpensePage() {
         )}
         {!loading && expenses.length === 0 && <EmptyState message="No expenses recorded" icon={<FiTrendingDown />} />}
       </div>
-      <Modal open={show} onClose={() => setShow(false)} title="Add Expense">
+      <Modal open={show} onClose={() => { setShow(false); setForm(initialExpenseForm); }} title="Add Expense">
         <form onSubmit={add} className="space-y-3">
           <div><label className="label">Title *</label><input className="input" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required /></div>
           <div className="grid grid-cols-2 gap-3">
@@ -527,7 +617,7 @@ export function ExpensePage() {
             </div>
           </div>
           <div><label className="label">Description</label><textarea className="input" rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
-          <div className="flex gap-3 justify-end"><button type="button" onClick={() => setShow(false)} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">Add</button></div>
+          <div className="flex gap-3 justify-end"><button type="button" onClick={() => { setShow(false); setForm(initialExpenseForm); }} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">Add</button></div>
         </form>
       </Modal>
     </div>
@@ -536,23 +626,24 @@ export function ExpensePage() {
 
 // ─── CIRCULARS ─────────────────────────────────────────────────────────────────
 export function CircularsAdmin() {
+  const initialCircularForm = { title: '', content: '', type: 'circular', audience: ['all'] };
   const [circulars, setCirculars] = useState([]);
   const [show, setShow] = useState(false);
-  const [form, setForm] = useState({ title: '', content: '', type: 'circular', audience: ['all'] });
+  const [form, setForm] = useState(initialCircularForm);
 
   useEffect(() => { api.get('/circulars').then(r => setCirculars(r.data.circulars)); }, []);
 
   const add = async e => {
     e.preventDefault();
     const r = await api.post('/circulars', form);
-    setCirculars(p => [r.data.circular, ...p]); setShow(false); toast.success('Published');
+    setCirculars(p => [r.data.circular, ...p]); setShow(false); setForm(initialCircularForm); toast.success('Published');
   };
 
   const typeColors = { circular: 'badge-blue', announcement: 'badge-yellow', exam_schedule: 'badge-red', event: 'badge-green', holiday: 'badge-gray' };
 
   return (
     <div>
-      <PageHeader title="Circulars & Announcements" action={<button onClick={() => setShow(true)} className="btn-primary">+ Publish</button>} />
+      <PageHeader title="Circulars & Announcements" action={<button onClick={() => { setForm(initialCircularForm); setShow(true); }} className="btn-primary">+ Publish</button>} />
       <div className="space-y-4">
         {circulars.map(c => (
           <div key={c._id} className="card">
@@ -566,7 +657,7 @@ export function CircularsAdmin() {
         ))}
         {circulars.length === 0 && <EmptyState message="No circulars published" icon={<FiBell />} />}
       </div>
-      <Modal open={show} onClose={() => setShow(false)} title="Publish Circular" size="lg">
+      <Modal open={show} onClose={() => { setShow(false); setForm(initialCircularForm); }} title="Publish Circular" size="lg">
         <form onSubmit={add} className="space-y-4">
           <div><label className="label">Title *</label><input className="input" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required /></div>
           <div><label className="label">Type</label>
@@ -575,7 +666,7 @@ export function CircularsAdmin() {
             </select>
           </div>
           <div><label className="label">Content *</label><textarea className="input" rows={5} value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} required /></div>
-          <div className="flex gap-3 justify-end"><button type="button" onClick={() => setShow(false)} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">Publish</button></div>
+          <div className="flex gap-3 justify-end"><button type="button" onClick={() => { setShow(false); setForm(initialCircularForm); }} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">Publish</button></div>
         </form>
       </Modal>
     </div>
@@ -584,14 +675,16 @@ export function CircularsAdmin() {
 
 // ─── LIBRARY ──────────────────────────────────────────────────────────────────
 export function LibraryAdmin() {
+  const initialBookForm = { title: '', author: '', isbn: '', publisher: '', category: '', totalCopies: 1 };
+  const initialIssueForm = { bookId: '', studentId: '', dueDate: '' };
   const [books, setBooks] = useState([]);
   const [issues, setIssues] = useState([]);
   const [tab, setTab] = useState('books');
   const [showAdd, setShowAdd] = useState(false);
   const [showIssue, setShowIssue] = useState(false);
   const [students, setStudents] = useState([]);
-  const [bookForm, setBookForm] = useState({ title: '', author: '', isbn: '', publisher: '', category: '', totalCopies: 1 });
-  const [issueForm, setIssueForm] = useState({ bookId: '', studentId: '', dueDate: '' });
+  const [bookForm, setBookForm] = useState(initialBookForm);
+  const [issueForm, setIssueForm] = useState(initialIssueForm);
 
   useEffect(() => {
     api.get('/library/books').then(r => setBooks(r.data.books));
@@ -602,12 +695,12 @@ export function LibraryAdmin() {
   const addBook = async e => {
     e.preventDefault();
     const r = await api.post('/library/books', bookForm);
-    setBooks(p => [r.data.book, ...p]); setShowAdd(false); toast.success('Book added');
+    setBooks(p => [r.data.book, ...p]); setShowAdd(false); setBookForm(initialBookForm); toast.success('Book added');
   };
   const issueBook = async e => {
     e.preventDefault();
     await api.post('/library/issue', issueForm);
-    toast.success('Book issued'); setShowIssue(false);
+    toast.success('Book issued'); setShowIssue(false); setIssueForm(initialIssueForm);
     const r = await api.get('/library/issues'); setIssues(r.data.issues);
   };
   const returnBook = async id => {
@@ -620,8 +713,8 @@ export function LibraryAdmin() {
     <div>
       <PageHeader title="Library" action={
         <div className="flex gap-2">
-          <button onClick={() => setShowAdd(true)} className="btn-secondary text-sm">+ Add Book</button>
-          <button onClick={() => setShowIssue(true)} className="btn-primary">Issue Book</button>
+          <button onClick={() => { setBookForm(initialBookForm); setShowAdd(true); }} className="btn-secondary text-sm">+ Add Book</button>
+          <button onClick={() => { setIssueForm(initialIssueForm); setShowIssue(true); }} className="btn-primary">Issue Book</button>
         </div>
       } />
       <div className="flex gap-2 mb-4">
@@ -658,7 +751,7 @@ export function LibraryAdmin() {
           </Table>
         )}
       </div>
-      <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add Book">
+      <Modal open={showAdd} onClose={() => { setShowAdd(false); setBookForm(initialBookForm); }} title="Add Book">
         <form onSubmit={addBook} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div><label className="label">Title *</label><input className="input" value={bookForm.title} onChange={e => setBookForm(f => ({ ...f, title: e.target.value }))} required /></div>
@@ -668,10 +761,10 @@ export function LibraryAdmin() {
             <div><label className="label">Publisher</label><input className="input" value={bookForm.publisher} onChange={e => setBookForm(f => ({ ...f, publisher: e.target.value }))} /></div>
             <div><label className="label">Copies</label><input type="number" className="input" min="1" value={bookForm.totalCopies} onChange={e => setBookForm(f => ({ ...f, totalCopies: e.target.value }))} /></div>
           </div>
-          <div className="flex gap-3 justify-end"><button type="button" onClick={() => setShowAdd(false)} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">Add</button></div>
+          <div className="flex gap-3 justify-end"><button type="button" onClick={() => { setShowAdd(false); setBookForm(initialBookForm); }} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">Add</button></div>
         </form>
       </Modal>
-      <Modal open={showIssue} onClose={() => setShowIssue(false)} title="Issue Book">
+      <Modal open={showIssue} onClose={() => { setShowIssue(false); setIssueForm(initialIssueForm); }} title="Issue Book">
         <form onSubmit={issueBook} className="space-y-3">
           <div><label className="label">Student *</label>
             <select className="input" value={issueForm.studentId} onChange={e => setIssueForm(f => ({ ...f, studentId: e.target.value }))} required>
@@ -686,7 +779,7 @@ export function LibraryAdmin() {
             </select>
           </div>
           <div><label className="label">Due Date *</label><input type="date" className="input" value={issueForm.dueDate} onChange={e => setIssueForm(f => ({ ...f, dueDate: e.target.value }))} required /></div>
-          <div className="flex gap-3 justify-end"><button type="button" onClick={() => setShowIssue(false)} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">Issue</button></div>
+          <div className="flex gap-3 justify-end"><button type="button" onClick={() => { setShowIssue(false); setIssueForm(initialIssueForm); }} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">Issue</button></div>
         </form>
       </Modal>
     </div>

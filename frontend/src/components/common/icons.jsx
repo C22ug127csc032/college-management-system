@@ -22,7 +22,6 @@ export {
   FiClock,
   FiCoffee,
   FiCreditCard,
-  FiDollarSign,
   FiEdit3,
   FiEye,
   FiFileText,
@@ -30,11 +29,14 @@ export {
   FiInfo,
   FiInbox,
   FiLogOut,
+  FiLock,
   FiMenu,
   FiMinus,
   FiPackage,
+  FiPhone,
   FiPlus,
   FiSearch,
+  FiShield,
   FiShoppingBag,
   FiShoppingCart,
   FiTarget,
@@ -46,4 +48,5 @@ export {
   FiX,
 } from 'react-icons/fi';
 
+export { FaIndianRupeeSign as FiDollarSign } from 'react-icons/fa6';
 export { HiOutlineHandRaised } from 'react-icons/hi2';
