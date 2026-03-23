@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { getHomePathForRole, OPERATOR_ROLES } from '../utils/authRedirect';
+import { normalizeIdentifierInput } from '../utils/phone';
 
 const INVALID_LOGIN_MESSAGE = 'Use a shop or canteen operator account for this portal.';
 
@@ -18,7 +19,7 @@ export default function OperatorLogin() {
     setLoading(true);
 
     try {
-      const data = await login(form.phone, form.password);
+      const data = await login(normalizeIdentifierInput(form.phone), form.password);
 
       if (!OPERATOR_ROLES.includes(data.user.role)) {
         toast.error(INVALID_LOGIN_MESSAGE);
@@ -54,7 +55,7 @@ export default function OperatorLogin() {
                 className="input"
                 placeholder="Enter your email or phone number"
                 value={form.phone}
-                onChange={e => setForm({ ...form, phone: e.target.value })}
+                onChange={e => setForm({ ...form, phone: normalizeIdentifierInput(e.target.value) })}
                 required
               />
             </div>

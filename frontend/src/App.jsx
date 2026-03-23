@@ -31,6 +31,7 @@ import InventoryPage from './pages/admin/InventoryPage';
 import ExpensePage from './pages/admin/ExpensePage';
 import CircularsAdmin from './pages/admin/CircularsAdmin';
 import LibraryAdmin from './pages/admin/LibraryAdmin';
+import LibraryDashboard from './pages/admin/LibraryDashboard';
 import StaffManagement from './pages/admin/StaffManagement';
 import CoursesPage from './pages/admin/CoursesPage';
 import ReportsPage from './pages/admin/ReportsPage';
@@ -93,6 +94,14 @@ const RoleHomeRedirect = () => {
   return <Navigate to={getHomePathForRole(user?.role)} replace />;
 };
 
+const AdminHome = () => {
+  const { user } = useAuth();
+  if (user?.role === 'librarian') {
+    return <Navigate to="/admin/library/dashboard" replace />;
+  }
+  return <Dashboard />;
+};
+
 // ── App ───────────────────────────────────────────────────────────────────────
 export default function App() {
   return (
@@ -125,7 +134,7 @@ export default function App() {
               <AdminLayout />
             </ProtectedRoute>
           }>
-            <Route index element={<Dashboard />} />
+            <Route index element={<AdminHome />} />
             <Route path="students" element={<Students />} />
             <Route path="students/add" element={<AddStudent />} />
             <Route path="students/:id/edit" element={<AddStudent />} />
@@ -140,7 +149,16 @@ export default function App() {
             <Route path="inventory" element={<InventoryPage />} />
             <Route path="expense" element={<ExpensePage />} />
             <Route path="circulars" element={<CircularsAdmin />} />
-            <Route path="library" element={<LibraryAdmin />} />
+            <Route path="library/dashboard" element={
+              <ProtectedRoute roles={['librarian']}>
+                <LibraryDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="library" element={
+              <ProtectedRoute roles={['super_admin', 'librarian']}>
+                <LibraryAdmin />
+              </ProtectedRoute>
+            } />
             <Route path="staff" element={<StaffManagement />} />
             <Route path="courses" element={
               <ProtectedRoute roles={['super_admin']}>

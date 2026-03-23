@@ -4,6 +4,7 @@ export const getHomePathForRole = role => {
   if (role === 'student') return '/student';
   if (role === 'parent') return '/parent';
   if (role === 'shop_operator') return '/operator/shop';
+  if (role === 'librarian') return '/admin/library/dashboard';
   return '/admin';
 };
 

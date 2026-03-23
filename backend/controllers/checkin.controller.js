@@ -62,7 +62,16 @@ export const record = async (req, res) => {
 
 export const getRecords = async (req, res) => {
   try {
-    const { studentId, type, location, startDate, endDate, page = 1, limit = 30 } = req.query;
+    const {
+      studentId,
+      type,
+      location,
+      startDate,
+      endDate,
+      department,
+      page = 1,
+      limit = 30,
+    } = req.query;
     const query = {};
     if (studentId) query.student = studentId;
     if (type) query.type = type;
@@ -72,16 +81,44 @@ export const getRecords = async (req, res) => {
       if (startDate) query.timestamp.$gte = new Date(startDate);
       if (endDate) query.timestamp.$lte = new Date(endDate);
     }
+
+    const studentFilters = [];
+
+    if (studentId) {
+      studentFilters.push({ _id: studentId });
+    }
+
+    if (department?.trim()) {
+      const regex = new RegExp(`^${department.trim()}$`, 'i');
+      const courses = await Course.find({
+        $or: [
+          { department: regex },
+          { name: regex },
+          { code: regex },
+        ],
+      }).select('_id');
+      studentFilters.push({ course: { $in: courses.map(course => course._id) } });
+    }
+
     if (req.user.role === 'class_teacher') {
       const teacherCourseIds = await getTeacherCourseIds(req.user);
-      const students = await Student.find({
-        course: { $in: teacherCourseIds },
-      }).select('_id');
+      studentFilters.push({ course: { $in: teacherCourseIds } });
+    }
+
+    if (studentFilters.length > 0) {
+      const students = await Student.find(
+        studentFilters.length === 1 ? studentFilters[0] : { $and: studentFilters }
+      ).select('_id');
       query.student = { $in: students.map(student => student._id) };
     }
+
     const total = await CheckIn.countDocuments(query);
     const records = await CheckIn.find(query)
-      .populate('student', 'firstName lastName regNo rollNo')
+      .populate({
+        path: 'student',
+        select: 'firstName lastName regNo rollNo course',
+        populate: { path: 'course', select: 'name code department' },
+      })
       .populate('recordedBy', 'name')
       .sort('-timestamp')
       .skip((page - 1) * limit)

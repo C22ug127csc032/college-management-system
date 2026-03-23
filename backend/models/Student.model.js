@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { isValidIndianPhone, normalizePhone } from '../utils/phone.js';
 
 const studentSchema = new mongoose.Schema({
 
@@ -34,7 +35,16 @@ const studentSchema = new mongoose.Schema({
   },
 
   // ── Contact ──────────────────────────────────────────────────────────────
-  phone: { type: String, required: true, unique: true },
+  phone: {
+    type: String,
+    required: true,
+    unique: true,
+    set: normalizePhone,
+    validate: {
+      validator: isValidIndianPhone,
+      message: 'Phone number must be a valid 10-digit Indian mobile number',
+    },
+  },
   email: { type: String },
 
   // ── Parent Details ───────────────────────────────────────────────────────

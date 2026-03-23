@@ -12,7 +12,7 @@ async function seed() {
   const existing = await User.findOne({ phone: '8056712010' });
   if (!existing) {
     await User.create({
-      name: 'Super Admin',
+      name: 'CMS',
       phone: '8056712010',
       email: 'admin@cms.com',
       password: 'Admin@123',

@@ -1,10 +1,20 @@
 import mongoose from 'mongoose';
 import bcrypt   from 'bcryptjs';
+import { isValidIndianPhone, normalizePhone } from '../utils/phone.js';
 
 const userSchema = new mongoose.Schema({
   name:     { type: String, required: true, trim: true },
   email:    { type: String, unique: true, sparse: true, lowercase: true },
-  phone:    { type: String, required: true, unique: true },
+  phone:    {
+    type: String,
+    required: true,
+    unique: true,
+    set: normalizePhone,
+    validate: {
+      validator: isValidIndianPhone,
+      message: 'Phone number must be a valid 10-digit Indian mobile number',
+    },
+  },
   password: { type: String, required: true },
 
   role: {

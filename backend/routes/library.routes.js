@@ -5,6 +5,7 @@ const { library } = controllers_misc_controller;
 import middleware_auth_middleware from '../middleware/auth.middleware.js';
 const { protect, libStaff } = middleware_auth_middleware;
 r.get('/books', protect, library.getBooks);
+r.get('/students', protect, libStaff, library.getStudents);
 r.post('/books', protect, libStaff, library.addBook);
 r.get('/issues', protect, library.getIssues);
 r.post('/issue', protect, libStaff, library.issueBook);

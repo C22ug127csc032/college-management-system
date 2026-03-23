@@ -9,6 +9,7 @@ import {
 } from 'chart.js';
 import api from '../../api/axios';
 import { PageSpinner, StatCard } from '../../components/common';
+import { useAuth } from '../../context/AuthContext';
 import {
   FiAlertCircle,
   FiArrowRight,
@@ -37,6 +38,7 @@ ChartJS.register(
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [studentStats, setStudentStats] = useState(null);
@@ -65,6 +67,7 @@ export default function Dashboard() {
     responsive: true,
     plugins: { legend: { position: 'bottom' } },
   };
+  const hasLibraryAccess = ['super_admin', 'librarian'].includes(user?.role);
 
   return (
     <div className="space-y-6">
@@ -238,7 +241,9 @@ export default function Dashboard() {
               { label: 'Assign Fees', icon: FiEdit3, path: '/admin/fees/assign', color: 'bg-green-50 hover:bg-green-100 text-green-700' },
               { label: 'Manual Payment', icon: FiCreditCard, path: '/admin/payments', color: 'bg-purple-50 hover:bg-purple-100 text-purple-700' },
               { label: 'Publish Circular', icon: FiFileText, path: '/admin/circulars', color: 'bg-yellow-50 hover:bg-yellow-100 text-yellow-700' },
-              { label: 'Issue Book', icon: FiBook, path: '/admin/library', color: 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700' },
+              ...(hasLibraryAccess ? [
+                { label: 'Issue Book', icon: FiBook, path: '/admin/library', color: 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700' },
+              ] : []),
               { label: 'View Reports', icon: FiTrendingUp, path: '/admin/reports', color: 'bg-red-50 hover:bg-red-100 text-red-700' },
               { label: 'Check In Student', icon: FiClock, path: '/admin/checkin', color: 'bg-teal-50 hover:bg-teal-100 text-teal-700' },
             ].map(action => (
@@ -392,13 +397,13 @@ export default function Dashboard() {
               color: 'border-yellow-200 bg-yellow-50',
               iconBg: 'bg-yellow-100 text-yellow-600',
             },
-            {
+            ...(hasLibraryAccess ? [{
               icon: FiBook, label: 'Library',
               desc: 'Books & issue records',
               path: '/admin/library',
               color: 'border-green-200 bg-green-50',
               iconBg: 'bg-green-100 text-green-600',
-            },
+            }] : []),
             {
               icon: FiTrendingDown, label: 'Expenses',
               desc: 'Institution expenses',

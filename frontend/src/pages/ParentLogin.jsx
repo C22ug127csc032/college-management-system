@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
+import { isValidIndianPhone, normalizeIdentifierInput, sanitizePhoneField } from '../utils/phone';
 
 const INVALID_LOGIN_MESSAGE = 'Invalid email or password';
 
@@ -22,7 +23,8 @@ export default function ParentLogin() {
     setLoading(true);
     setLoginFailed(false);
     try {
-      const data = await login(form.phone, form.password);
+      const identifier = normalizeIdentifierInput(form.phone);
+      const data = await login(identifier, form.password);
 
       if (data.user.role !== 'parent') {
         setLoginFailed(true);
@@ -42,15 +44,21 @@ export default function ParentLogin() {
   };
 
   const handleSendOTP = async () => {
-    if (!form.phone) {
-      toast.error('Enter phone number first');
+    const phone = sanitizePhoneField(form.phone);
+    if (!phone) {
+      toast.error('Enter a phone number first');
+      return;
+    }
+    if (!isValidIndianPhone(phone)) {
+      toast.error('Enter a valid 10-digit Indian mobile number');
       return;
     }
     setSendingOTP(true);
     try {
-      await api.post('/auth/send-otp', { phone: form.phone });
+      await api.post('/auth/send-otp', { phone });
+      setForm(prev => ({ ...prev, phone }));
       setOtpSent(true);
-      toast.success(`OTP sent to ${form.phone}`);
+      toast.success(`OTP sent to ${phone}`);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to send OTP');
     } finally {
@@ -60,10 +68,15 @@ export default function ParentLogin() {
 
   const handleOTPLogin = async e => {
     e.preventDefault();
+    const phone = sanitizePhoneField(form.phone);
+    if (!isValidIndianPhone(phone)) {
+      toast.error('Enter a valid 10-digit Indian mobile number');
+      return;
+    }
     setLoading(true);
     try {
       const r = await api.post('/auth/verify-otp', {
-        phone: form.phone,
+        phone,
         otp: form.otp,
       });
 
@@ -110,7 +123,7 @@ export default function ParentLogin() {
                   placeholder="Enter your registered email or phone"
                   value={form.phone}
                   onChange={e => {
-                    setForm({ ...form, phone: e.target.value });
+                    setForm({ ...form, phone: normalizeIdentifierInput(e.target.value) });
                     setLoginFailed(false);
                   }}
                   required
@@ -148,7 +161,9 @@ export default function ParentLogin() {
                     className="input flex-1"
                     placeholder="Enter your phone number"
                     value={form.phone}
-                    onChange={e => setForm({ ...form, phone: e.target.value })}
+                    onChange={e => setForm({ ...form, phone: sanitizePhoneField(e.target.value) })}
+                    inputMode="numeric"
+                    maxLength={10}
                     required
                   />
                   <button

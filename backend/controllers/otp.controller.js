@@ -2,12 +2,13 @@ import User from '../models/User.model.js';
 import Student from '../models/Student.model.js';
 import jwt from 'jsonwebtoken';
 import { sendSMS } from '../utils/notifications.js';
+import { assertValidIndianPhone, normalizePhone } from '../utils/phone.js';
 
 const generateToken = (id, role) =>
   jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
 const ensureStudentUserByPhone = async (phone) => {
-  const normalizedPhone = (phone || '').trim();
+  const normalizedPhone = normalizePhone(phone);
   if (!normalizedPhone) return null;
 
   let user = await User.findOne({ phone: normalizedPhone }).populate('studentRef');
@@ -36,8 +37,8 @@ const ensureStudentUserByPhone = async (phone) => {
 // POST /api/auth/send-otp
 export const sendOTP = async (req, res) => {
   try {
-    const { phone } = req.body;
-    const user = await ensureStudentUserByPhone(phone) || await User.findOne({ phone });
+    const normalizedPhone = assertValidIndianPhone(req.body.phone);
+    const user = await ensureStudentUserByPhone(normalizedPhone) || await User.findOne({ phone: normalizedPhone });
     if (!user) return res.status(404).json({ success: false, message: 'Phone number not registered' });
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -45,18 +46,20 @@ export const sendOTP = async (req, res) => {
     user.otpExpire = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
 
-    await sendSMS(phone, `Your OTP is: ${otp}. Valid for 10 minutes. Do not share.`);
-    res.json({ success: true, message: 'OTP sent to ' + phone });
+    await sendSMS(normalizedPhone, `Your OTP is: ${otp}. Valid for 10 minutes. Do not share.`);
+    res.json({ success: true, message: 'OTP sent to ' + normalizedPhone });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    const status = /phone number/i.test(err.message) ? 400 : 500;
+    res.status(status).json({ success: false, message: err.message });
   }
 };
 
 // POST /api/auth/verify-otp
 export const verifyOTP = async (req, res) => {
   try {
-    const { phone, otp } = req.body;
-    const user = await ensureStudentUserByPhone(phone) || await User.findOne({ phone }).populate('studentRef');
+    const { otp } = req.body;
+    const normalizedPhone = assertValidIndianPhone(req.body.phone);
+    const user = await ensureStudentUserByPhone(normalizedPhone) || await User.findOne({ phone: normalizedPhone }).populate('studentRef');
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     if (user.otp !== otp) return res.status(400).json({ success: false, message: 'Invalid OTP' });
     if (!user.otpExpire || user.otpExpire < new Date())
@@ -78,6 +81,7 @@ export const verifyOTP = async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    const status = /phone number/i.test(err.message) ? 400 : 500;
+    res.status(status).json({ success: false, message: err.message });
   }
 };

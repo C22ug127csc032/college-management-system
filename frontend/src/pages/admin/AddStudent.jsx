@@ -10,6 +10,7 @@ import {
   FiClipboard, FiHome, FiUsers,
 } from '../../components/common/icons';
 import toast from 'react-hot-toast';
+import { isValidIndianPhone, sanitizePhoneField } from '../../utils/phone';
 
 const Section = ({ title, children }) => (
   <div className="card mb-4">
@@ -224,7 +225,11 @@ export default function AddStudent() {
     const { name, value, type, checked } = e.target;
     setForm(f => ({
       ...f,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: type === 'checkbox'
+        ? checked
+        : name.toLowerCase().includes('phone')
+          ? sanitizePhoneField(value)
+          : value,
     }));
   };
 
@@ -237,6 +242,20 @@ export default function AddStudent() {
 
   const handleSubmit = async e => {
     e.preventDefault();
+
+    const phoneFields = [
+      ['Student phone number', form.phone],
+      ['Father phone number', form['father.phone']],
+      ['Mother phone number', form['mother.phone']],
+      ['Guardian phone number', form['guardian.phone']],
+    ];
+
+    for (const [label, value] of phoneFields) {
+      if (value && !isValidIndianPhone(value)) {
+        toast.error(`${label} must be a valid 10-digit Indian mobile number`);
+        return;
+      }
+    }
 
     setLoading(true);
     try {
