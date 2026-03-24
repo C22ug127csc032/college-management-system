@@ -378,6 +378,7 @@ export default function Students() {
   const { user } = useAuth();
 
   const [students, setStudents]       = useState([]);
+  const [currentCourseSection, setCurrentCourseSection] = useState(null);
   const [courses, setCourses]         = useState([]);
   const [classes, setClasses]         = useState([]);
   const [loading, setLoading]         = useState(true);
@@ -398,38 +399,93 @@ export default function Students() {
     setPage(1);
   };
 
+  const isClassTeacher = user?.role === 'class_teacher';
+  const teacherCourse = courses.find(c =>
+    c.name === user?.department || c.code === user?.department
+  );
+  const visibleCourses = isClassTeacher && teacherCourse ? [teacherCourse] : courses;
+
   const fetchStudents = useCallback(async () => {
     setLoading(true);
     try {
-      const params = { page, limit: 15 };
-      if (filters.search)    params.search    = filters.search;
-      if (filters.course)    params.course    = filters.course;
-      if (filters.status)    params.status    = filters.status;
-      if (filters.className) params.className = filters.className;
+      const buildParams = custom => {
+        const params = { limit: 15, ...custom };
+        if (filters.search) params.search = filters.search;
+        if (filters.status) params.status = filters.status;
+        if (filters.className) params.className = filters.className;
+        return params;
+      };
 
-      const r = await api.get('/students', { params });
-      setStudents(r.data.students);
-      setTotal(r.data.total);
+      if (filters.course) {
+        const r = await api.get('/students', {
+          params: buildParams({ page: 1, limit: 100, course: filters.course }),
+        });
+
+        setStudents(r.data.students);
+        setCurrentCourseSection(null);
+        setTotal(r.data.total);
+
+        const uniqueClasses = [
+          ...new Set(r.data.students.map(s => s.className).filter(Boolean)),
+        ].sort();
+        setClasses(prev => [...new Set([...prev, ...uniqueClasses])].sort());
+        return;
+      }
+
+      if (!visibleCourses.length) {
+        setStudents([]);
+        setCurrentCourseSection(null);
+        setTotal(0);
+        setClasses([]);
+        return;
+      }
+
+      const orderedCourses = [...visibleCourses].sort((a, b) =>
+        (a.code || a.name || '').localeCompare(b.code || b.name || '', undefined, {
+          sensitivity: 'base',
+        })
+      );
+      const selectedCourseIndex = Math.min(Math.max(page, 1), orderedCourses.length) - 1;
+      const selectedCourse = orderedCourses[selectedCourseIndex];
+      const response = await api.get('/students', {
+        params: buildParams({ page: 1, limit: 100, course: selectedCourse._id }),
+      });
 
       const uniqueClasses = [
         ...new Set(
-          r.data.students.map(s => s.className).filter(Boolean)
+          response.data.students.map(student => student.className).filter(Boolean)
         ),
       ].sort();
-      setClasses(prev => [
-        ...new Set([...prev, ...uniqueClasses])
-      ].sort());
+
+      setClasses(prev => [...new Set([...prev, ...uniqueClasses])].sort());
+      setCurrentCourseSection({
+        key: selectedCourse._id,
+        title: selectedCourse.code || selectedCourse.name,
+        subtitle: selectedCourse.name,
+        courseId: selectedCourse._id,
+        coursePage: selectedCourseIndex + 1,
+        coursePages: orderedCourses.length,
+        students: response.data.students,
+        total: response.data.total,
+      });
+      setStudents(response.data.students);
+      setTotal(response.data.total);
     } catch {
       toast.error('Failed to load students');
     } finally {
       setLoading(false);
     }
-  }, [page, filters]);
+  }, [page, filters, visibleCourses]);
 
   useEffect(() => { fetchStudents(); }, [fetchStudents]);
   useEffect(() => {
     api.get('/courses').then(r => setCourses(r.data.courses));
   }, []);
+  useEffect(() => {
+    if (!filters.course && visibleCourses.length > 0 && page > visibleCourses.length) {
+      setPage(visibleCourses.length);
+    }
+  }, [filters.course, page, visibleCourses.length]);
 
   const handleDeactivate = async (e, id, name) => {
     e.stopPropagation();
@@ -475,11 +531,6 @@ export default function Students() {
   const pendingCount = students.filter(
     s => !s.regNo || s.status === 'admission_pending'
   ).length;
-  const isClassTeacher = user?.role === 'class_teacher';
-  const teacherCourse = courses.find(c =>
-    c.name === user?.department || c.code === user?.department
-  );
-  const visibleCourses = isClassTeacher && teacherCourse ? [teacherCourse] : courses;
 
   const filteredClasses = classes.filter(cls => {
     if (!filters.course) return true;
@@ -491,13 +542,6 @@ export default function Students() {
     return cls.startsWith(code);
   });
 
-  const getGenderSortRank = gender => {
-    const normalizedGender = (gender || '').trim().toLowerCase();
-    if (normalizedGender === 'male') return 0;
-    if (normalizedGender === 'female') return 1;
-    return 2;
-  };
-
   const getRollNoColor = gender => {
     const normalizedGender = (gender || '').trim().toLowerCase();
     if (normalizedGender === 'male') return 'text-blue-600';
@@ -505,62 +549,65 @@ export default function Students() {
     return 'text-gray-600';
   };
 
-  const sortedStudents = [...students].sort((a, b) => {
-    const courseNameA = a.course?.name || '';
-    const courseNameB = b.course?.name || '';
-    const courseDiff = courseNameA.localeCompare(courseNameB, undefined, {
+  const getGenderSortRank = gender => {
+    const normalizedGender = String(gender || '').trim().toLowerCase();
+    if (normalizedGender === 'male') return 0;
+    if (normalizedGender === 'female') return 1;
+    return 2;
+  };
+
+  const compareRollNumbers = (rollNoA, rollNoB) => {
+    const normalizedA = String(rollNoA || '').trim();
+    const normalizedB = String(rollNoB || '').trim();
+
+    if (!normalizedA && !normalizedB) return 0;
+    if (!normalizedA) return 1;
+    if (!normalizedB) return -1;
+
+    const prefixA = normalizedA.replace(/\d+$/g, '');
+    const prefixB = normalizedB.replace(/\d+$/g, '');
+    const prefixDiff = prefixA.localeCompare(prefixB, undefined, {
       sensitivity: 'base',
     });
-    if (courseDiff !== 0) return courseDiff;
+    if (prefixDiff !== 0) return prefixDiff;
 
-    const batchA = a.batch || '';
-    const batchB = b.batch || '';
-    const batchDiff = batchA.localeCompare(batchB, undefined, {
-      sensitivity: 'base',
-    });
-    if (batchDiff !== 0) return batchDiff;
+    const numericA = Number.parseInt(normalizedA.match(/(\d+)$/)?.[1], 10);
+    const numericB = Number.parseInt(normalizedB.match(/(\d+)$/)?.[1], 10);
+    const hasNumericA = !Number.isNaN(numericA);
+    const hasNumericB = !Number.isNaN(numericB);
 
-    const rollNoA = Number.parseInt(String(a.rollNo || '').match(/(\d+)$/)?.[1], 10);
-    const rollNoB = Number.parseInt(String(b.rollNo || '').match(/(\d+)$/)?.[1], 10);
-    const hasNumericRollA = !Number.isNaN(rollNoA);
-    const hasNumericRollB = !Number.isNaN(rollNoB);
-
-    if (hasNumericRollA && hasNumericRollB && rollNoA !== rollNoB) {
-      return rollNoA - rollNoB;
+    if (hasNumericA && hasNumericB && numericA !== numericB) {
+      return numericA - numericB;
     }
 
-    const genderRankDiff =
-      getGenderSortRank(a.gender) - getGenderSortRank(b.gender);
+    return normalizedA.localeCompare(normalizedB, undefined, {
+      sensitivity: 'base',
+      numeric: true,
+    });
+  };
 
-    if (genderRankDiff !== 0) return genderRankDiff;
+  const sortedStudents = [...students].sort((a, b) => {
+    const genderDiff = getGenderSortRank(a.gender) - getGenderSortRank(b.gender);
+    if (genderDiff !== 0) return genderDiff;
+
+    const rollDiff = compareRollNumbers(a.rollNo, b.rollNo);
+    if (rollDiff !== 0) return rollDiff;
 
     const studentNameA = `${a.firstName || ''} ${a.lastName || ''}`.trim();
     const studentNameB = `${b.firstName || ''} ${b.lastName || ''}`.trim();
 
-    return studentNameA.localeCompare(studentNameB, undefined, {
+    const nameDiff = studentNameA.localeCompare(studentNameB, undefined, {
       sensitivity: 'base',
+    });
+    if (nameDiff !== 0) return nameDiff;
+
+    return String(a.admissionNo || '').localeCompare(String(b.admissionNo || ''), undefined, {
+      sensitivity: 'base',
+      numeric: true,
     });
   });
 
   const showCourseGroups = !filters.course;
-  const groupedStudents = sortedStudents.reduce((groups, student) => {
-    const courseKey = student.course?._id || student.course?.name || 'uncategorized';
-    const existingGroup = groups.find(group => group.key === courseKey);
-
-    if (existingGroup) {
-      existingGroup.students.push(student);
-      return groups;
-    }
-
-    groups.push({
-      key: courseKey,
-      title: student.course?.code || student.course?.name || 'Unassigned Course',
-      subtitle: student.course?.name || 'No course assigned',
-      students: [student],
-    });
-    return groups;
-  }, []);
-
   const renderStudentRow = s => (
     <tr key={s._id}
       className="hover:bg-gray-50 transition-colors cursor-pointer"
@@ -894,17 +941,41 @@ export default function Students() {
         {loading ? <PageSpinner /> : (
           <>
             {showCourseGroups ? (
-              <div className="space-y-8">
-                {groupedStudents.map(group => (
-                  <section key={group.key} className="rounded-2xl border border-gray-100 bg-white overflow-hidden">
-                    <div className="px-5 py-4 border-b border-gray-100 bg-slate-50">
-                      <h2 className="text-xl font-bold text-slate-900">{group.title}</h2>
-                      <p className="text-sm text-slate-500 mt-1">{group.subtitle}</p>
+              <>
+                {currentCourseSection && (
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-100 bg-slate-50 px-4 py-3">
+                    <div>
+                      <h2 className="text-lg font-bold text-slate-900">{currentCourseSection.title}</h2>
+                      <p className="text-sm text-slate-500">{currentCourseSection.subtitle}</p>
                     </div>
-                    {renderStudentsTable(group.students, true)}
-                  </section>
-                ))}
-              </div>
+                    <div className="text-sm text-slate-500">
+                      {currentCourseSection.total} students
+                    </div>
+                  </div>
+                )}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="table-header">Roll No</th>
+                        <th className="table-header">Reg No</th>
+                        <th className="table-header">Student</th>
+                        <th className="table-header">Admission No</th>
+                        <th className="table-header">Course</th>
+                        <th className="table-header">Class</th>
+                        <th className="table-header">Semester</th>
+                        <th className="table-header">Phone</th>
+                        <th className="table-header">Hostel</th>
+                        <th className="table-header">Status</th>
+                        <th className="table-header">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {sortedStudents.map(s => renderStudentRow(s))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -930,7 +1001,8 @@ export default function Students() {
             </div>
             )}
 
-            {students.length === 0 && (
+            {((showCourseGroups && (!currentCourseSection || currentCourseSection.total === 0)) ||
+              (!showCourseGroups && students.length === 0)) && (
               <EmptyState
                 message={
                   filters.search || filters.course ||
@@ -942,11 +1014,19 @@ export default function Students() {
               />
             )}
 
-            <Pagination
-              page={page}
-              pages={Math.ceil(total / 15)}
-              onPage={setPage}
-            />
+            {showCourseGroups ? (
+              <Pagination
+                page={currentCourseSection?.coursePage || page}
+                pages={visibleCourses.length}
+                onPage={setPage}
+              />
+            ) : (
+              <Pagination
+                page={page}
+                pages={1}
+                onPage={setPage}
+              />
+            )}
           </>
         )}
       </div>

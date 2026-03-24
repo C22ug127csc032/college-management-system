@@ -1,6 +1,7 @@
 ﻿import Wallet  from '../models/Wallet.model.js';
 import Student from '../models/Student.model.js';
 import crypto  from 'crypto';
+import { buildStudentIdentifierQuery, getPreferredStudentIdentifier } from '../utils/studentIdentity.js';
 
 // ── GET /api/wallet/:studentId ────────────────────────────────────────────────
 export const getWallet = async (req, res) => {
@@ -14,23 +15,23 @@ export const getWallet = async (req, res) => {
 };
 
 // ── GET /api/wallet/find/:identifier ─────────────────────────────────────────
-// Find student wallet by phone OR admissionNo — used by canteen/shop operator
+// Find student wallet by phone OR roll no (admission no fallback)
 export const findStudentWallet = async (req, res) => {
   try {
     const { identifier } = req.params;
+    const identifierQuery = buildStudentIdentifierQuery(identifier);
 
-    // Search by phone or admissionNo
     const student = await Student.findOne({
       $or: [
         { phone:       identifier.trim() },
-        { admissionNo: identifier.trim().toUpperCase() },
+        ...identifierQuery.$or,
       ],
     }).populate('course', 'name');
 
     if (!student) {
       return res.status(404).json({
         success: false,
-        message: `No student found with phone or admission no: ${identifier}`,
+        message: `No student found with phone or roll no: ${identifier}`,
       });
     }
 
@@ -43,7 +44,9 @@ export const findStudentWallet = async (req, res) => {
         _id:         student._id,
         firstName:   student.firstName,
         lastName:    student.lastName,
+        rollNo:      student.rollNo,
         admissionNo: student.admissionNo,
+        studentIdentifier: getPreferredStudentIdentifier(student),
         phone:       student.phone,
         course:      student.course?.name,
         photo:       student.photo,

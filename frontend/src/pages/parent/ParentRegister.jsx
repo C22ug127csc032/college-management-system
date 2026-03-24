@@ -17,7 +17,7 @@ const STEPS = ['Find Student', 'Verify OTP', 'Create Account'];
 export default function ParentRegister() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [admissionNo, setAdmissionNo] = useState('');
+  const [studentIdentifier, setStudentIdentifier] = useState('');
   const [otp, setOtp] = useState('');
   const [maskedPhone, setMaskedPhone] = useState('');
   const [studentName, setStudentName] = useState('');
@@ -34,14 +34,14 @@ export default function ParentRegister() {
 
   const handleSendOTP = async e => {
     e.preventDefault();
-    if (!admissionNo.trim()) {
-      toast.error('Enter Admission No');
+    if (!studentIdentifier.trim()) {
+      toast.error('Enter Roll No');
       return;
     }
     setLoading(true);
     try {
       const r = await api.post('/parent/request-register-otp', {
-        admissionNo: admissionNo.trim().toUpperCase(),
+        rollNo: studentIdentifier.trim().toUpperCase(),
       });
       setMaskedPhone(r.data.maskedPhone);
       setStudentName(r.data.studentName);
@@ -64,7 +64,7 @@ export default function ParentRegister() {
     setLoading(true);
     try {
       const r = await api.post('/parent/verify-register-otp', {
-        admissionNo: admissionNo.trim().toUpperCase(),
+        rollNo: studentIdentifier.trim().toUpperCase(),
         otp: otp.trim(),
       });
       setStudentId(r.data.studentId);
@@ -101,7 +101,7 @@ export default function ParentRegister() {
         phone,
         email: form.email || undefined,
         password: form.password,
-        admissionNo: admissionNo.trim().toUpperCase(),
+        rollNo: studentIdentifier.trim().toUpperCase(),
         relation: form.relation,
       });
       localStorage.setItem('token', r.data.token);
@@ -119,7 +119,7 @@ export default function ParentRegister() {
     setLoading(true);
     try {
       const r = await api.post('/parent/request-register-otp', {
-        admissionNo: admissionNo.trim().toUpperCase(),
+        rollNo: studentIdentifier.trim().toUpperCase(),
       });
       toast.success(`OTP resent to ${r.data.maskedPhone}`);
     } catch (err) {
@@ -179,7 +179,8 @@ export default function ParentRegister() {
                 </div>
                 <h2 className="font-bold text-gray-800">Find Your Child</h2>
                 <p className="text-sm text-gray-500 mt-1">
-                  Enter your child's Admission Number.
+                  Enter your child's Roll Number.
+                  If Roll No is not assigned yet, you can use Admission Number.
                   OTP will be sent to the parent phone saved in college records.
                 </p>
               </div>
@@ -194,13 +195,13 @@ export default function ParentRegister() {
 
               <div>
                 <label className="label">
-                  Admission Number <span className="text-red-500">*</span>
+                  Roll Number <span className="text-red-500">*</span>
                 </label>
                 <input
                   className="input font-mono text-center text-lg tracking-wider uppercase"
-                  placeholder="e.g. ADM2024001"
-                  value={admissionNo}
-                  onChange={e => setAdmissionNo(e.target.value.toUpperCase())}
+                  placeholder="e.g. 24BCA001 or ADM2024001"
+                  value={studentIdentifier}
+                  onChange={e => setStudentIdentifier(e.target.value.toUpperCase())}
                   required
                 />
               </div>
@@ -248,7 +249,7 @@ export default function ParentRegister() {
                 {course && (
                   <p className="text-xs text-green-600 mt-0.5">{course}</p>
                 )}
-                <p className="text-xs text-green-500 mt-0.5 font-mono">{admissionNo}</p>
+                <p className="text-xs text-green-500 mt-0.5 font-mono">{studentIdentifier}</p>
               </div>
 
               <div>

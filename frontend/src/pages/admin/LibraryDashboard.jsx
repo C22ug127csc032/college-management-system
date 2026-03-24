@@ -9,6 +9,7 @@ export default function LibraryDashboard() {
   const [loading, setLoading] = useState(true);
   const [books, setBooks] = useState([]);
   const [issues, setIssues] = useState([]);
+  const getStudentIdentifier = student => student?.rollNo || student?.admissionNo || student?.regNo || '—';
 
   useEffect(() => {
     Promise.all([
@@ -72,7 +73,12 @@ export default function LibraryDashboard() {
               {issues.slice(0, 5).map(issue => (
                 <tr key={issue._id} className="hover:bg-gray-50">
                   <td className="table-cell">
-                    {issue.student?.firstName} {issue.student?.lastName}
+                    <p className="font-medium">
+                      {issue.student?.firstName} {issue.student?.lastName}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {getStudentIdentifier(issue.student)}
+                    </p>
                   </td>
                   <td className="table-cell">{issue.book?.title || '-'}</td>
                   <td className="table-cell text-sm text-gray-500">

@@ -2,6 +2,7 @@ import ShopItem from '../models/ShopItem.model.js';
 import Sale     from '../models/Sale.model.js';
 import Wallet   from '../models/Wallet.model.js';
 import Student  from '../models/Student.model.js';
+import { buildStudentIdentifierQuery, getPreferredStudentIdentifier } from '../utils/studentIdentity.js';
 
 const buildItemCodePrefix = type => (type === 'canteen' ? 'CAN' : 'SHP');
 
@@ -134,10 +135,11 @@ export const updateStock = async (req, res) => {
 export const findStudent = async (req, res) => {
   try {
     const { identifier } = req.params;
+    const identifierQuery = buildStudentIdentifierQuery(identifier);
     const student = await Student.findOne({
       $or: [
         { phone:       identifier.trim() },
-        { admissionNo: identifier.trim().toUpperCase() },
+        ...identifierQuery.$or,
       ],
     }).populate('course', 'name');
 
@@ -157,7 +159,9 @@ export const findStudent = async (req, res) => {
         _id:         student._id,
         firstName:   student.firstName,
         lastName:    student.lastName,
+        rollNo:      student.rollNo,
         admissionNo: student.admissionNo,
+        studentIdentifier: getPreferredStudentIdentifier(student),
         phone:       student.phone,
         course:      student.course?.name,
         photo:       student.photo,
@@ -268,7 +272,7 @@ export const createSale = async (req, res) => {
       date:        new Date(),
     });
 
-    await sale.populate('student', 'firstName lastName admissionNo');
+    await sale.populate('student', 'firstName lastName rollNo admissionNo');
 
     // Get updated wallet balance
     const updatedWallet = await Wallet.findOne({ student: studentId });
@@ -307,7 +311,7 @@ export const getSales = async (req, res) => {
 
     const total = await Sale.countDocuments(query);
     const sales = await Sale.find(query)
-      .populate('student', 'firstName lastName admissionNo phone')
+      .populate('student', 'firstName lastName rollNo admissionNo phone')
       .populate('operator', 'name')
       .sort('-date')
       .skip((page - 1) * limit)

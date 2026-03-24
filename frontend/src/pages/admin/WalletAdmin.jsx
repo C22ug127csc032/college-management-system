@@ -46,7 +46,7 @@ export default function WalletAdmin() {
 
   const filtered = students.filter(s =>
     !search ||
-    `${s.firstName} ${s.lastName} ${s.admissionNo} ${s.phone}`
+    `${s.firstName} ${s.lastName} ${s.rollNo} ${s.admissionNo} ${s.phone}`
       .toLowerCase()
       .includes(search.toLowerCase())
   );
@@ -65,7 +65,7 @@ export default function WalletAdmin() {
           <FilterBar>
             <input
               className="input w-64"
-              placeholder="Search by name, admission no, phone..."
+              placeholder="Search by name, roll no, phone..."
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
@@ -77,7 +77,7 @@ export default function WalletAdmin() {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="table-header">Student</th>
-                    <th className="table-header">Admission No</th>
+                    <th className="table-header">Roll No</th>
                     <th className="table-header">Balance</th>
                     <th className="table-header">Actions</th>
                   </tr>
@@ -104,7 +104,7 @@ export default function WalletAdmin() {
                         </div>
                       </td>
                       <td className="table-cell font-mono text-xs text-gray-500">
-                        {s.admissionNo || s.regNo || '-'}
+                        {s.rollNo || s.admissionNo || s.regNo || '-'}
                       </td>
                       <td className="table-cell">
                         <span className="text-base font-bold text-green-600">
@@ -148,7 +148,7 @@ export default function WalletAdmin() {
                     {selected.firstName} {selected.lastName}
                   </p>
                   <p className="text-xs text-gray-400 font-mono">
-                    {selected.admissionNo || selected.regNo}
+                    {selected.rollNo || selected.admissionNo || selected.regNo}
                   </p>
                 </div>
                 <button

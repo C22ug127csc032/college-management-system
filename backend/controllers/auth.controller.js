@@ -2,6 +2,7 @@ import User    from '../models/User.model.js';
 import Student from '../models/Student.model.js';
 import jwt     from 'jsonwebtoken';
 import { assertValidIndianPhone, isValidIndianPhone, normalizePhone } from '../utils/phone.js';
+import { getPreferredStudentIdentifier, getPreferredStudentIdentifierLabel } from '../utils/studentIdentity.js';
 
 const generateToken = (id, role) =>
   jwt.sign(
@@ -36,7 +37,7 @@ const ensureStudentUserByPhone = async phone => {
     name:         `${student.firstName} ${student.lastName}`.trim(),
     phone:        student.phone,
     email:        student.email || undefined,
-    password:     student.admissionNo || student.phone,
+    password:     getPreferredStudentIdentifier(student) || student.phone,
     role:         'student',
     studentRef:   student._id,
     isFirstLogin: true,
@@ -116,22 +117,23 @@ export const login = async (req, res) => {
 
     // ── Smart fallback for students ───────────────────────────────────────
     // Handles 3 cases:
-    // 1. Student has old phone-as-password hash → migrate to admissionNo
-    // 2. Student has admissionNo hash but submitted plain admissionNo
-    // 3. Student has no admissionNo yet → allow phone as password
+    // 1. Student has old phone-as-password hash -> migrate to rollNo/admissionNo
+    // 2. Student has rollNo/admissionNo hash but submitted the plain default credential
+    // 3. Student has no academic identifier yet -> allow phone as password
     if (!passwordMatches && user.role === 'student') {
       const student = await Student.findById(
         user.studentRef?._id || user.studentRef
-      ).select('admissionNo phone firstName lastName');
+      ).select('rollNo admissionNo phone firstName lastName');
 
       if (student) {
-        const admNo    = student.admissionNo || '';
+        const defaultCredential = getPreferredStudentIdentifier(student);
+        const credentialLabel = getPreferredStudentIdentifierLabel(student);
         const phone    = student.phone || user.phone || '';
 
-        // Case 1 — submitted admissionNo but hash is wrong
+        // Case 1 — submitted the default academic identifier but hash is outdated
         // Force rehash and retry
-        if (admNo && password === admNo) {
-          user.password     = admNo;
+        if (defaultCredential && password === defaultCredential) {
+          user.password     = defaultCredential;
           user.isFirstLogin = true;
           await user.save();
           passwordMatches = await user.matchPassword(password);
@@ -139,20 +141,19 @@ export const login = async (req, res) => {
 
         // Case 2 — submitted phone number (old default password)
         else if (password === phone) {
-          if (admNo) {
-            // Has admissionNo — migrate to admissionNo password
-            user.password     = admNo;
+          if (defaultCredential) {
+            // Has roll no/admission no — migrate to the current default academic credential
+            user.password     = defaultCredential;
             user.isFirstLogin = true;
             await user.save();
-            // Return helpful error with the new password
             return res.status(401).json({
               success:  false,
-              message:  `Your default password has been updated to your Admission No. Please use: ${admNo}`,
-              hint:     admNo,
+              message:  `Your default password has been updated to your ${credentialLabel}. Please use: ${defaultCredential}`,
+              hint:     defaultCredential,
               migrated: true,
             });
           } else {
-            // No admissionNo yet — allow phone as password temporarily
+            // No roll no/admission no yet — allow phone as password temporarily
             user.password = phone;
             await user.save();
             passwordMatches = await user.matchPassword(password);
@@ -165,7 +166,7 @@ export const login = async (req, res) => {
       return res.status(401).json({
         success: false,
         message: user.role === 'student'
-          ? 'Invalid password. Use your Admission No as default password (e.g. ADM2026001).'
+          ? 'Invalid password. Use your Roll No as default password. If Roll No is not assigned yet, use your Admission No.'
           : 'Invalid email/phone or password.',
       });
     }

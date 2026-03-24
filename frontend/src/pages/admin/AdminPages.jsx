@@ -686,6 +686,7 @@ export function LibraryAdmin() {
   const [students, setStudents] = useState([]);
   const [bookForm, setBookForm] = useState(initialBookForm);
   const [issueForm, setIssueForm] = useState(initialIssueForm);
+  const getStudentIdentifier = student => student?.rollNo || student?.admissionNo || student?.regNo || '—';
 
   useEffect(() => {
     api.get('/library/books')
@@ -746,7 +747,10 @@ export function LibraryAdmin() {
           <Table headers={['Student', 'Book', 'Issue Date', 'Due Date', 'Status', 'Fine', 'Actions']}>
             {issues.map(i => (
               <tr key={i._id} className="hover:bg-gray-50">
-                <td className="table-cell">{i.student?.firstName} {i.student?.lastName}</td>
+                <td className="table-cell">
+                  <p className="font-medium">{i.student?.firstName} {i.student?.lastName}</p>
+                  <p className="text-xs text-gray-400">{getStudentIdentifier(i.student)}</p>
+                </td>
                 <td className="table-cell">{i.book?.title}</td>
                 <td className="table-cell">{new Date(i.issueDate).toLocaleDateString('en-IN')}</td>
                 <td className="table-cell">{new Date(i.dueDate).toLocaleDateString('en-IN')}</td>
@@ -776,7 +780,7 @@ export function LibraryAdmin() {
           <div><label className="label">Student *</label>
             <select className="input" value={issueForm.studentId} onChange={e => setIssueForm(f => ({ ...f, studentId: e.target.value }))} required>
               <option value="">Select Student</option>
-              {students.map(s => <option key={s._id} value={s._id}>{s.firstName} {s.lastName} ({s.regNo})</option>)}
+              {students.map(s => <option key={s._id} value={s._id}>{s.firstName} {s.lastName} ({getStudentIdentifier(s)})</option>)}
             </select>
           </div>
           <div><label className="label">Book *</label>

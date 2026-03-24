@@ -233,7 +233,7 @@ export default function CanteenOperator() {
               <h3 className="section-title mb-3">Find Student</h3>
               <form onSubmit={handleSearch} className="flex gap-2">
                 <input className="input flex-1"
-                  placeholder="Phone or Admission No (ADM2026001)"
+                  placeholder="Phone or Roll No"
                   value={identifier}
                   onChange={e => setIdentifier(e.target.value)} />
                 <button type="submit" disabled={searching}
@@ -263,7 +263,7 @@ export default function CanteenOperator() {
                         {studentData.student.lastName}
                       </p>
                       <p className="text-xs text-gray-500 font-mono">
-                        {studentData.student.admissionNo}
+                        {studentData.student.rollNo || studentData.student.admissionNo}
                       </p>
                     </div>
                   </div>
@@ -731,7 +731,7 @@ export default function CanteenOperator() {
                           {sale.student?.firstName} {sale.student?.lastName}
                         </p>
                         <p className="text-xs text-gray-400 font-mono">
-                          {sale.student?.admissionNo}
+                          {sale.student?.rollNo || sale.student?.admissionNo}
                         </p>
                       </td>
                       <td className="table-cell text-xs text-gray-500">

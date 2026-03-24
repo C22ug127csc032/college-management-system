@@ -90,15 +90,15 @@ const generateNextRegNo = async () => {
   return `REG${String(latestNumber + 1).padStart(10, '0')}`;
 };
 
+const getStudentNameForSort = student =>
+  `${student.firstName || ''} ${student.lastName || ''}`.trim();
+
 const getGenderSortRank = gender => {
   const normalizedGender = String(gender || '').trim().toLowerCase();
   if (normalizedGender === 'male') return 0;
   if (normalizedGender === 'female') return 1;
   return 2;
 };
-
-const getStudentNameForSort = student =>
-  `${student.firstName || ''} ${student.lastName || ''}`.trim();
 
 const getRollNoYearPrefix = student => {
   const batchStartYear = String(student.batch || '').split('-')[0]?.trim();
@@ -126,6 +126,15 @@ const getSectionLabel = index => {
   } while (current >= 0);
 
   return label;
+};
+
+const buildCourseClassName = (courseCode, section) => {
+  const normalizedCourseCode = String(courseCode || '')
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
+
+  return normalizedCourseCode ? `${normalizedCourseCode}-${section}` : section;
 };
 
 const compareStudentsForRollNo = (a, b) => {
@@ -161,41 +170,54 @@ const compareStudentsAlphabetically = (a, b) => {
   return String(a._id).localeCompare(String(b._id));
 };
 
-const assignSectionsForCourseBatch = async ({ courseId, batch }) => {
-  if (!courseId || !batch) return;
+const getNextSectionAssignment = async ({
+  courseId,
+  batch,
+  excludeStudentId = null,
+}) => {
+  if (!courseId || !batch) return { section: '', className: '' };
 
-  const course = await Course.findById(courseId).select('code');
-  if (!course) return;
-
-  const courseCode = String(course.code || '')
-    .trim()
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, '');
-
-  const students = await Student.find({ course: courseId, batch }).select(
-    '_id firstName lastName admissionDate section className'
+  const course = await Course.findById(courseId).select(
+    'code maxStrength sectionsPerYear'
   );
+  if (!course) return { section: '', className: '' };
 
-  const sortedStudents = [...students].sort(compareStudentsAlphabetically);
-  const operations = [];
+  const studentQuery = {
+    course: courseId,
+    batch,
+    status: { $in: ['active', 'admission_pending'] },
+  };
 
-  sortedStudents.forEach((student, index) => {
-    const section = getSectionLabel(Math.floor(index / 60));
-    const className = `${courseCode}-${section}`;
-
-    if (student.section !== section || student.className !== className) {
-      operations.push({
-        updateOne: {
-          filter: { _id: student._id },
-          update: { $set: { section, className } },
-        },
-      });
-    }
-  });
-
-  if (operations.length) {
-    await Student.bulkWrite(operations);
+  if (excludeStudentId) {
+    studentQuery._id = { $ne: excludeStudentId };
   }
+
+  const existingStudents = await Student.find(studentQuery).select('section');
+  const sectionCounts = existingStudents.reduce((acc, student) => {
+    const section = String(student.section || '').trim();
+    if (!section) return acc;
+    acc[section] = (acc[section] || 0) + 1;
+    return acc;
+  }, {});
+
+  const maxStrength = course.maxStrength || 60;
+  const sectionsPerYear = course.sectionsPerYear || 2;
+
+  for (let index = 0; index < sectionsPerYear; index += 1) {
+    const section = getSectionLabel(index);
+    if ((sectionCounts[section] || 0) < maxStrength) {
+      return {
+        section,
+        className: buildCourseClassName(course.code, section),
+      };
+    }
+  }
+
+  const overflowSection = getSectionLabel(sectionsPerYear);
+  return {
+    section: overflowSection,
+    className: buildCourseClassName(course.code, overflowSection),
+  };
 };
 
 const generateRollNosForCourse = async courseId => {
@@ -219,13 +241,10 @@ const generateRollNosForCourse = async courseId => {
   }, new Map());
 
   const operations = [];
+  const passwordResetCandidates = [];
   const summary = [];
 
-  for (const [batchKey, batchStudents] of groupedByBatch.entries()) {
-    if (batchKey !== '__NO_BATCH__') {
-      await assignSectionsForCourseBatch({ courseId, batch: batchKey });
-    }
-
+  for (const [, batchStudents] of groupedByBatch.entries()) {
     const sortedStudents = [...batchStudents].sort(compareStudentsForRollNo);
 
     sortedStudents.forEach((student, index) => {
@@ -241,6 +260,10 @@ const generateRollNosForCourse = async courseId => {
             update: { $set: { rollNo: nextRollNo } },
           },
         });
+        passwordResetCandidates.push({
+          studentId: String(student._id),
+          rollNo: nextRollNo,
+        });
       }
     });
 
@@ -252,6 +275,24 @@ const generateRollNosForCourse = async courseId => {
 
   if (operations.length) {
     await Student.bulkWrite(operations);
+  }
+
+  if (passwordResetCandidates.length) {
+    const rollNoByStudentId = new Map(
+      passwordResetCandidates.map(entry => [entry.studentId, entry.rollNo])
+    );
+    const users = await User.find({
+      role: 'student',
+      isFirstLogin: true,
+      studentRef: { $in: passwordResetCandidates.map(entry => entry.studentId) },
+    });
+
+    for (const user of users) {
+      const rollNo = rollNoByStudentId.get(String(user.studentRef));
+      if (!rollNo) continue;
+      user.password = rollNo;
+      await user.save();
+    }
   }
 
   return summary;
@@ -313,6 +354,7 @@ export const getAllStudents = async (req, res) => {
         { firstName:   { $regex: search, $options: 'i' } },
         { lastName:    { $regex: search, $options: 'i' } },
         { regNo:       { $regex: search, $options: 'i' } },
+        { rollNo:      { $regex: search, $options: 'i' } },
         { admissionNo: { $regex: search, $options: 'i' } },
         { phone:       { $regex: search, $options: 'i' } },
       ];
@@ -389,15 +431,13 @@ export const createStudent = async (req, res) => {
     }
 
     // ── Class strength check ──────────────────────────────────────────────
-    if (data.className && data.course) {
-      const strength = await checkClassStrength(data.course, data.className);
-      if (strength.full) {
-        return res.status(400).json({
-          success: false,
-          message: `Class ${data.className} is full (${strength.count}/${strength.max} students). Please assign Section B.`,
-          classInfo: strength,
-        });
-      }
+    if (data.course && data.batch) {
+      const assignment = await getNextSectionAssignment({
+        courseId: data.course,
+        batch: data.batch,
+      });
+      data.section = assignment.section;
+      data.className = assignment.className;
     }
 
     // ── Auto generate Admission No — always on day 1 ──────────────────────
@@ -414,10 +454,6 @@ export const createStudent = async (req, res) => {
     }
 
     const student = await Student.create(data);
-    await assignSectionsForCourseBatch({
-      courseId: student.course,
-      batch: student.batch,
-    });
 
     // ── Create student login account ──────────────────────────────────────
     // Default password = admissionNo (NOT phone number anymore)
@@ -494,22 +530,6 @@ export const updateStudent = async (req, res) => {
       delete data.admissionNo;
     }
 
-    // Class strength check on update
-    if (
-      data.className &&
-      data.course &&
-      data.className !== existing.className
-    ) {
-      const strength = await checkClassStrength(data.course, data.className);
-      if (strength.full) {
-        return res.status(400).json({
-          success: false,
-          message: `Class ${data.className} is full (${strength.count}/${strength.max} students). Please assign Section B.`,
-          classInfo: strength,
-        });
-      }
-    }
-
     // Handle regNo update
     if ('regNo' in data && (!data.regNo || data.regNo.trim() === '')) {
       delete data.regNo;
@@ -519,6 +539,22 @@ export const updateStudent = async (req, res) => {
     // Activate student when reg no assigned
     if (!existing.regNo && data.regNo && data.regNo.trim() !== '') {
       data.status = 'active';
+    }
+
+    const nextCourseId = data.course || existing.course;
+    const nextBatch = data.batch || existing.batch;
+    const courseOrBatchChanged =
+      String(nextCourseId || '') !== String(existing.course || '') ||
+      String(nextBatch || '') !== String(existing.batch || '');
+
+    if (courseOrBatchChanged && nextCourseId && nextBatch) {
+      const assignment = await getNextSectionAssignment({
+        courseId: nextCourseId,
+        batch: nextBatch,
+        excludeStudentId: existing._id,
+      });
+      data.section = assignment.section;
+      data.className = assignment.className;
     }
 
     const student = await Student.findByIdAndUpdate(
@@ -534,21 +570,6 @@ export const updateStudent = async (req, res) => {
         name:  `${student.firstName} ${student.lastName}`,
         phone: student.phone,
         email: student.email,
-      });
-    }
-
-    await assignSectionsForCourseBatch({
-      courseId: student.course?._id || student.course,
-      batch: student.batch,
-    });
-
-    if (
-      String(existing.course || '') !== String(student.course?._id || student.course) ||
-      String(existing.batch || '') !== String(student.batch || '')
-    ) {
-      await assignSectionsForCourseBatch({
-        courseId: existing.course,
-        batch: existing.batch,
       });
     }
 

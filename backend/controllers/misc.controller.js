@@ -46,6 +46,7 @@ export const expense = {
 import Circular from '../models/Circular.model.js';
 import { createNotifications, getCircularRecipientIds } from '../utils/appNotifications.js';
 import Student from '../models/Student.model.js';
+import { getPreferredStudentIdentifier } from '../utils/studentIdentity.js';
 
 export const circular = {
   create: async (req, res) => {
@@ -128,17 +129,24 @@ export const library = {
         query.$or = [
           { firstName: regex },
           { lastName: regex },
+          { rollNo: regex },
           { regNo: regex },
           { admissionNo: regex },
         ];
       }
 
       const students = await Student.find(query)
-        .select('firstName lastName regNo admissionNo')
+        .select('firstName lastName rollNo regNo admissionNo')
         .sort({ firstName: 1, lastName: 1 })
         .limit(Number(limit));
 
-      res.json({ success: true, students });
+      res.json({
+        success: true,
+        students: students.map(student => ({
+          ...student.toObject(),
+          studentIdentifier: getPreferredStudentIdentifier(student),
+        })),
+      });
     } catch (err) { res.status(500).json({ success: false, message: err.message }); }
   },
   issueBook: async (req, res) => {
@@ -180,7 +188,7 @@ export const library = {
       if (status) query.status = status;
       const issues = await BookIssue.find(query)
         .populate('book', 'title author isbn')
-        .populate('student', 'firstName lastName regNo')
+        .populate('student', 'firstName lastName rollNo regNo admissionNo')
         .sort('-issueDate');
       res.json({ success: true, issues });
     } catch (err) { res.status(500).json({ success: false, message: err.message }); }

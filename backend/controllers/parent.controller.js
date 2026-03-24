@@ -9,32 +9,35 @@ import Payment    from '../models/Payment.model.js';
 import jwt        from 'jsonwebtoken';
 import { sendSMS } from '../utils/notifications.js';
 import { assertValidIndianPhone } from '../utils/phone.js';
+import { buildStudentIdentifierQuery, getPreferredStudentIdentifier } from '../utils/studentIdentity.js';
 
 const generateToken = (id, role) =>
   jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
+const getSubmittedStudentIdentifier = body =>
+  body.rollNo || body.admissionNo || body.studentIdentifier || '';
+
 // ── STEP 1 — POST /api/parent/request-register-otp ───────────────────────────
-// Parent enters Admission No → OTP sent to father/mother phone in student record
+// Parent enters roll no (or admission no fallback) → OTP sent to saved parent phone
 export const requestRegisterOTP = async (req, res) => {
   try {
-    const { admissionNo } = req.body;
+    const submittedIdentifier = getSubmittedStudentIdentifier(req.body);
 
-    if (!admissionNo) {
+    if (!submittedIdentifier) {
       return res.status(400).json({
         success: false,
-        message: 'Admission No is required',
+        message: 'Roll No is required. If Roll No is not assigned yet, use Admission No.',
       });
     }
 
-    // Find student by admission no
-    const student = await Student.findOne({
-      admissionNo: admissionNo.trim().toUpperCase(),
-    }).populate('course', 'name');
+    const student = await Student.findOne(
+      buildStudentIdentifierQuery(submittedIdentifier)
+    ).populate('course', 'name');
 
     if (!student) {
       return res.status(404).json({
         success: false,
-        message: `No student found with Admission No: ${admissionNo}`,
+        message: `No student found with Roll No: ${submittedIdentifier}. If Roll No is not assigned yet, try Admission No.`,
       });
     }
 
@@ -71,7 +74,7 @@ export const requestRegisterOTP = async (req, res) => {
       message:     `OTP sent to ${masked}`,
       maskedPhone: masked,
       studentName: `${student.firstName} ${student.lastName}`,
-      admissionNo: student.admissionNo,
+      studentIdentifier: getPreferredStudentIdentifier(student),
       course:      student.course?.name,
     });
   } catch (err) {
@@ -84,18 +87,19 @@ export const requestRegisterOTP = async (req, res) => {
 // Verify OTP → allow parent to proceed to create account
 export const verifyRegisterOTP = async (req, res) => {
   try {
-    const { admissionNo, otp } = req.body;
+    const { otp } = req.body;
+    const submittedIdentifier = getSubmittedStudentIdentifier(req.body);
 
-    if (!admissionNo || !otp) {
+    if (!submittedIdentifier || !otp) {
       return res.status(400).json({
         success: false,
-        message: 'Admission No and OTP are required',
+        message: 'Roll No and OTP are required. If Roll No is not assigned yet, use Admission No.',
       });
     }
 
-    const student = await Student.findOne({
-      admissionNo: admissionNo.trim().toUpperCase(),
-    });
+    const student = await Student.findOne(
+      buildStudentIdentifierQuery(submittedIdentifier)
+    );
 
     if (!student) {
       return res.status(404).json({
@@ -130,7 +134,7 @@ export const verifyRegisterOTP = async (req, res) => {
       message:     'OTP verified successfully. Please complete your registration.',
       studentId:   student._id,
       studentName: `${student.firstName} ${student.lastName}`,
-      admissionNo: student.admissionNo,
+      studentIdentifier: getPreferredStudentIdentifier(student),
       fatherName:  student.father?.name  || '',
       motherName:  student.mother?.name  || '',
       course:      student.course?.name  || '',
@@ -146,19 +150,19 @@ export const register = async (req, res) => {
   try {
     const {
       name, phone, email, password,
-      admissionNo, relation,
+      relation,
     } = req.body;
+    const submittedIdentifier = getSubmittedStudentIdentifier(req.body);
     const normalizedPhone = assertValidIndianPhone(phone);
 
-    // Find student by admission no
-    const student = await Student.findOne({
-      admissionNo: admissionNo?.trim().toUpperCase(),
-    });
+    const student = await Student.findOne(
+      buildStudentIdentifierQuery(submittedIdentifier)
+    );
 
     if (!student) {
       return res.status(404).json({
         success: false,
-        message: `No student found with Admission No: ${admissionNo}`,
+        message: `No student found with Roll No: ${submittedIdentifier}. If Roll No is not assigned yet, try Admission No.`,
       });
     }
 
