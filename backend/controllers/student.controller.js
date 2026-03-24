@@ -100,20 +100,8 @@ const getGenderSortRank = gender => {
   return 2;
 };
 
-const getRollNoYearPrefix = student => {
-  const batchStartYear = String(student.batch || '').split('-')[0]?.trim();
-  if (/^\d{4}$/.test(batchStartYear)) return batchStartYear.slice(-2);
-
-  const admissionYear = student.admissionDate
-    ? new Date(student.admissionDate).getFullYear()
-    : null;
-  if (admissionYear) return String(admissionYear).slice(-2);
-
-  return String(new Date().getFullYear()).slice(-2);
-};
-
-const buildFormattedRollNo = ({ student, courseCode, serialNumber }) =>
-  `${getRollNoYearPrefix(student)}${courseCode}${String(serialNumber).padStart(3, '0')}`;
+const buildFormattedRollNo = ({ section, serialNumber }) =>
+  `${String(section || '').toUpperCase()}${String(serialNumber).padStart(3, '0')}`;
 
 const getSectionLabel = index => {
   const baseCharCode = 'A'.charCodeAt(0);
@@ -224,13 +212,8 @@ const generateRollNosForCourse = async courseId => {
   const course = await Course.findById(courseId).select('code');
   if (!course) throw new Error('Course not found');
 
-  const courseCode = String(course.code || '')
-    .trim()
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, '');
-
   const students = await Student.find({ course: courseId }).select(
-    '_id course batch firstName lastName gender admissionDate rollNo'
+    '_id course batch firstName lastName gender admissionDate rollNo section'
   );
 
   const groupedByBatch = students.reduce((acc, student) => {
@@ -245,31 +228,40 @@ const generateRollNosForCourse = async courseId => {
   const summary = [];
 
   for (const [, batchStudents] of groupedByBatch.entries()) {
-    const sortedStudents = [...batchStudents].sort(compareStudentsForRollNo);
+    const groupedBySection = batchStudents.reduce((acc, student) => {
+      const sectionKey = String(student.section || '').trim() || '__NO_SECTION__';
+      if (!acc.has(sectionKey)) acc.set(sectionKey, []);
+      acc.get(sectionKey).push(student);
+      return acc;
+    }, new Map());
 
-    sortedStudents.forEach((student, index) => {
-      const nextRollNo = buildFormattedRollNo({
-        student,
-        courseCode,
-        serialNumber: index + 1,
+    for (const [sectionKey, sectionStudents] of groupedBySection.entries()) {
+      const sortedStudents = [...sectionStudents].sort(compareStudentsForRollNo);
+      const sectionLabel = sectionKey === '__NO_SECTION__' ? 'A' : sectionKey;
+
+      sortedStudents.forEach((student, index) => {
+        const nextRollNo = buildFormattedRollNo({
+          section: sectionLabel,
+          serialNumber: index + 1,
+        });
+        if (student.rollNo !== nextRollNo) {
+          operations.push({
+            updateOne: {
+              filter: { _id: student._id },
+              update: { $set: { rollNo: nextRollNo } },
+            },
+          });
+          passwordResetCandidates.push({
+            studentId: String(student._id),
+            rollNo: nextRollNo,
+          });
+        }
       });
-      if (student.rollNo !== nextRollNo) {
-        operations.push({
-          updateOne: {
-            filter: { _id: student._id },
-            update: { $set: { rollNo: nextRollNo } },
-          },
-        });
-        passwordResetCandidates.push({
-          studentId: String(student._id),
-          rollNo: nextRollNo,
-        });
-      }
-    });
+    }
 
     summary.push({
       batch: batchKey === '__NO_BATCH__' ? '' : batchKey,
-      total: sortedStudents.length,
+      total: batchStudents.length,
     });
   }
 
