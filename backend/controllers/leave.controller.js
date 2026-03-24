@@ -40,7 +40,7 @@ export const applyLeave = async (req, res) => {
     const teacherRecipients = student?.course
       ? await getCourseTeacherRecipientIds(student.course)
       : [];
-    const adminRecipients = await getRoleRecipientIds(['super_admin']);
+    const adminRecipients = await getRoleRecipientIds(['super_admin', 'admin']);
 
     await createNotifications({
       recipientIds: [...teacherRecipients, ...adminRecipients],

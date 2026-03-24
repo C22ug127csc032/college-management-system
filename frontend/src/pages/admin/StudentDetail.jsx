@@ -70,6 +70,19 @@ export default function StudentDetail() {
   const isPending = !student.regNo ||
                     student.status === 'admission_pending';
 
+  const displayClassName = (() => {
+    const courseCode = String(student?.course?.code || '').trim().toUpperCase();
+    const section = String(student?.section || '').trim().toUpperCase();
+    const semester = Number(student?.semester) || 0;
+    const academicYear = semester ? Math.max(1, Math.ceil(semester / 2)) : 0;
+
+    if (courseCode && academicYear && section) {
+      return `${courseCode} ${academicYear}-${section}`;
+    }
+
+    return student?.className;
+  })();
+
   return (
     <div>
       {/* ── Header ── */}
@@ -205,7 +218,7 @@ export default function StudentDetail() {
               value={student.rollNo || 'Not assigned yet'} />
             <Row label="Section"
               value={student.section || 'Not assigned yet'} />
-            <Row label="Class"        value={student.className} />
+            <Row label="Class"        value={displayClassName} />
             <Row label="Semester"
               value={student.semester ? `Semester ${student.semester}` : null} />
             <Row label="Academic Year" value={student.academicYear} />

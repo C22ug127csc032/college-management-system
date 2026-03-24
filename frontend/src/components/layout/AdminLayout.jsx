@@ -27,14 +27,14 @@ const ALL_NAV = [
   // ── Dashboard ──────────────────────────────────────────────────────────────
   {
     to: '/admin', label: 'Dashboard', icon: FiBarChart2, exact: true,
-    roles: ['super_admin','class_teacher','hostel_warden','librarian'],
+    roles: ['super_admin','admin','class_teacher','hostel_warden','librarian'],
   },
 
   // ── Students ───────────────────────────────────────────────────────────────
-  { section: 'Students', roles: ['super_admin','class_teacher'] },
+  { section: 'Students', roles: ['super_admin','admin','class_teacher'] },
   {
     to: '/admin/students', label: 'Students', icon: FiUser,
-    roles: ['super_admin','class_teacher'],
+    roles: ['super_admin','admin','class_teacher'],
   },
   {
     to: '/admin/courses', label: 'Courses', icon: FiTarget,
@@ -42,90 +42,91 @@ const ALL_NAV = [
   },
 
   // ── Fees & Payments ────────────────────────────────────────────────────────
-  { section: 'Fees & Payments', roles: ['super_admin','class_teacher'] },
+  { section: 'Fees & Payments', roles: ['super_admin','admin','class_teacher'] },
   {
     to: '/admin/fees/structure', label: 'Fee Structure', icon: FiClipboard,
-    roles: ['super_admin'],
+    roles: ['super_admin','admin'],
   },
   {
     to: '/admin/fees/assign', label: 'Assign Fees', icon: FiEdit3,
-    roles: ['super_admin'],
+    roles: ['super_admin','admin'],
   },
   {
     to: '/admin/fees/list', label: 'Fees List', icon: FiDollarSign,
-    roles: ['super_admin','class_teacher'],
+    roles: ['super_admin','admin','class_teacher'],
   },
   {
     to: '/admin/payments', label: 'Payments', icon: FiCreditCard,
-    roles: ['super_admin'],
+    roles: ['super_admin','admin'],
   },
 
   // ── Hostel & Attendance ────────────────────────────────────────────────────
   {
     section: 'Hostel & Attendance',
-    roles: ['super_admin','class_teacher','hostel_warden'],
+    roles: ['super_admin','admin','class_teacher','hostel_warden'],
   },
   {
     to: '/admin/leave', label: 'Leave', icon: FiCalendar,
-    roles: ['super_admin','class_teacher','hostel_warden'],
+    roles: ['super_admin','admin','class_teacher','hostel_warden'],
   },
   {
     to: '/admin/outpass', label: 'Outpass', icon: FiLogOut,
-    roles: ['super_admin','hostel_warden'],
+    roles: ['super_admin','admin','hostel_warden'],
   },
   {
     to: '/admin/checkin', label: 'Check In/Out', icon: FiClock,
-    roles: ['super_admin','hostel_warden','class_teacher'],
+    roles: ['super_admin','admin','hostel_warden','class_teacher'],
   },
 
   // ── Shop & Canteen ─────────────────────────────────────────────────────────
 
   // ── Library ────────────────────────────────────────────────────────────────
-  { section: 'Library', roles: ['super_admin','librarian'] },
+  { section: 'Library', roles: ['super_admin','admin','librarian'] },
   {
     to: '/admin/library', label: 'Library', icon: FiBook,
-    roles: ['super_admin','librarian'],
+    roles: ['super_admin','admin','librarian'],
     exact: true,
   },
 
   // ── Administration ─────────────────────────────────────────────────────────
   {
     section: 'Administration',
-    roles: ['super_admin','class_teacher'],
+    roles: ['super_admin','admin','class_teacher'],
   },
   {
     to: '/admin/inventory', label: 'Inventory', icon: FiPackage,
-    roles: ['super_admin'],
+    roles: ['super_admin','admin'],
   },
   {
     to: '/admin/expense', label: 'Expenses', icon: FiTrendingDown,
-    roles: ['super_admin'],
+    roles: ['super_admin','admin'],
   },
   {
     to: '/admin/circulars', label: 'Circulars', icon: FiFileText,
-    roles: ['super_admin','class_teacher'],
+    roles: ['super_admin','admin','class_teacher'],
   },
 
   // ── Settings & Reports ─────────────────────────────────────────────────────
-  { section: 'Settings & Reports', roles: ['super_admin'] },
+  { section: 'Settings & Reports', roles: ['super_admin','admin'] },
   {
     to: '/admin/staff', label: 'Staff', icon: FiUsers,
     roles: ['super_admin'],
   },
   {
     to: '/admin/reports', label: 'Reports', icon: FiTrendingUp,
-    roles: ['super_admin'],
+    roles: ['super_admin','admin'],
   },
 
   // ── Notifications ──────────────────────────────────────────────────────────
   {
     to: '/admin/notifications', label: 'Notifications', icon: FiBell,
-    roles: ['super_admin','class_teacher','hostel_warden','librarian'],
+    roles: ['super_admin','admin','class_teacher','hostel_warden','librarian'],
   },
 ];
 
 const roleConfig = {
   super_admin:      { label: 'Super Admin',      color: 'bg-red-500'    },
+  admin:            { label: 'Admin',            color: 'bg-rose-500'   },
   class_teacher:    { label: 'Class Teacher',    color: 'bg-blue-500'   },
   hostel_warden:    { label: 'Hostel Warden',    color: 'bg-green-500'  },
   shop_operator:    { label: 'Operator',         color: 'bg-yellow-500' },

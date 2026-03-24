@@ -175,17 +175,16 @@ export const register = async (req, res) => {
       });
     }
 
-    // Allow multiple parents per student
-    // Check how many parents already registered for this student
+    // Allow at most two parent accounts per student
     const existingParents = await User.countDocuments({
       studentRef: student._id,
       role:       'parent',
     });
 
-    if (existingParents >= 3) {
+    if (existingParents >= 2) {
       return res.status(400).json({
         success: false,
-        message: 'Maximum 3 parent accounts already registered for this student.',
+        message: 'Maximum 2 parent accounts are allowed for this student.',
       });
     }
 

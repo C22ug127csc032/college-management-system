@@ -894,7 +894,7 @@ export function StaffManagement() {
     }
   };
 
-  const roleColors = { class_teacher: 'badge-blue', hostel_warden: 'badge-green', shop_operator: 'badge-yellow', librarian: 'badge-purple', super_admin: 'badge-red' };
+  const roleColors = { admin: 'badge-red', class_teacher: 'badge-blue', hostel_warden: 'badge-green', shop_operator: 'badge-yellow', librarian: 'badge-purple', super_admin: 'badge-red' };
   const roleLabels = { shop_operator: 'operator', canteen_operator: 'operator' };
 
   return (
@@ -922,7 +922,7 @@ export function StaffManagement() {
             <div><label className="label">Password *</label><input type="password" className="input" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} required /></div>
             <div><label className="label">Role</label>
               <select className="input" value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>
-                {['class_teacher','hostel_warden','shop_operator','librarian','super_admin'].map(r => <option key={r} value={r}>{r.replace(/_/g, ' ')}</option>)}
+                {['admin','class_teacher','hostel_warden','shop_operator','librarian','super_admin'].map(r => <option key={r} value={r}>{r.replace(/_/g, ' ')}</option>)}
               </select>
             </div>
             <div>

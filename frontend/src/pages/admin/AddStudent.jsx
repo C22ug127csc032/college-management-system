@@ -108,31 +108,26 @@ export default function AddStudent() {
     api.get('/courses').then(r => setCourses(r.data.courses));
   }, []);
 
-  // -- Auto fill className from batch + section ------------------------------
-  // Uses BATCH YEAR (not semester) — all students in same batch = same class
+  // -- Auto fill className from course + academic year + section -------------
   useEffect(() => {
     if (form.course && form.batch && form.section) {
       const selectedCourse = courses.find(c => c._id === form.course);
       if (selectedCourse) {
-        // Get course code
         const code = selectedCourse.code ||
           selectedCourse.name
             .split(' ')
             .filter(w => w.length > 2)
             .map(w => w[0].toUpperCase())
             .join('');
-
-        // Get joining year from batch — "2024-2027" ? "24"
-        const joiningYear = form.batch.split('-')[0]?.slice(-2) || '';
-
-        // Combine ? BCA-24A
-        const autoClass = `${code}-${joiningYear}${form.section}`;
+        const semester = Number(form.semester) || 1;
+        const academicYear = Math.max(1, Math.ceil(semester / 2));
+        const autoClass = `${code} ${academicYear}-${String(form.section).toUpperCase()}`;
         setForm(f => ({ ...f, className: autoClass }));
       }
     } else if (!form.section) {
       setForm(f => ({ ...f, className: '' }));
     }
-  }, [form.course, form.batch, form.section, courses]);
+  }, [form.course, form.batch, form.section, form.semester, courses]);
 
   // -- Check class strength when className changes ---------------------------
   useEffect(() => {

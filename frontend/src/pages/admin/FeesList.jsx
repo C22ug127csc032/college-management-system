@@ -3,12 +3,15 @@ import api from '../../api/axios';
 import {
   EmptyState,
   FilterBar,
+  ListControls,
+  Pagination,
   PageHeader,
   PageSpinner,
   StatCard,
   StatusBadge,
   Table,
 } from '../../components/common';
+import useListControls from '../../hooks/useListControls';
 import {
   FiAlertOctagon,
   FiCheckCircle,
@@ -70,22 +73,47 @@ export default function FeesList() {
       }
     : summary;
 
-  const groupedFees = visibleFees.reduce((groups, fee) => {
-    const department = fee.student?.course?.department || 'Unassigned Department';
-    const existingGroup = groups.find(group => group.key === department);
-
-    if (existingGroup) {
-      existingGroup.fees.push(fee);
-      return groups;
-    }
-
-    groups.push({
-      key: department,
-      title: department,
-      fees: [fee],
-    });
-    return groups;
-  }, []);
+  const feeList = useListControls({
+    items: visibleFees,
+    searchFields: [
+      fee => `${fee.student?.firstName || ''} ${fee.student?.lastName || ''}`,
+      fee => fee.student?.regNo,
+      fee => fee.student?.rollNo,
+      fee => fee.student?.admissionNo,
+      fee => fee.student?.course?.name,
+      fee => fee.student?.course?.department,
+      fee => fee.academicYear,
+    ],
+    sortOptions: [
+      {
+        value: 'student-asc',
+        label: 'Sort: Student A-Z',
+        compare: (a, b) =>
+          `${a.student?.firstName || ''} ${a.student?.lastName || ''}`.localeCompare(
+            `${b.student?.firstName || ''} ${b.student?.lastName || ''}`,
+            undefined,
+            { sensitivity: 'base' }
+          ),
+      },
+      {
+        value: 'due-desc',
+        label: 'Sort: Highest Due',
+        compare: (a, b) => (b.totalDue || 0) - (a.totalDue || 0),
+      },
+      {
+        value: 'paid-desc',
+        label: 'Sort: Highest Paid',
+        compare: (a, b) => (b.totalPaid || 0) - (a.totalPaid || 0),
+      },
+      {
+        value: 'amount-desc',
+        label: 'Sort: Highest Total',
+        compare: (a, b) => (b.totalAmount || 0) - (a.totalAmount || 0),
+      },
+    ],
+    initialSort: 'student-asc',
+    initialPageSize: 20,
+  });
 
   const renderFeesTable = feeRows => (
     <Table headers={['Student', 'Course', 'Year/Sem', 'Total', 'Paid', 'Balance', 'Status']}>
@@ -162,28 +190,33 @@ export default function FeesList() {
           </select>
         </FilterBar>
 
+        <ListControls
+          searchValue={feeList.search}
+          onSearchChange={feeList.setSearch}
+          searchPlaceholder="Search student / reg no / roll no / course..."
+          sortValue={feeList.sort}
+          onSortChange={feeList.setSort}
+          sortOptions={[
+            { value: 'student-asc', label: 'Sort: Student A-Z' },
+            { value: 'due-desc', label: 'Sort: Highest Due' },
+            { value: 'paid-desc', label: 'Sort: Highest Paid' },
+            { value: 'amount-desc', label: 'Sort: Highest Total' },
+          ]}
+          pageSize={feeList.pageSize}
+          onPageSizeChange={feeList.setPageSize}
+          resultCount={feeList.totalItems}
+        />
+
         {loading ? (
           <PageSpinner />
         ) : (
-          <div className="space-y-8">
-            {groupedFees.map(group => (
-              <section
-                key={group.key}
-                className="rounded-2xl border border-gray-100 bg-white overflow-hidden"
-              >
-                <div className="px-5 py-4 border-b border-gray-100 bg-slate-50">
-                  <h2 className="text-xl font-bold text-slate-900">{group.title}</h2>
-                  <p className="text-sm text-slate-500 mt-1">
-                    {group.fees.length} fee record{group.fees.length !== 1 ? 's' : ''}
-                  </p>
-                </div>
-                {renderFeesTable(group.fees)}
-              </section>
-            ))}
+          <div className="space-y-4">
+            {renderFeesTable(feeList.items)}
+            <Pagination page={feeList.page} pages={feeList.pages} onPage={feeList.setPage} />
           </div>
         )}
 
-        {!loading && visibleFees.length === 0 && (
+        {!loading && feeList.totalItems === 0 && (
           <EmptyState message="No fees records found" />
         )}
       </div>

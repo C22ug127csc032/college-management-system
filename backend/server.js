@@ -76,10 +76,14 @@ cron.schedule('0 8 * * *', async () => {
 const cleanupStudentIndexes = async () => {
   try {
     const indexes = await Student.collection.indexes();
-    const hasAdmissionNumberIndex = indexes.some(index => index.name === 'admissionNumber_1');
-    if (hasAdmissionNumberIndex) {
-      await Student.collection.dropIndex('admissionNumber_1');
-      console.log('Dropped stale Student index: admissionNumber_1');
+    const staleIndexNames = ['admissionNumber_1', 'rollNo_1'];
+
+    for (const indexName of staleIndexNames) {
+      const hasStaleIndex = indexes.some(index => index.name === indexName);
+      if (hasStaleIndex) {
+        await Student.collection.dropIndex(indexName);
+        console.log(`Dropped stale Student index: ${indexName}`);
+      }
     }
   } catch (err) {
     console.error('Index cleanup warning:', err.message);

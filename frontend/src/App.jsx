@@ -86,7 +86,7 @@ const ProtectedRoute = ({ children, roles, redirectTo = '/login' }) => {
 };
 
 const ADMIN_ROLES = [
-  'super_admin', 'class_teacher', 'hostel_warden', 'librarian',
+  'super_admin', 'admin', 'class_teacher', 'hostel_warden', 'librarian',
 ];
 
 const RoleHomeRedirect = () => {
@@ -155,7 +155,7 @@ export default function App() {
               </ProtectedRoute>
             } />
             <Route path="library" element={
-              <ProtectedRoute roles={['super_admin', 'librarian']}>
+              <ProtectedRoute roles={['super_admin', 'admin', 'librarian']}>
                 <LibraryAdmin />
               </ProtectedRoute>
             } />
@@ -165,7 +165,11 @@ export default function App() {
                 <CoursesPage />
               </ProtectedRoute>
             } />
-            <Route path="reports" element={<ReportsPage />} />
+            <Route path="reports" element={
+              <ProtectedRoute roles={['super_admin', 'admin']}>
+                <ReportsPage />
+              </ProtectedRoute>
+            } />
             <Route path="notifications" element={<NotificationsPage />} />
           </Route>
 

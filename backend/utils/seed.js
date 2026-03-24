@@ -96,7 +96,6 @@ async function ensureCourses() {
 async function createStudentWithLogin({ course, courseIndex, sequenceNumber, globalIndex }) {
   const gender = sequenceNumber <= 30 ? 'Male' : 'Female';
   const { firstName, lastName } = pickName(globalIndex - 1, gender);
-  const section = sequenceNumber <= 30 ? 'A' : 'B';
   const semester = 1;
   const admissionNo = buildAdmissionNo(globalIndex);
   const phone = buildPhone(globalIndex);
@@ -139,8 +138,6 @@ async function createStudentWithLogin({ course, courseIndex, sequenceNumber, glo
     },
     annualIncome: ['', 'below_1L', '1L_3L', '3L_6L', '6L_10L', 'above_10L'][globalIndex % 6],
     course: course._id,
-    className: 'I Year',
-    section,
     semester,
     admissionDate,
     academicYear: `${currentYear}-${currentYear + 1}`,

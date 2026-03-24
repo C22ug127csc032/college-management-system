@@ -97,10 +97,13 @@ function PromoteModal({ open, onClose, onDone, courses }) {
   // Load classes when modal opens
   useEffect(() => {
     if (!open) { setResult(null); setPreview(null); setSelectedClass(''); return; }
-    api.get('/students', { params: { limit: 200, status: 'active' } })
+    api.get('/students', { params: { limit: 200 } })
       .then(r => {
         const unique = [...new Set(
-          r.data.students.map(s => s.className).filter(Boolean)
+          r.data.students
+            .filter(s => ['active', 'admission_pending'].includes(s.status))
+            .map(s => s.className)
+            .filter(Boolean)
         )].sort();
         setClasses(unique);
       });
@@ -117,7 +120,7 @@ function PromoteModal({ open, onClose, onDone, courses }) {
   useEffect(() => {
     if (!selectedClass) { setPreview(null); return; }
     api.get('/students', {
-      params: { className: selectedClass, limit: 100, status: 'active' },
+      params: { className: selectedClass, limit: 100 },
     }).then(r => setPreview(r.data));
   }, [selectedClass]);
 
@@ -382,6 +385,7 @@ export default function Students() {
   const [courses, setCourses]         = useState([]);
   const [classes, setClasses]         = useState([]);
   const [loading, setLoading]         = useState(true);
+  const [generatingRollNos, setGeneratingRollNos] = useState(false);
   const [total, setTotal]             = useState(0);
   const [page, setPage]               = useState(1);
   const [showPromote, setShowPromote] = useState(false);
@@ -502,7 +506,7 @@ export default function Students() {
   const handleGenerateRollNos = async () => {
     const selectedCourseId = isClassTeacher
       ? teacherCourse?._id
-      : filters.course;
+      : filters.course || currentCourseSection?.courseId;
 
     if (!selectedCourseId) {
       toast.error('Select a course first to generate roll numbers');
@@ -511,20 +515,23 @@ export default function Students() {
 
     const selectedCourse = visibleCourses.find(c => c._id === selectedCourseId);
     const confirmMessage =
-      `Generate course-wise roll numbers for ${selectedCourse?.name || 'this course'}?\n\n` +
-      `Rule: Male students first, then female students, both sorted by student name.\n` +
-      `Roll numbers will restart batch-wise inside the selected course.`;
+      `Generate roll numbers for ${selectedCourse?.name || 'this course'}?\n\n` +
+      `Format: year + course + number.`;
 
     if (!window.confirm(confirmMessage)) return;
 
     try {
+      setGeneratingRollNos(true);
       const r = await api.post('/students/generate-roll-nos', {
         courseId: selectedCourseId,
       });
       toast.success(r.data.message);
+      setGeneratingRollNos(false);
       fetchStudents();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to generate roll numbers');
+    } finally {
+      setGeneratingRollNos(false);
     }
   };
 
@@ -549,11 +556,17 @@ export default function Students() {
     return 'text-gray-600';
   };
 
-  const getGenderSortRank = gender => {
-    const normalizedGender = String(gender || '').trim().toLowerCase();
-    if (normalizedGender === 'male') return 0;
-    if (normalizedGender === 'female') return 1;
-    return 2;
+  const getDisplayClassName = student => {
+    const courseCode = String(student?.course?.code || '').trim().toUpperCase();
+    const section = String(student?.section || '').trim().toUpperCase();
+    const semester = Number(student?.semester) || 0;
+    const academicYear = semester ? Math.max(1, Math.ceil(semester / 2)) : 0;
+
+    if (courseCode && academicYear && section) {
+      return `${courseCode} ${academicYear}-${section}`;
+    }
+
+    return student?.className || '';
   };
 
   const compareRollNumbers = (rollNoA, rollNoB) => {
@@ -587,9 +600,6 @@ export default function Students() {
   };
 
   const sortedStudents = [...students].sort((a, b) => {
-    const genderDiff = getGenderSortRank(a.gender) - getGenderSortRank(b.gender);
-    if (genderDiff !== 0) return genderDiff;
-
     const rollDiff = compareRollNumbers(a.rollNo, b.rollNo);
     if (rollDiff !== 0) return rollDiff;
 
@@ -619,8 +629,20 @@ export default function Students() {
         {s.rollNo || '-'}
       </td>
 
-      <td className="table-cell font-mono text-xs text-gray-600">
-        {s.regNo || '-'}
+      <td className="table-cell">
+        {s.regNo
+          ? <div className="font-mono text-xs text-gray-600 mb-1">
+              {s.regNo}
+            </div>
+          : null}
+        {!s.regNo || s.status === 'admission_pending'
+          ? <span className="inline-flex items-center gap-1
+              text-xs text-orange-600 bg-orange-50 border
+              border-orange-200 px-2 py-0.5 rounded-full
+              font-medium">
+              Pending
+            </span>
+          : null}
       </td>
 
       <td className="table-cell">
@@ -648,16 +670,6 @@ export default function Students() {
         <div className="font-mono text-xs text-gray-600 mb-1">
           {s.admissionNo || 'â€“'}
         </div>
-        {!s.regNo ||
-          s.status === 'admission_pending'
-          ? <span className="inline-flex items-center gap-1
-              text-xs text-orange-600 bg-orange-50 border
-              border-orange-200 px-2 py-0.5 rounded-full
-              font-medium">
-              Pending
-            </span>
-          : null
-        }
       </td>
 
       {!s.hideCourseColumn && (
@@ -667,17 +679,17 @@ export default function Students() {
       )}
 
       <td className="table-cell">
-        {s.className
+        {getDisplayClassName(s)
           ? <button
               onClick={e => {
                 e.stopPropagation();
-                setFilter('className', s.className);
+                setFilter('className', s.className || getDisplayClassName(s));
               }}
               className="inline-flex items-center px-2 py-0.5
                 bg-blue-50 text-blue-700 text-xs font-semibold
                 rounded-md border border-blue-100
                 hover:bg-blue-100 transition-colors">
-              {s.className}
+              {getDisplayClassName(s)}
             </button>
           : <span className="text-gray-300 text-xs">
               Not assigned
@@ -796,9 +808,10 @@ export default function Students() {
             </button>
             <button
               onClick={handleGenerateRollNos}
-              className="btn-secondary"
+              disabled={generatingRollNos}
+              className="btn-secondary disabled:opacity-50"
             >
-              Generate Roll No
+              {generatingRollNos ? 'Generating...' : 'Generate Roll No'}
             </button>
             <button
               className="btn-primary"
@@ -947,6 +960,9 @@ export default function Students() {
                     <div>
                       <h2 className="text-lg font-bold text-slate-900">{currentCourseSection.title}</h2>
                       <p className="text-sm text-slate-500">{currentCourseSection.subtitle}</p>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Roll numbers are alphabetical within this course.
+                      </p>
                     </div>
                     <div className="text-sm text-slate-500">
                       {currentCourseSection.total} students

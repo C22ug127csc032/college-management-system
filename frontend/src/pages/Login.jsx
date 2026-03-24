@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { getHomePathForRole } from '../utils/authRedirect';
 import { isValidIndianPhone, normalizeIdentifierInput, sanitizePhoneField } from '../utils/phone';
 
-const INVALID_LOGIN_MESSAGE = 'Invalid email or password';
+const INVALID_LOGIN_MESSAGE = 'Invalid email, phone number, or password';
 
 export default function Login() {
   const { login, completeLogin } = useAuth();
@@ -128,11 +128,13 @@ export default function Login() {
                 <label className="label">Email or Phone Number</label>
                 <input
                   type="text"
+                  name="identifier"
+                  autoComplete="username"
                   className="input"
                   placeholder="Enter your email or phone number"
                   value={form.phone}
                   onChange={e => {
-                    setForm({ ...form, phone: normalizeIdentifierInput(e.target.value) });
+                    setForm(prev => ({ ...prev, phone: e.target.value }));
                     setLoginFailed(false);
                   }}
                   required
@@ -142,11 +144,13 @@ export default function Login() {
                 <label className="label">Password</label>
                 <input
                   type="password"
+                  name="password"
+                  autoComplete="current-password"
                   className="input"
                   placeholder="Enter password"
                   value={form.password}
                   onChange={e => {
-                    setForm({ ...form, password: e.target.value });
+                    setForm(prev => ({ ...prev, password: e.target.value }));
                     setLoginFailed(false);
                   }}
                   required

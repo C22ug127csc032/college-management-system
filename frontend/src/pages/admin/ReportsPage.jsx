@@ -10,7 +10,9 @@ import api from '../../api/axios';
 import {
   PageSpinner, StatCard, FilterBar,
   EmptyState, Table, StatusBadge,
+  ListControls, Pagination,
 } from '../../components/common';
+import useListControls from '../../hooks/useListControls';
 import {
   FiAlertCircle,
   FiBarChart2,
@@ -38,6 +40,156 @@ const TABS = [
   'Expenses', 'Inventory', 'Library',
   'Shop & Canteen', 'Attendance',
 ];
+
+const listConfigByTab = {
+  Fees: {
+    searchFields: [
+      fee => `${fee.student?.firstName || ''} ${fee.student?.lastName || ''}`,
+      fee => fee.student?.regNo,
+      fee => fee.student?.rollNo,
+      fee => fee.academicYear,
+      fee => fee.status,
+    ],
+    sortOptions: [
+      {
+        value: 'student-asc',
+        label: 'Sort: Student A-Z',
+        compare: (a, b) =>
+          `${a.student?.firstName || ''} ${a.student?.lastName || ''}`.localeCompare(
+            `${b.student?.firstName || ''} ${b.student?.lastName || ''}`,
+            undefined,
+            { sensitivity: 'base' }
+          ),
+      },
+      {
+        value: 'due-desc',
+        label: 'Sort: Highest Due',
+        compare: (a, b) => (b.totalDue || 0) - (a.totalDue || 0),
+      },
+    ],
+  },
+  Payments: {
+    searchFields: [
+      'receiptNo',
+      payment => `${payment.student?.firstName || ''} ${payment.student?.lastName || ''}`,
+      payment => payment.student?.regNo,
+      payment => payment.student?.rollNo,
+      'paymentMode',
+      'status',
+    ],
+    sortOptions: [
+      {
+        value: 'date-desc',
+        label: 'Sort: Latest First',
+        compare: (a, b) => new Date(b.paymentDate) - new Date(a.paymentDate),
+      },
+      {
+        value: 'amount-desc',
+        label: 'Sort: Highest Amount',
+        compare: (a, b) => (b.amount || 0) - (a.amount || 0),
+      },
+    ],
+  },
+  Expenses: {
+    searchFields: ['title', 'category', 'paymentMode'],
+    sortOptions: [
+      {
+        value: 'date-desc',
+        label: 'Sort: Latest First',
+        compare: (a, b) => new Date(b.date) - new Date(a.date),
+      },
+      {
+        value: 'amount-desc',
+        label: 'Sort: Highest Amount',
+        compare: (a, b) => (b.amount || 0) - (a.amount || 0),
+      },
+    ],
+  },
+  Inventory: {
+    searchFields: ['name', 'category', 'unit'],
+    sortOptions: [
+      {
+        value: 'name-asc',
+        label: 'Sort: Name A-Z',
+        compare: (a, b) => String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' }),
+      },
+      {
+        value: 'stock-asc',
+        label: 'Sort: Low Stock First',
+        compare: (a, b) => (a.currentStock || 0) - (b.currentStock || 0),
+      },
+    ],
+  },
+  Library: {
+    searchFields: [
+      issue => `${issue.student?.firstName || ''} ${issue.student?.lastName || ''}`,
+      issue => issue.student?.regNo,
+      issue => issue.student?.rollNo,
+      issue => issue.book?.title,
+      issue => issue.book?.author,
+      'status',
+    ],
+    sortOptions: [
+      {
+        value: 'due-asc',
+        label: 'Sort: Due Soonest',
+        compare: (a, b) => new Date(a.dueDate) - new Date(b.dueDate),
+      },
+      {
+        value: 'fine-desc',
+        label: 'Sort: Highest Fine',
+        compare: (a, b) => (b.fine || 0) - (a.fine || 0),
+      },
+    ],
+  },
+  'Shop & Canteen': {
+    searchFields: [
+      'billNo',
+      sale => `${sale.student?.firstName || ''} ${sale.student?.lastName || ''}`,
+      'paymentMode',
+      'status',
+    ],
+    sortOptions: [
+      {
+        value: 'date-desc',
+        label: 'Sort: Latest First',
+        compare: (a, b) => new Date(b.date) - new Date(a.date),
+      },
+      {
+        value: 'amount-desc',
+        label: 'Sort: Highest Amount',
+        compare: (a, b) => (b.totalAmount || 0) - (a.totalAmount || 0),
+      },
+    ],
+  },
+  Attendance: {
+    searchFields: [
+      record => `${record.student?.firstName || ''} ${record.student?.lastName || ''}`,
+      record => record.student?.regNo,
+      record => record.student?.rollNo,
+      'type',
+      'location',
+      'remarks',
+    ],
+    sortOptions: [
+      {
+        value: 'time-desc',
+        label: 'Sort: Latest First',
+        compare: (a, b) => new Date(b.timestamp) - new Date(a.timestamp),
+      },
+      {
+        value: 'student-asc',
+        label: 'Sort: Student A-Z',
+        compare: (a, b) =>
+          `${a.student?.firstName || ''} ${a.student?.lastName || ''}`.localeCompare(
+            `${b.student?.firstName || ''} ${b.student?.lastName || ''}`,
+            undefined,
+            { sensitivity: 'base' }
+          ),
+      },
+    ],
+  },
+};
 
 export default function ReportsPage() {
   const [tab, setTab]         = useState('Overview');
@@ -74,6 +226,23 @@ export default function ReportsPage() {
   useEffect(() => { load(); }, [load]);
 
   const setFilter = (k, v) => setFilters(f => ({ ...f, [k]: v }));
+  const currentRows =
+    tab === 'Fees' ? (data.fees || [])
+    : tab === 'Payments' ? (data.payments || [])
+    : tab === 'Expenses' ? (data.expenses || [])
+    : tab === 'Inventory' ? (data.items || [])
+    : tab === 'Library' ? (data.issues || [])
+    : tab === 'Shop & Canteen' ? (data.sales || [])
+    : tab === 'Attendance' ? (data.records || [])
+    : [];
+  const currentListConfig = listConfigByTab[tab] || { searchFields: [], sortOptions: [] };
+  const tableList = useListControls({
+    items: currentRows,
+    searchFields: currentListConfig.searchFields,
+    sortOptions: currentListConfig.sortOptions,
+    initialSort: currentListConfig.sortOptions?.[0]?.value,
+    initialPageSize: 20,
+  });
 
   return (
     <div>
@@ -98,24 +267,38 @@ export default function ReportsPage() {
 
       {/* Filters */}
       {tab !== 'Overview' && (
-        <FilterBar>
-          <input type="date" className="input w-40" value={filters.startDate}
-            onChange={e => setFilter('startDate', e.target.value)} />
-          <input type="date" className="input w-40" value={filters.endDate}
-            onChange={e => setFilter('endDate', e.target.value)} />
-          {tab === 'Fees' && (
-            <input className="input w-36" placeholder="Academic Year e.g. 2024-25"
-              value={filters.academicYear}
-              onChange={e => setFilter('academicYear', e.target.value)} />
-          )}
-          {tab === 'Shop & Canteen' && (
-            <select className="input w-36" value={filters.type}
-              onChange={e => setFilter('type', e.target.value)}>
-              <option value="shop">Shop</option>
-              <option value="canteen">Canteen</option>
-            </select>
-          )}
-        </FilterBar>
+        <div className="space-y-4">
+          <FilterBar>
+            <input type="date" className="input w-40" value={filters.startDate}
+              onChange={e => setFilter('startDate', e.target.value)} />
+            <input type="date" className="input w-40" value={filters.endDate}
+              onChange={e => setFilter('endDate', e.target.value)} />
+            {tab === 'Fees' && (
+              <input className="input w-36" placeholder="Academic Year e.g. 2024-25"
+                value={filters.academicYear}
+                onChange={e => setFilter('academicYear', e.target.value)} />
+            )}
+            {tab === 'Shop & Canteen' && (
+              <select className="input w-36" value={filters.type}
+                onChange={e => setFilter('type', e.target.value)}>
+                <option value="shop">Shop</option>
+                <option value="canteen">Canteen</option>
+              </select>
+            )}
+          </FilterBar>
+
+          <ListControls
+            searchValue={tableList.search}
+            onSearchChange={tableList.setSearch}
+            searchPlaceholder={`Search ${tab.toLowerCase()} records...`}
+            sortValue={tableList.sort}
+            onSortChange={tableList.setSort}
+            sortOptions={currentListConfig.sortOptions || []}
+            pageSize={tableList.pageSize}
+            onPageSizeChange={tableList.setPageSize}
+            resultCount={tableList.totalItems}
+          />
+        </div>
       )}
 
       {loading ? <PageSpinner /> : (
@@ -197,7 +380,7 @@ export default function ReportsPage() {
               </div>
               <div className="card overflow-x-auto">
                 <Table headers={['Student', 'Reg No', 'Roll No', 'Year/Sem', 'Total', 'Paid', 'Due', 'Status']}>
-                  {data.fees?.slice(0, 50).map(f => (
+                  {tableList.items.map(f => (
                     <tr key={f._id} className="hover:bg-gray-50">
                       <td className="table-cell font-medium">
                         {f.student?.firstName} {f.student?.lastName}
@@ -219,6 +402,7 @@ export default function ReportsPage() {
                   ))}
                 </Table>
                 {!data.fees?.length && <EmptyState message="No fee records" />}
+                <Pagination page={tableList.page} pages={tableList.pages} onPage={tableList.setPage} />
               </div>
             </div>
           )}
@@ -269,7 +453,7 @@ export default function ReportsPage() {
               )}
               <div className="card overflow-x-auto">
                 <Table headers={['Receipt', 'Student', 'Reg No', 'Roll No', 'Date', 'Amount', 'Mode', 'Status']}>
-                  {data.payments?.slice(0, 50).map(p => (
+                  {tableList.items.map(p => (
                     <tr key={p._id} className="hover:bg-gray-50">
                       <td className="table-cell font-mono text-xs">{p.receiptNo}</td>
                       <td className="table-cell">
@@ -295,6 +479,7 @@ export default function ReportsPage() {
                   ))}
                 </Table>
                 {!data.payments?.length && <EmptyState message="No payments" icon={<FiCreditCard />} />}
+                <Pagination page={tableList.page} pages={tableList.pages} onPage={tableList.setPage} />
               </div>
             </div>
           )}
@@ -342,7 +527,7 @@ export default function ReportsPage() {
               )}
               <div className="card overflow-x-auto">
                 <Table headers={['Title', 'Category', 'Date', 'Mode', 'Amount']}>
-                  {data.expenses?.map(e => (
+                  {tableList.items.map(e => (
                     <tr key={e._id} className="hover:bg-gray-50">
                       <td className="table-cell font-medium">{e.title}</td>
                       <td className="table-cell capitalize">{e.category}</td>
@@ -357,6 +542,7 @@ export default function ReportsPage() {
                   ))}
                 </Table>
                 {!data.expenses?.length && <EmptyState message="No expenses" icon={<FiTrendingDown />} />}
+                <Pagination page={tableList.page} pages={tableList.pages} onPage={tableList.setPage} />
               </div>
             </div>
           )}
@@ -387,7 +573,7 @@ export default function ReportsPage() {
               )}
               <div className="card overflow-x-auto">
                 <Table headers={['Name', 'Category', 'Stock', 'Unit Price', 'Total Value']}>
-                  {data.items?.map(i => (
+                  {tableList.items.map(i => (
                     <tr key={i._id}
                       className={`hover:bg-gray-50
                         ${i.currentStock <= i.minStockAlert ? 'bg-red-50' : ''}`}>
@@ -407,6 +593,7 @@ export default function ReportsPage() {
                   ))}
                 </Table>
                 {!data.items?.length && <EmptyState message="No inventory items" icon={<FiPackage />} />}
+                <Pagination page={tableList.page} pages={tableList.pages} onPage={tableList.setPage} />
               </div>
             </div>
           )}
@@ -430,7 +617,7 @@ export default function ReportsPage() {
               )}
               <div className="card overflow-x-auto">
                 <Table headers={['Student', 'Reg No', 'Roll No', 'Book', 'Author', 'Issued', 'Due', 'Status', 'Fine']}>
-                  {data.issues?.map(i => (
+                  {tableList.items.map(i => (
                     <tr key={i._id} className="hover:bg-gray-50">
                       <td className="table-cell">
                         <p className="font-medium">
@@ -461,6 +648,7 @@ export default function ReportsPage() {
                   ))}
                 </Table>
                 {!data.issues?.length && <EmptyState message="No issue records" icon={<FiBook />} />}
+                <Pagination page={tableList.page} pages={tableList.pages} onPage={tableList.setPage} />
               </div>
             </div>
           )}
@@ -491,7 +679,7 @@ export default function ReportsPage() {
               )}
               <div className="card overflow-x-auto">
                 <Table headers={['Bill No', 'Student', 'Date', 'Amount', 'Mode', 'Status']}>
-                  {data.sales?.slice(0, 50).map(s => (
+                  {tableList.items.map(s => (
                     <tr key={s._id} className="hover:bg-gray-50">
                       <td className="table-cell font-mono text-xs">{s.billNo}</td>
                       <td className="table-cell">
@@ -509,6 +697,7 @@ export default function ReportsPage() {
                   ))}
                 </Table>
                 {!data.sales?.length && <EmptyState message="No sales records" icon={<FiShoppingBag />} />}
+                <Pagination page={tableList.page} pages={tableList.pages} onPage={tableList.setPage} />
               </div>
             </div>
           )}
@@ -522,7 +711,7 @@ export default function ReportsPage() {
               </div>
               <div className="card overflow-x-auto">
                 <Table headers={['Student', 'Reg No', 'Roll No', 'Type', 'Location', 'Date & Time', 'Remarks']}>
-                  {data.records?.map(r => (
+                  {tableList.items.map(r => (
                     <tr key={r._id} className="hover:bg-gray-50">
                       <td className="table-cell">
                         <p className="font-medium">
@@ -551,6 +740,7 @@ export default function ReportsPage() {
                 {!data.records?.length && (
                   <EmptyState message="No attendance records" icon={<FiClock />} />
                 )}
+                <Pagination page={tableList.page} pages={tableList.pages} onPage={tableList.setPage} />
               </div>
             </div>
           )}

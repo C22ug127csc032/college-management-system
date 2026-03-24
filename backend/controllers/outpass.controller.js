@@ -38,7 +38,7 @@ export const createOutpass = async (req, res) => {
     const teacherRecipients = student?.course
       ? await getCourseTeacherRecipientIds(student.course)
       : [];
-    const staffRecipients = await getRoleRecipientIds(['super_admin', 'hostel_warden']);
+    const staffRecipients = await getRoleRecipientIds(['super_admin', 'admin', 'hostel_warden']);
 
     await createNotifications({
       recipientIds: [...teacherRecipients, ...staffRecipients],

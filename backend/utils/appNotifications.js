@@ -94,6 +94,7 @@ export const getCircularRecipientIds = async ({ audience = [], courseId = null }
   if (normalizedAudience.includes('staff')) {
     recipients.push(...await getRoleRecipientIds([
       'super_admin',
+      'admin',
       'class_teacher',
       'hostel_warden',
       'librarian',

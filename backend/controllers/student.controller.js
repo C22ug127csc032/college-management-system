@@ -3,6 +3,7 @@ import User    from '../models/User.model.js';
 import Ledger  from '../models/Ledger.model.js';
 import Course  from '../models/Course.model.js';
 import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
 import utils_notifications from '../utils/notifications.js';
 import { assertValidIndianPhone, normalizePhone } from '../utils/phone.js';
 const { sendSMS } = utils_notifications;
@@ -93,15 +94,21 @@ const generateNextRegNo = async () => {
 const getStudentNameForSort = student =>
   `${student.firstName || ''} ${student.lastName || ''}`.trim();
 
-const getGenderSortRank = gender => {
-  const normalizedGender = String(gender || '').trim().toLowerCase();
-  if (normalizedGender === 'male') return 0;
-  if (normalizedGender === 'female') return 1;
-  return 2;
+const buildFormattedRollNo = ({ batch, courseCode, serialNumber }) => {
+  const batchStart = String(batch || '').trim().split('-')[0] || '';
+  const yearPrefix = String(batchStart).slice(-2);
+  const normalizedCourseCode = String(courseCode || '')
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
+
+  return `${yearPrefix}${normalizedCourseCode}${String(serialNumber).padStart(3, '0')}`;
 };
 
-const buildFormattedRollNo = ({ section, serialNumber }) =>
-  `${String(section || '').toUpperCase()}${String(serialNumber).padStart(3, '0')}`;
+const getAcademicYearFromSemester = semester => {
+  const semNumber = Number(semester) || 1;
+  return Math.max(1, Math.ceil(semNumber / 2));
+};
 
 const getSectionLabel = index => {
   const baseCharCode = 'A'.charCodeAt(0);
@@ -116,32 +123,20 @@ const getSectionLabel = index => {
   return label;
 };
 
-const buildCourseClassName = (courseCode, section) => {
+const buildCourseClassName = (courseCode, semester, section) => {
   const normalizedCourseCode = String(courseCode || '')
     .trim()
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, '');
+  const academicYear = getAcademicYearFromSemester(semester);
+  const normalizedSection = String(section || '').trim().toUpperCase();
 
-  return normalizedCourseCode ? `${normalizedCourseCode}-${section}` : section;
+  if (!normalizedCourseCode) return normalizedSection;
+  if (!normalizedSection) return `${normalizedCourseCode} ${academicYear}`;
+  return `${normalizedCourseCode} ${academicYear}-${normalizedSection}`;
 };
 
-const compareStudentsForRollNo = (a, b) => {
-  const genderDiff = getGenderSortRank(a.gender) - getGenderSortRank(b.gender);
-  if (genderDiff !== 0) return genderDiff;
-
-  const nameDiff = getStudentNameForSort(a).localeCompare(
-    getStudentNameForSort(b),
-    undefined,
-    { sensitivity: 'base' }
-  );
-  if (nameDiff !== 0) return nameDiff;
-
-  const admissionDateA = a.admissionDate ? new Date(a.admissionDate).getTime() : 0;
-  const admissionDateB = b.admissionDate ? new Date(b.admissionDate).getTime() : 0;
-  if (admissionDateA !== admissionDateB) return admissionDateA - admissionDateB;
-
-  return String(a._id).localeCompare(String(b._id));
-};
+const compareStudentsForRollNo = (a, b) => compareStudentsAlphabetically(a, b);
 
 const compareStudentsAlphabetically = (a, b) => {
   const nameDiff = getStudentNameForSort(a).localeCompare(
@@ -161,6 +156,7 @@ const compareStudentsAlphabetically = (a, b) => {
 const getNextSectionAssignment = async ({
   courseId,
   batch,
+  semester,
   excludeStudentId = null,
 }) => {
   if (!courseId || !batch) return { section: '', className: '' };
@@ -196,7 +192,7 @@ const getNextSectionAssignment = async ({
     if ((sectionCounts[section] || 0) < maxStrength) {
       return {
         section,
-        className: buildCourseClassName(course.code, section),
+        className: buildCourseClassName(course.code, semester, section),
       };
     }
   }
@@ -204,16 +200,16 @@ const getNextSectionAssignment = async ({
   const overflowSection = getSectionLabel(sectionsPerYear);
   return {
     section: overflowSection,
-    className: buildCourseClassName(course.code, overflowSection),
+    className: buildCourseClassName(course.code, semester, overflowSection),
   };
 };
 
 const generateRollNosForCourse = async courseId => {
-  const course = await Course.findById(courseId).select('code');
+  const course = await Course.findById(courseId).select('code maxStrength');
   if (!course) throw new Error('Course not found');
 
   const students = await Student.find({ course: courseId }).select(
-    '_id course batch firstName lastName gender admissionDate rollNo section'
+    '_id course batch firstName lastName gender admissionDate rollNo section semester className'
   );
 
   const groupedByBatch = students.reduce((acc, student) => {
@@ -226,38 +222,42 @@ const generateRollNosForCourse = async courseId => {
   const operations = [];
   const passwordResetCandidates = [];
   const summary = [];
+  const maxStrength = course.maxStrength || 60;
 
-  for (const [, batchStudents] of groupedByBatch.entries()) {
-    const groupedBySection = batchStudents.reduce((acc, student) => {
-      const sectionKey = String(student.section || '').trim() || '__NO_SECTION__';
-      if (!acc.has(sectionKey)) acc.set(sectionKey, []);
-      acc.get(sectionKey).push(student);
-      return acc;
-    }, new Map());
+  for (const [batchKey, batchStudents] of groupedByBatch.entries()) {
+    const sortedStudents = [...batchStudents].sort(compareStudentsForRollNo);
 
-    for (const [sectionKey, sectionStudents] of groupedBySection.entries()) {
-      const sortedStudents = [...sectionStudents].sort(compareStudentsForRollNo);
-      const sectionLabel = sectionKey === '__NO_SECTION__' ? 'A' : sectionKey;
-
-      sortedStudents.forEach((student, index) => {
-        const nextRollNo = buildFormattedRollNo({
-          section: sectionLabel,
-          serialNumber: index + 1,
-        });
-        if (student.rollNo !== nextRollNo) {
-          operations.push({
-            updateOne: {
-              filter: { _id: student._id },
-              update: { $set: { rollNo: nextRollNo } },
-            },
-          });
-          passwordResetCandidates.push({
-            studentId: String(student._id),
-            rollNo: nextRollNo,
-          });
-        }
+    sortedStudents.forEach((student, index) => {
+      const section = getSectionLabel(Math.floor(index / maxStrength));
+      const nextRollNo = buildFormattedRollNo({
+        batch: batchKey === '__NO_BATCH__' ? '' : batchKey,
+        courseCode: course.code,
+        serialNumber: index + 1,
       });
-    }
+      const nextClassName = buildCourseClassName(course.code, student.semester, section);
+      if (
+        student.rollNo !== nextRollNo ||
+        String(student.section || '') !== section ||
+        String(student.className || '') !== nextClassName
+      ) {
+        operations.push({
+          updateOne: {
+            filter: { _id: student._id },
+            update: {
+              $set: {
+                rollNo: nextRollNo,
+                section,
+                className: nextClassName,
+              },
+            },
+          },
+        });
+        passwordResetCandidates.push({
+          studentId: String(student._id),
+          rollNo: nextRollNo,
+        });
+      }
+    });
 
     summary.push({
       batch: batchKey === '__NO_BATCH__' ? '' : batchKey,
@@ -279,11 +279,29 @@ const generateRollNosForCourse = async courseId => {
       studentRef: { $in: passwordResetCandidates.map(entry => entry.studentId) },
     });
 
-    for (const user of users) {
-      const rollNo = rollNoByStudentId.get(String(user.studentRef));
-      if (!rollNo) continue;
-      user.password = rollNo;
-      await user.save();
+    const userUpdates = (
+      await Promise.all(
+        users.map(async user => {
+          const rollNo = rollNoByStudentId.get(String(user.studentRef));
+          if (!rollNo) return null;
+
+          return {
+            updateOne: {
+              filter: { _id: user._id },
+              update: {
+                $set: {
+                  password: await bcrypt.hash(rollNo, 12),
+                  isFirstLogin: true,
+                },
+              },
+            },
+          };
+        })
+      )
+    ).filter(Boolean);
+
+    if (userUpdates.length) {
+      await User.bulkWrite(userUpdates);
     }
   }
 
@@ -423,14 +441,6 @@ export const createStudent = async (req, res) => {
     }
 
     // ── Class strength check ──────────────────────────────────────────────
-    if (data.course && data.batch) {
-      const assignment = await getNextSectionAssignment({
-        courseId: data.course,
-        batch: data.batch,
-      });
-      data.section = assignment.section;
-      data.className = assignment.className;
-    }
 
     // ── Auto generate Admission No — always on day 1 ──────────────────────
     if (!data.admissionNo || data.admissionNo.trim() === '') {
@@ -535,18 +545,19 @@ export const updateStudent = async (req, res) => {
 
     const nextCourseId = data.course || existing.course;
     const nextBatch = data.batch || existing.batch;
+    const nextSemester = data.semester || existing.semester || 1;
     const courseOrBatchChanged =
       String(nextCourseId || '') !== String(existing.course || '') ||
       String(nextBatch || '') !== String(existing.batch || '');
 
-    if (courseOrBatchChanged && nextCourseId && nextBatch) {
-      const assignment = await getNextSectionAssignment({
-        courseId: nextCourseId,
-        batch: nextBatch,
-        excludeStudentId: existing._id,
-      });
-      data.section = assignment.section;
-      data.className = assignment.className;
+    const semesterChanged =
+      'semester' in data &&
+      Number(nextSemester || 1) !== Number(existing.semester || 1);
+
+    if (courseOrBatchChanged || semesterChanged) {
+      data.rollNo = '';
+      data.section = '';
+      data.className = '';
     }
 
     const student = await Student.findByIdAndUpdate(
@@ -745,8 +756,12 @@ export const promoteClass = async (req, res) => {
         });
         graduated.push(`${student.firstName} ${student.lastName}`);
       } else {
+        const nextSemester = currentSem + 1;
+        const nextClassName = course?.code
+          ? buildCourseClassName(course.code, nextSemester, student.section)
+          : student.className;
         await Student.findByIdAndUpdate(student._id, {
-          semester: currentSem + 1, status: 'active',
+          semester: nextSemester, status: 'active', className: nextClassName,
         });
         promoted.push(`${student.firstName} ${student.lastName}`);
       }

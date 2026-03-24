@@ -52,10 +52,12 @@ export default function OperatorLogin() {
               <label className="label">Email or Phone Number</label>
               <input
                 type="text"
+                name="identifier"
+                autoComplete="username"
                 className="input"
                 placeholder="Enter your email or phone number"
                 value={form.phone}
-                onChange={e => setForm({ ...form, phone: normalizeIdentifierInput(e.target.value) })}
+                onChange={e => setForm(prev => ({ ...prev, phone: e.target.value }))}
                 required
               />
             </div>
@@ -63,10 +65,12 @@ export default function OperatorLogin() {
               <label className="label">Password</label>
               <input
                 type="password"
+                name="password"
+                autoComplete="current-password"
                 className="input"
                 placeholder="Enter password"
                 value={form.password}
-                onChange={e => setForm({ ...form, password: e.target.value })}
+                onChange={e => setForm(prev => ({ ...prev, password: e.target.value }))}
                 required
               />
             </div>

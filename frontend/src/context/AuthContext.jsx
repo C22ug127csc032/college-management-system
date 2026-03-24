@@ -39,8 +39,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   // ── Password login ────────────────────────────────────────────────────────
-  const login = async (phone, password) => {
-    const r = await api.post('/auth/login', { phone, password });
+  const login = async (identifier, password) => {
+    const r = await api.post('/auth/login', { identifier, password });
     return r.data;
   };
 

@@ -67,7 +67,19 @@ export default function Dashboard() {
     responsive: true,
     plugins: { legend: { position: 'bottom' } },
   };
-  const hasLibraryAccess = ['super_admin', 'librarian'].includes(user?.role);
+  const isSuperAdmin = user?.role === 'super_admin';
+  const isAdmin = user?.role === 'admin';
+  const hasLibraryAccess = ['super_admin', 'admin', 'librarian'].includes(user?.role);
+  const canManageStudents = ['super_admin', 'admin', 'class_teacher'].includes(user?.role);
+  const canManageFees = ['super_admin', 'admin', 'class_teacher'].includes(user?.role);
+  const canManagePayments = ['super_admin', 'admin'].includes(user?.role);
+  const canManageExpense = ['super_admin', 'admin'].includes(user?.role);
+  const canManageAttendance = ['super_admin', 'admin', 'class_teacher', 'hostel_warden'].includes(user?.role);
+  const canManageOutpass = ['super_admin', 'admin', 'hostel_warden'].includes(user?.role);
+  const canManageInventory = ['super_admin', 'admin'].includes(user?.role);
+  const canManageReports = ['super_admin', 'admin'].includes(user?.role);
+  const canManageCirculars = ['super_admin', 'admin', 'class_teacher'].includes(user?.role);
+  const canManageStaff = isSuperAdmin;
 
   return (
     <div className="space-y-6">
@@ -91,7 +103,7 @@ export default function Dashboard() {
           Students
         </h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="stat-card cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/admin/students')}>
+          <div className={`stat-card ${canManageStudents ? 'cursor-pointer hover:shadow-md transition-shadow' : 'opacity-70 cursor-default'}`} onClick={() => canManageStudents && navigate('/admin/students')}>
             <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl shrink-0"><FiUser /></div>
             <div>
               <p className="text-2xl font-bold text-gray-900">
@@ -100,7 +112,7 @@ export default function Dashboard() {
               <p className="text-sm text-gray-500">Total Students</p>
             </div>
           </div>
-          <div className="stat-card cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/admin/students')}>
+          <div className={`stat-card ${canManageStudents ? 'cursor-pointer hover:shadow-md transition-shadow' : 'opacity-70 cursor-default'}`} onClick={() => canManageStudents && navigate('/admin/students')}>
             <div className="w-12 h-12 rounded-xl bg-green-50 text-green-600 flex items-center justify-center text-2xl shrink-0"><FiCheckCircle /></div>
             <div>
               <p className="text-2xl font-bold text-gray-900">
@@ -109,7 +121,7 @@ export default function Dashboard() {
               <p className="text-sm text-gray-500">Active Students</p>
             </div>
           </div>
-          <div className="stat-card cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/admin/students')}>
+          <div className={`stat-card ${canManageStudents ? 'cursor-pointer hover:shadow-md transition-shadow' : 'opacity-70 cursor-default'}`} onClick={() => canManageStudents && navigate('/admin/students')}>
             <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-2xl shrink-0"><FiHome /></div>
             <div>
               <p className="text-2xl font-bold text-gray-900">
@@ -118,7 +130,7 @@ export default function Dashboard() {
               <p className="text-sm text-gray-500">Hostel Students</p>
             </div>
           </div>
-          <div className="stat-card cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/admin/students/add')}>
+          <div className={`stat-card ${canManageStudents ? 'cursor-pointer hover:shadow-md transition-shadow' : 'opacity-70 cursor-default'}`} onClick={() => canManageStudents && navigate('/admin/students/add')}>
             <div className="w-12 h-12 rounded-xl bg-yellow-50 text-yellow-600 flex items-center justify-center text-2xl shrink-0"><FiUserPlus /></div>
             <div>
               <p className="text-2xl font-bold text-gray-900">
@@ -135,7 +147,7 @@ export default function Dashboard() {
           Finance
         </h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="stat-card cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/admin/payments')}>
+          <div className={`stat-card ${canManagePayments ? 'cursor-pointer hover:shadow-md transition-shadow' : 'opacity-70 cursor-default'}`} onClick={() => canManagePayments && navigate('/admin/payments')}>
             <div className="w-12 h-12 rounded-xl bg-green-50 text-green-600 flex items-center justify-center text-2xl shrink-0"><FiDollarSign /></div>
             <div>
               <p className="text-2xl font-bold text-gray-900">
@@ -144,7 +156,7 @@ export default function Dashboard() {
               <p className="text-sm text-gray-500">Total Collected</p>
             </div>
           </div>
-          <div className="stat-card cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/admin/payments')}>
+          <div className={`stat-card ${canManagePayments ? 'cursor-pointer hover:shadow-md transition-shadow' : 'opacity-70 cursor-default'}`} onClick={() => canManagePayments && navigate('/admin/payments')}>
             <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl shrink-0"><FiCalendar /></div>
             <div>
               <p className="text-2xl font-bold text-gray-900">
@@ -153,7 +165,7 @@ export default function Dashboard() {
               <p className="text-sm text-gray-500">This Month</p>
             </div>
           </div>
-          <div className="stat-card cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/admin/fees/list')}>
+          <div className={`stat-card ${canManageFees ? 'cursor-pointer hover:shadow-md transition-shadow' : 'opacity-70 cursor-default'}`} onClick={() => canManageFees && navigate('/admin/fees/list')}>
             <div className="w-12 h-12 rounded-xl bg-red-50 text-red-600 flex items-center justify-center text-2xl shrink-0"><FiAlertCircle /></div>
             <div>
               <p className="text-2xl font-bold text-gray-900">
@@ -165,7 +177,7 @@ export default function Dashboard() {
               </p>
             </div>
           </div>
-          <div className="stat-card cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/admin/expense')}>
+          <div className={`stat-card ${canManageExpense ? 'cursor-pointer hover:shadow-md transition-shadow' : 'opacity-70 cursor-default'}`} onClick={() => canManageExpense && navigate('/admin/expense')}>
             <div className="w-12 h-12 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center text-2xl shrink-0"><FiTrendingDown /></div>
             <div>
               <p className="text-2xl font-bold text-gray-900">
@@ -237,15 +249,27 @@ export default function Dashboard() {
           <h3 className="section-title">Quick Actions</h3>
           <div className="space-y-2">
             {[
-              { label: 'Add New Student', icon: FiUser, path: '/admin/students/add', color: 'bg-blue-50 hover:bg-blue-100 text-blue-700' },
-              { label: 'Assign Fees', icon: FiEdit3, path: '/admin/fees/assign', color: 'bg-green-50 hover:bg-green-100 text-green-700' },
-              { label: 'Manual Payment', icon: FiCreditCard, path: '/admin/payments', color: 'bg-purple-50 hover:bg-purple-100 text-purple-700' },
-              { label: 'Publish Circular', icon: FiFileText, path: '/admin/circulars', color: 'bg-yellow-50 hover:bg-yellow-100 text-yellow-700' },
+              ...(canManageStudents ? [
+                { label: 'Add New Student', icon: FiUser, path: '/admin/students/add', color: 'bg-blue-50 hover:bg-blue-100 text-blue-700' },
+              ] : []),
+              ...(canManageFees ? [
+                { label: 'Assign Fees', icon: FiEdit3, path: '/admin/fees/assign', color: 'bg-green-50 hover:bg-green-100 text-green-700' },
+              ] : []),
+              ...(canManagePayments ? [
+                { label: 'Manual Payment', icon: FiCreditCard, path: '/admin/payments', color: 'bg-purple-50 hover:bg-purple-100 text-purple-700' },
+              ] : []),
+              ...(canManageCirculars ? [
+                { label: 'Publish Circular', icon: FiFileText, path: '/admin/circulars', color: 'bg-yellow-50 hover:bg-yellow-100 text-yellow-700' },
+              ] : []),
               ...(hasLibraryAccess ? [
                 { label: 'Issue Book', icon: FiBook, path: '/admin/library', color: 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700' },
               ] : []),
-              { label: 'View Reports', icon: FiTrendingUp, path: '/admin/reports', color: 'bg-red-50 hover:bg-red-100 text-red-700' },
-              { label: 'Check In Student', icon: FiClock, path: '/admin/checkin', color: 'bg-teal-50 hover:bg-teal-100 text-teal-700' },
+              ...(canManageReports ? [
+                { label: 'View Reports', icon: FiTrendingUp, path: '/admin/reports', color: 'bg-red-50 hover:bg-red-100 text-red-700' },
+              ] : []),
+              ...(canManageAttendance ? [
+                { label: 'Check In Student', icon: FiClock, path: '/admin/checkin', color: 'bg-teal-50 hover:bg-teal-100 text-teal-700' },
+              ] : []),
             ].map(action => (
               <button
                 key={action.path}
@@ -376,27 +400,27 @@ export default function Dashboard() {
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            {
+            ...(canManageAttendance ? [{
               icon: FiCalendar, label: 'Leave',
               desc: 'Manage student leaves',
               path: '/admin/leave',
               color: 'border-blue-200 bg-blue-50',
               iconBg: 'bg-blue-100 text-blue-600',
-            },
-            {
+            }] : []),
+            ...(canManageOutpass ? [{
               icon: FiArrowRight, label: 'Outpass',
               desc: 'Hostel outpass requests',
               path: '/admin/outpass',
               color: 'border-purple-200 bg-purple-50',
               iconBg: 'bg-purple-100 text-purple-600',
-            },
-            {
+            }] : []),
+            ...(canManageInventory ? [{
               icon: FiPackage, label: 'Inventory',
               desc: 'Stock management',
               path: '/admin/inventory',
               color: 'border-yellow-200 bg-yellow-50',
               iconBg: 'bg-yellow-100 text-yellow-600',
-            },
+            }] : []),
             ...(hasLibraryAccess ? [{
               icon: FiBook, label: 'Library',
               desc: 'Books & issue records',
@@ -404,34 +428,34 @@ export default function Dashboard() {
               color: 'border-green-200 bg-green-50',
               iconBg: 'bg-green-100 text-green-600',
             }] : []),
-            {
+            ...(canManageExpense ? [{
               icon: FiTrendingDown, label: 'Expenses',
               desc: 'Institution expenses',
               path: '/admin/expense',
               color: 'border-red-200 bg-red-50',
               iconBg: 'bg-red-100 text-red-600',
-            },
-            {
+            }] : []),
+            ...(canManageStaff ? [{
               icon: FiUsers, label: 'Staff',
               desc: 'Manage staff roles',
               path: '/admin/staff',
               color: 'border-indigo-200 bg-indigo-50',
               iconBg: 'bg-indigo-100 text-indigo-600',
-            },
-            {
+            }] : []),
+            ...(canManageReports ? [{
               icon: FiTrendingUp, label: 'Reports',
               desc: 'All reports & analytics',
               path: '/admin/reports',
               color: 'border-teal-200 bg-teal-50',
               iconBg: 'bg-teal-100 text-teal-600',
-            },
-            {
+            }] : []),
+            ...(canManageCirculars ? [{
               icon: FiFileText, label: 'Circulars',
               desc: 'Notices and announcements',
               path: '/admin/circulars',
               color: 'border-orange-200 bg-orange-50',
               iconBg: 'bg-orange-100 text-orange-600',
-            },
+            }] : []),
           ].map(module => (
             <button
               key={module.path}
