@@ -67,19 +67,44 @@ export const getOutpasses = async (req, res) => {
   try {
     const { studentId, status, page = 1, limit = 20 } = req.query;
     const query = {};
-    if (studentId) query.student = studentId;
     if (status) query.status = status;
+    const studentFilters = [];
+
     if (req.user.role === 'student') {
       const student = await Student.findOne({ userRef: req.user.id });
       if (student) query.student = student._id;
     }
+
+    if (query.student) {
+      const total = await Outpass.countDocuments(query);
+      const outpasses = await Outpass.find(query)
+        .populate('student', 'firstName lastName regNo rollNo phone father')
+        .populate('approvedBy', 'name role')
+        .sort('-createdAt')
+        .skip((page - 1) * limit)
+        .limit(Number(limit));
+      return res.json({ success: true, outpasses, total });
+    }
+
+    if (studentId) {
+      studentFilters.push({ _id: studentId });
+    }
+
     if (req.user.role === 'class_teacher') {
       const teacherCourseIds = await getTeacherCourseIds(req.user);
-      const students = await Student.find({
-        course: { $in: teacherCourseIds },
-      }).select('_id');
+      studentFilters.push({ course: { $in: teacherCourseIds } });
+    }
+    if (req.user.role === 'hostel_warden') {
+      studentFilters.push({ isHosteler: true });
+    }
+
+    if (studentFilters.length > 0) {
+      const students = await Student.find(
+        studentFilters.length === 1 ? studentFilters[0] : { $and: studentFilters }
+      ).select('_id');
       query.student = { $in: students.map(student => student._id) };
     }
+
     const total = await Outpass.countDocuments(query);
     const outpasses = await Outpass.find(query)
       .populate('student', 'firstName lastName regNo rollNo phone father')
@@ -96,7 +121,7 @@ export const getOutpasses = async (req, res) => {
 export const updateOutpassStatus = async (req, res) => {
   try {
     const { status, remarks } = req.body;
-    const existingOutpass = await Outpass.findById(req.params.id).populate('student', 'course');
+    const existingOutpass = await Outpass.findById(req.params.id).populate('student', 'course isHosteler');
     if (!existingOutpass) return res.status(404).json({ success: false, message: 'Outpass not found' });
 
     if (req.user.role === 'class_teacher') {
@@ -107,6 +132,13 @@ export const updateOutpassStatus = async (req, res) => {
       if (!isAssignedStudent) {
         return res.status(403).json({ success: false, message: 'Not authorized for this student outpass' });
       }
+    }
+
+    if (req.user.role === 'hostel_warden' && !existingOutpass.student?.isHosteler) {
+      return res.status(403).json({
+        success: false,
+        message: 'Hostel warden can manage outpass only for hostel students',
+      });
     }
 
     const outpass = await Outpass.findByIdAndUpdate(req.params.id, {
@@ -136,7 +168,7 @@ export const updateOutpassStatus = async (req, res) => {
 
 export const markReturned = async (req, res) => {
   try {
-    const existingOutpass = await Outpass.findById(req.params.id).populate('student', 'course');
+    const existingOutpass = await Outpass.findById(req.params.id).populate('student', 'course isHosteler');
     if (!existingOutpass) return res.status(404).json({ success: false, message: 'Outpass not found' });
 
     if (req.user.role === 'class_teacher') {
@@ -147,6 +179,13 @@ export const markReturned = async (req, res) => {
       if (!isAssignedStudent) {
         return res.status(403).json({ success: false, message: 'Not authorized for this student outpass' });
       }
+    }
+
+    if (req.user.role === 'hostel_warden' && !existingOutpass.student?.isHosteler) {
+      return res.status(403).json({
+        success: false,
+        message: 'Hostel warden can manage outpass only for hostel students',
+      });
     }
 
     const outpass = await Outpass.findByIdAndUpdate(req.params.id, {

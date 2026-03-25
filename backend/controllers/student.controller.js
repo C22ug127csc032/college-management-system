@@ -3,9 +3,9 @@ import User    from '../models/User.model.js';
 import Ledger  from '../models/Ledger.model.js';
 import Course  from '../models/Course.model.js';
 import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
 import utils_notifications from '../utils/notifications.js';
 import { assertValidIndianPhone, normalizePhone } from '../utils/phone.js';
+import { buildStudentIdentifierQuery, normalizeStudentIdentifier } from '../utils/studentIdentity.js';
 const { sendSMS } = utils_notifications;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -220,7 +220,6 @@ const generateRollNosForCourse = async courseId => {
   }, new Map());
 
   const operations = [];
-  const passwordResetCandidates = [];
   const summary = [];
   const maxStrength = course.maxStrength || 60;
 
@@ -252,10 +251,6 @@ const generateRollNosForCourse = async courseId => {
             },
           },
         });
-        passwordResetCandidates.push({
-          studentId: String(student._id),
-          rollNo: nextRollNo,
-        });
       }
     });
 
@@ -267,42 +262,6 @@ const generateRollNosForCourse = async courseId => {
 
   if (operations.length) {
     await Student.bulkWrite(operations);
-  }
-
-  if (passwordResetCandidates.length) {
-    const rollNoByStudentId = new Map(
-      passwordResetCandidates.map(entry => [entry.studentId, entry.rollNo])
-    );
-    const users = await User.find({
-      role: 'student',
-      isFirstLogin: true,
-      studentRef: { $in: passwordResetCandidates.map(entry => entry.studentId) },
-    });
-
-    const userUpdates = (
-      await Promise.all(
-        users.map(async user => {
-          const rollNo = rollNoByStudentId.get(String(user.studentRef));
-          if (!rollNo) return null;
-
-          return {
-            updateOne: {
-              filter: { _id: user._id },
-              update: {
-                $set: {
-                  password: await bcrypt.hash(rollNo, 12),
-                  isFirstLogin: true,
-                },
-              },
-            },
-          };
-        })
-      )
-    ).filter(Boolean);
-
-    if (userUpdates.length) {
-      await User.bulkWrite(userUpdates);
-    }
   }
 
   return summary;
@@ -583,8 +542,8 @@ export const updateStudent = async (req, res) => {
   }
 };
 
-// ── DELETE /api/students/:id ──────────────────────────────────────────────────
-export const deleteStudent = async (req, res) => {
+// ── DEACTIVATE /api/students/:id ──────────────────────────────────────────────
+export const deactivateStudent = async (req, res) => {
   try {
     const student = await Student.findByIdAndUpdate(
       req.params.id,
@@ -598,6 +557,8 @@ export const deleteStudent = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
+export const deleteStudent = deactivateStudent;
 
 // ── GET /api/students/:id/ledger ──────────────────────────────────────────────
 export const getStudentLedger = async (req, res) => {
@@ -629,6 +590,35 @@ export const getStudentByRegNo = async (req, res) => {
       .populate('course', 'name code');
     if (!student)
       return res.status(404).json({ success: false, message: 'Student not found' });
+
+    if (req.user?.role === 'class_teacher') {
+      const teacherCourseIds = await getTeacherCourseIds(req.user);
+      const isAssignedStudent = teacherCourseIds.some(
+        courseId => String(courseId) === String(student.course?._id || student.course)
+      );
+      if (!isAssignedStudent) {
+        return res.status(404).json({ success: false, message: 'Student not found' });
+      }
+    }
+
+    res.json({ success: true, student });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+export const getStudentByIdentifier = async (req, res) => {
+  try {
+    const identifier = normalizeStudentIdentifier(req.params.identifier);
+    const student = await Student.findOne(buildStudentIdentifierQuery(identifier))
+      .populate('course', 'name code');
+    if (!student) {
+      return res.status(404).json({ success: false, message: 'Student not found' });
+    }
+
+    if (req.user?.role === 'hostel_warden' && !student.isHosteler) {
+      return res.status(404).json({ success: false, message: 'Student not found' });
+    }
 
     if (req.user?.role === 'class_teacher') {
       const teacherCourseIds = await getTeacherCourseIds(req.user);
@@ -855,8 +845,10 @@ export default {
   createStudent,
   updateStudent,
   deleteStudent,
+  deactivateStudent,
   getStudentLedger,
   getStudentByRegNo,
+  getStudentByIdentifier,
   getStudentByAdmissionNo,
   getStudentStats,
   getClassStrength,

@@ -618,6 +618,7 @@ export default function Students() {
   });
 
   const showCourseGroups = !filters.course;
+  const showTeacherScopedList = isClassTeacher && showCourseGroups;
   const renderStudentRow = s => (
     <tr key={s._id}
       className="hover:bg-gray-50 transition-colors cursor-pointer"
@@ -738,14 +739,18 @@ export default function Students() {
               hover:text-primary-800 font-medium hover:underline">
             View
           </button>
-          <span className="text-gray-200">|</span>
-          <button
-            onClick={() => navigate(`/admin/students/${s._id}/edit`)}
-            className="text-xs text-gray-500 hover:text-gray-800
-              font-medium hover:underline">
-            Edit
-          </button>
-          {s.status !== 'inactive' && (
+          {!isClassTeacher && (
+            <>
+              <span className="text-gray-200">|</span>
+              <button
+                onClick={() => navigate(`/admin/students/${s._id}/edit`)}
+                className="text-xs text-gray-500 hover:text-gray-800
+                  font-medium hover:underline">
+                Edit
+              </button>
+            </>
+          )}
+          {!isClassTeacher && s.status !== 'inactive' && (
             <>
               <span className="text-gray-200">|</span>
               <button
@@ -796,30 +801,34 @@ export default function Students() {
     <div>
       <PageHeader
         title="Students"
-        subtitle={`${total} students total`}
+        subtitle={isClassTeacher
+          ? `${total} students in your assigned course`
+          : `${total} students total`}
         action={
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowPromote(true)}
-              className="btn-secondary flex items-center gap-2"
-            >
-              <FiTrendingUp />
-              Promote Class
-            </button>
-            <button
-              onClick={handleGenerateRollNos}
-              disabled={generatingRollNos}
-              className="btn-secondary disabled:opacity-50"
-            >
-              {generatingRollNos ? 'Generating...' : 'Generate Roll No'}
-            </button>
-            <button
-              className="btn-primary"
-              onClick={() => navigate('/admin/students/add')}
-            >
-              + Add Student
-            </button>
-          </div>
+          !isClassTeacher ? (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowPromote(true)}
+                className="btn-secondary flex items-center gap-2"
+              >
+                <FiTrendingUp />
+                Promote Class
+              </button>
+              <button
+                onClick={handleGenerateRollNos}
+                disabled={generatingRollNos}
+                className="btn-secondary disabled:opacity-50"
+              >
+                {generatingRollNos ? 'Generating...' : 'Generate Roll No'}
+              </button>
+              <button
+                className="btn-primary"
+                onClick={() => navigate('/admin/students/add')}
+              >
+                + Add Student
+              </button>
+            </div>
+          ) : null
         }
       />
 
@@ -933,7 +942,7 @@ export default function Students() {
         )}
 
         {/* ── Pending Banner ── */}
-        {pendingCount > 0 && !filters.status && (
+        {pendingCount > 0 && !filters.status && !isClassTeacher && (
           <div className="flex items-center gap-2 p-3 bg-yellow-50
             border border-yellow-200 rounded-xl mb-4">
             <FiClock className="text-yellow-500 text-lg shrink-0" />
@@ -955,7 +964,7 @@ export default function Students() {
           <>
             {showCourseGroups ? (
               <>
-                {currentCourseSection && (
+                {currentCourseSection && !isClassTeacher && (
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-100 bg-slate-50 px-4 py-3">
                     <div>
                       <h2 className="text-lg font-bold text-slate-900">{currentCourseSection.title}</h2>
@@ -1030,7 +1039,7 @@ export default function Students() {
               />
             )}
 
-            {showCourseGroups ? (
+            {showTeacherScopedList ? null : showCourseGroups ? (
               <Pagination
                 page={currentCourseSection?.coursePage || page}
                 pages={visibleCourses.length}

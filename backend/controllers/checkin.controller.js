@@ -28,6 +28,13 @@ export const record = async (req, res) => {
     const student = await Student.findById(studentId);
     if (!student) return res.status(404).json({ success: false, message: 'Student not found' });
 
+    if (req.user.role === 'hostel_warden' && !student.isHosteler) {
+      return res.status(403).json({
+        success: false,
+        message: 'Hostel warden can record movement only for hostel students',
+      });
+    }
+
     if (req.user.role === 'class_teacher') {
       const teacherCourseIds = await getTeacherCourseIds(req.user);
       const isAssignedStudent = teacherCourseIds.some(
@@ -104,6 +111,9 @@ export const getRecords = async (req, res) => {
       const teacherCourseIds = await getTeacherCourseIds(req.user);
       studentFilters.push({ course: { $in: teacherCourseIds } });
     }
+    if (req.user.role === 'hostel_warden') {
+      studentFilters.push({ isHosteler: true });
+    }
 
     if (studentFilters.length > 0) {
       const students = await Student.find(
@@ -116,7 +126,7 @@ export const getRecords = async (req, res) => {
     const records = await CheckIn.find(query)
       .populate({
         path: 'student',
-        select: 'firstName lastName regNo rollNo course',
+        select: 'firstName lastName regNo rollNo admissionNo className hostelRoom course',
         populate: { path: 'course', select: 'name code department' },
       })
       .populate('recordedBy', 'name')

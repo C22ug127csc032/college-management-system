@@ -6,6 +6,7 @@ export const buildStudentIdentifierQuery = identifier => {
   return {
     $or: [
       { rollNo: normalized },
+      { regNo: normalized },
       { admissionNo: normalized },
     ],
   };

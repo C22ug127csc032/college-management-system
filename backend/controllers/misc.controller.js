@@ -1,5 +1,6 @@
 // ─── EXPENSE CONTROLLER ───────────────────────────────────────────────────────
 import Expense from '../models/Expense.model.js';
+import mongoose from 'mongoose';
 
 export const expense = {
   create: async (req, res) => {
@@ -46,12 +47,77 @@ export const expense = {
 import Circular from '../models/Circular.model.js';
 import { createNotifications, getCircularRecipientIds } from '../utils/appNotifications.js';
 import Student from '../models/Student.model.js';
+import Course from '../models/Course.model.js';
 import { getPreferredStudentIdentifier } from '../utils/studentIdentity.js';
+
+const getTeacherCourseIds = async user => {
+  if (user?.role !== 'class_teacher' || !user.department) return [];
+
+  const filters = [
+    { name: user.department },
+    { code: String(user.department).toUpperCase() },
+  ];
+
+  if (mongoose.Types.ObjectId.isValid(user.department)) {
+    filters.unshift({ _id: user.department });
+  }
+
+  const courses = await Course.find({ $or: filters }).select('_id');
+  return courses.map(course => String(course._id));
+};
+
+const normalizeCircularAudience = audience => {
+  if (Array.isArray(audience)) return audience.filter(Boolean);
+  if (typeof audience === 'string' && audience.trim()) return [audience.trim()];
+  return [];
+};
+
+const getTeacherCircularScope = async user => {
+  const teacherCourseIds = await getTeacherCourseIds(user);
+  return {
+    teacherCourseIds,
+    defaultCourseId: teacherCourseIds[0] || null,
+  };
+};
 
 export const circular = {
   create: async (req, res) => {
     try {
-      const circular = await Circular.create({ ...req.body, publishedBy: req.user.id });
+      const payload = { ...req.body, publishedBy: req.user.id };
+
+      if (req.user?.role === 'class_teacher') {
+        const { teacherCourseIds, defaultCourseId } = await getTeacherCircularScope(req.user);
+        if (!defaultCourseId) {
+          return res.status(403).json({
+            success: false,
+            message: 'No assigned course found for this class teacher',
+          });
+        }
+
+        const requestedAudience = normalizeCircularAudience(payload.audience);
+        const invalidAudience = requestedAudience.filter(value => !['students', 'parents'].includes(value));
+        if (invalidAudience.length) {
+          return res.status(403).json({
+            success: false,
+            message: 'Class teachers can publish circulars only to students and parents',
+          });
+        }
+
+        if (payload.course && !teacherCourseIds.includes(String(payload.course))) {
+          return res.status(403).json({
+            success: false,
+            message: 'Class teachers can publish only for their assigned course',
+          });
+        }
+
+        payload.audience = requestedAudience.length ? requestedAudience : ['students', 'parents'];
+        payload.course = payload.course || defaultCourseId;
+      }
+
+      const createdCircular = await Circular.create(payload);
+      const circular = await Circular.findById(createdCircular._id)
+        .populate('course', 'name')
+        .populate('publishedBy', 'name role');
       await createNotifications({
         recipientIds: await getCircularRecipientIds({
           audience: circular.audience || [],
@@ -81,12 +147,75 @@ export const circular = {
   },
   update: async (req, res) => {
     try {
-      const circular = await Circular.findByIdAndUpdate(req.params.id, req.body, { new: true });
+      const existingCircular = await Circular.findById(req.params.id);
+      if (!existingCircular) {
+        return res.status(404).json({ success: false, message: 'Circular not found' });
+      }
+
+      const payload = { ...req.body };
+
+      if (req.user?.role === 'class_teacher') {
+        if (String(existingCircular.publishedBy) !== String(req.user.id)) {
+          return res.status(403).json({
+            success: false,
+            message: 'Class teachers can edit only their own circulars',
+          });
+        }
+
+        const { teacherCourseIds, defaultCourseId } = await getTeacherCircularScope(req.user);
+        if (!defaultCourseId) {
+          return res.status(403).json({
+            success: false,
+            message: 'No assigned course found for this class teacher',
+          });
+        }
+
+        const requestedAudience = normalizeCircularAudience(
+          payload.audience ?? existingCircular.audience
+        );
+        const invalidAudience = requestedAudience.filter(value => !['students', 'parents'].includes(value));
+        if (invalidAudience.length) {
+          return res.status(403).json({
+            success: false,
+            message: 'Class teachers can publish circulars only to students and parents',
+          });
+        }
+
+        const requestedCourseId = payload.course ?? existingCircular.course;
+        if (requestedCourseId && !teacherCourseIds.includes(String(requestedCourseId))) {
+          return res.status(403).json({
+            success: false,
+            message: 'Class teachers can publish only for their assigned course',
+          });
+        }
+
+        payload.audience = requestedAudience.length ? requestedAudience : ['students', 'parents'];
+        payload.course = requestedCourseId || defaultCourseId;
+      }
+
+      const circular = await Circular.findByIdAndUpdate(req.params.id, payload, { new: true })
+        .populate('course', 'name')
+        .populate('publishedBy', 'name role');
       res.json({ success: true, circular });
     } catch (err) { res.status(500).json({ success: false, message: err.message }); }
   },
   delete: async (req, res) => {
     try {
+      const existingCircular = await Circular.findById(req.params.id).select('publishedBy');
+      if (!existingCircular) {
+        return res.status(404).json({ success: false, message: 'Circular not found' });
+      }
+
+      if (
+        req.user?.role === 'class_teacher' &&
+        String(existingCircular.publishedBy) !== String(req.user.id)
+      ) {
+        return res.status(403).json({
+          success: false,
+          message: 'Class teachers can unpublish only their own circulars',
+        });
+      }
+
       await Circular.findByIdAndUpdate(req.params.id, { isPublished: false });
       res.json({ success: true, message: 'Circular unpublished' });
     } catch (err) { res.status(500).json({ success: false, message: err.message }); }
@@ -102,6 +231,19 @@ export const library = {
     try {
       const book = await Book.create(req.body);
       res.status(201).json({ success: true, book });
+    } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  },
+  updateBook: async (req, res) => {
+    try {
+      const book = await Book.findByIdAndUpdate(req.params.id, req.body, { new: true });
+      if (!book) return res.status(404).json({ success: false, message: 'Book not found' });
+      res.json({ success: true, book });
+    } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  },
+  deactivateBook: async (req, res) => {
+    try {
+      await Book.findByIdAndUpdate(req.params.id, { isActive: false });
+      res.json({ success: true, message: 'Book marked unavailable' });
     } catch (err) { res.status(500).json({ success: false, message: err.message }); }
   },
   getBooks: async (req, res) => {

@@ -15,7 +15,7 @@ export const getWallet = async (req, res) => {
 };
 
 // ── GET /api/wallet/find/:identifier ─────────────────────────────────────────
-// Find student wallet by phone OR roll no (admission no fallback)
+// Find student wallet by phone, roll no, reg no, or admission no
 export const findStudentWallet = async (req, res) => {
   try {
     const { identifier } = req.params;
@@ -31,7 +31,7 @@ export const findStudentWallet = async (req, res) => {
     if (!student) {
       return res.status(404).json({
         success: false,
-        message: `No student found with phone or roll no: ${identifier}`,
+        message: `No student found with phone or student ID: ${identifier}`,
       });
     }
 

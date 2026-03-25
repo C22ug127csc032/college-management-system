@@ -9,6 +9,7 @@ import upload from '../middleware/upload.middleware.js';
 r.get('/stats/summary',             protect, adminOrTeacher, c.getStudentStats);
 r.get('/adm/:admissionNo',          protect,                 c.getStudentByAdmissionNo);
 r.get('/reg/:regNo',                protect,                 c.getStudentByRegNo);
+r.get('/lookup/:identifier',        protect,                 c.getStudentByIdentifier);
 r.get('/class-strength/:className', protect, adminOrTeacher, c.getClassStrength);
 r.post('/generate-roll-nos',        protect, adminOnly,      c.generateCourseWiseRollNos);
 
@@ -21,7 +22,7 @@ r.get('/',    protect, adminOrTeacher,                         c.getAllStudents)
 r.post('/',   protect, adminOnly,      upload.single('photo'), c.createStudent);
 r.get('/:id', protect,                                         c.getStudent);
 r.put('/:id', protect, adminOrTeacher, upload.single('photo'), c.updateStudent);
-r.delete('/:id', protect, adminOnly,                           c.deleteStudent);
+r.delete('/:id', protect, adminOnly,                           c.deactivateStudent);
 
 // ── Sub routes ────────────────────────────────────────────────────────────────
 r.get('/:id/ledger', protect, c.getStudentLedger);

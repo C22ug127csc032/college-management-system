@@ -32,6 +32,7 @@ import ExpensePage from './pages/admin/ExpensePage';
 import CircularsAdmin from './pages/admin/CircularsAdmin';
 import LibraryAdmin from './pages/admin/LibraryAdmin';
 import LibraryDashboard from './pages/admin/LibraryDashboard';
+import HostelWardenDashboard from './pages/admin/HostelWardenDashboard';
 import StaffManagement from './pages/admin/StaffManagement';
 import CoursesPage from './pages/admin/CoursesPage';
 import ReportsPage from './pages/admin/ReportsPage';
@@ -96,8 +97,14 @@ const RoleHomeRedirect = () => {
 
 const AdminHome = () => {
   const { user } = useAuth();
+  if (user?.role === 'class_teacher') {
+    return <Navigate to="/admin/students" replace />;
+  }
   if (user?.role === 'librarian') {
     return <Navigate to="/admin/library/dashboard" replace />;
+  }
+  if (user?.role === 'hostel_warden') {
+    return <Navigate to="/admin/hostel/dashboard" replace />;
   }
   return <Dashboard />;
 };
@@ -136,19 +143,67 @@ export default function App() {
           }>
             <Route index element={<AdminHome />} />
             <Route path="students" element={<Students />} />
-            <Route path="students/add" element={<AddStudent />} />
-            <Route path="students/:id/edit" element={<AddStudent />} />
+            <Route path="students/add" element={
+              <ProtectedRoute roles={['super_admin', 'admin']}>
+                <AddStudent />
+              </ProtectedRoute>
+            } />
+            <Route path="students/:id/edit" element={
+              <ProtectedRoute roles={['super_admin', 'admin']}>
+                <AddStudent />
+              </ProtectedRoute>
+            } />
             <Route path="students/:id" element={<StudentDetail />} />
-            <Route path="fees/structure" element={<FeesStructure />} />
-            <Route path="fees/assign" element={<AssignFees />} />
-            <Route path="fees/list" element={<FeesList />} />
-            <Route path="payments" element={<PaymentsAdmin />} />
-            <Route path="leave" element={<LeaveManagement />} />
-            <Route path="outpass" element={<OutpassManagement />} />
-            <Route path="checkin" element={<CheckInOut />} />
-            <Route path="inventory" element={<InventoryPage />} />
-            <Route path="expense" element={<ExpensePage />} />
-            <Route path="circulars" element={<CircularsAdmin />} />
+            <Route path="fees/structure" element={
+              <ProtectedRoute roles={['super_admin', 'admin']}>
+                <FeesStructure />
+              </ProtectedRoute>
+            } />
+            <Route path="fees/assign" element={
+              <ProtectedRoute roles={['super_admin', 'admin']}>
+                <AssignFees />
+              </ProtectedRoute>
+            } />
+            <Route path="fees/list" element={
+              <ProtectedRoute roles={['super_admin', 'admin']}>
+                <FeesList />
+              </ProtectedRoute>
+            } />
+            <Route path="payments" element={
+              <ProtectedRoute roles={['super_admin', 'admin']}>
+                <PaymentsAdmin />
+              </ProtectedRoute>
+            } />
+            <Route path="leave" element={
+              <ProtectedRoute roles={['super_admin', 'admin', 'class_teacher']}>
+                <LeaveManagement />
+              </ProtectedRoute>
+            } />
+            <Route path="outpass" element={
+              <ProtectedRoute roles={['super_admin', 'admin', 'hostel_warden']}>
+                <OutpassManagement />
+              </ProtectedRoute>
+            } />
+            <Route path="checkin" element={
+              <ProtectedRoute roles={['super_admin', 'admin', 'hostel_warden', 'class_teacher']}>
+                <CheckInOut />
+              </ProtectedRoute>
+            } />
+            <Route path="inventory" element={
+              <ProtectedRoute roles={['super_admin', 'admin']}>
+                <InventoryPage />
+              </ProtectedRoute>
+            } />
+            <Route path="expense" element={
+              <ProtectedRoute roles={['super_admin', 'admin']}>
+                <ExpensePage />
+              </ProtectedRoute>
+            } />
+            <Route path="circulars" element={
+              <ProtectedRoute roles={['super_admin', 'admin', 'class_teacher']}>
+                <CircularsAdmin />
+              </ProtectedRoute>
+            } />
             <Route path="library/dashboard" element={
               <ProtectedRoute roles={['librarian']}>
                 <LibraryDashboard />
@@ -159,7 +214,16 @@ export default function App() {
                 <LibraryAdmin />
               </ProtectedRoute>
             } />
-            <Route path="staff" element={<StaffManagement />} />
+            <Route path="hostel/dashboard" element={
+              <ProtectedRoute roles={['hostel_warden']}>
+                <HostelWardenDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="staff" element={
+              <ProtectedRoute roles={['super_admin']}>
+                <StaffManagement />
+              </ProtectedRoute>
+            } />
             <Route path="courses" element={
               <ProtectedRoute roles={['super_admin']}>
                 <CoursesPage />
@@ -170,7 +234,11 @@ export default function App() {
                 <ReportsPage />
               </ProtectedRoute>
             } />
-            <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="notifications" element={
+              <ProtectedRoute roles={['super_admin', 'admin', 'class_teacher', 'hostel_warden', 'librarian']}>
+                <NotificationsPage />
+              </ProtectedRoute>
+            } />
           </Route>
 
           <Route path="/operator" element={

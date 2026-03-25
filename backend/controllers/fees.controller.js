@@ -46,6 +46,15 @@ export const updateStructure = async (req, res) => {
   }
 };
 
+export const deactivateStructure = async (req, res) => {
+  try {
+    await FeesStructure.findByIdAndUpdate(req.params.id, { isActive: false });
+    res.json({ success: true, message: 'Fee structure deactivated' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 // ─── Assign Fees to Student ───────────────────────────────────────────────────
 
 export const assignFees = async (req, res) => {
@@ -209,6 +218,7 @@ export default {
   getAllStructures,
   getStructure,
   updateStructure,
+  deactivateStructure,
   assignFees,
   getStudentFees,
   getFeesSummary,

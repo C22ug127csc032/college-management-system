@@ -18,7 +18,7 @@ const getSubmittedStudentIdentifier = body =>
   body.rollNo || body.admissionNo || body.studentIdentifier || '';
 
 // ── STEP 1 — POST /api/parent/request-register-otp ───────────────────────────
-// Parent enters roll no (or admission no fallback) → OTP sent to saved parent phone
+// Parent enters student ID (roll no or admission no) → OTP sent to saved parent phone
 export const requestRegisterOTP = async (req, res) => {
   try {
     const submittedIdentifier = getSubmittedStudentIdentifier(req.body);
@@ -26,7 +26,7 @@ export const requestRegisterOTP = async (req, res) => {
     if (!submittedIdentifier) {
       return res.status(400).json({
         success: false,
-        message: 'Roll No is required. If Roll No is not assigned yet, use Admission No.',
+        message: 'Student ID is required. Use Roll No or Admission No.',
       });
     }
 
@@ -37,7 +37,7 @@ export const requestRegisterOTP = async (req, res) => {
     if (!student) {
       return res.status(404).json({
         success: false,
-        message: `No student found with Roll No: ${submittedIdentifier}. If Roll No is not assigned yet, try Admission No.`,
+        message: `No student found with Student ID: ${submittedIdentifier}. Use Roll No or Admission No.`,
       });
     }
 
@@ -93,7 +93,7 @@ export const verifyRegisterOTP = async (req, res) => {
     if (!submittedIdentifier || !otp) {
       return res.status(400).json({
         success: false,
-        message: 'Roll No and OTP are required. If Roll No is not assigned yet, use Admission No.',
+        message: 'Student ID and OTP are required. Use Roll No or Admission No.',
       });
     }
 
@@ -162,7 +162,7 @@ export const register = async (req, res) => {
     if (!student) {
       return res.status(404).json({
         success: false,
-        message: `No student found with Roll No: ${submittedIdentifier}. If Roll No is not assigned yet, try Admission No.`,
+        message: `No student found with Student ID: ${submittedIdentifier}. Use Roll No or Admission No.`,
       });
     }
 

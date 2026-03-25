@@ -65,7 +65,7 @@ export default function WalletAdmin() {
           <FilterBar>
             <input
               className="input w-64"
-              placeholder="Search by name, roll no, phone..."
+              placeholder="Search by name, student ID, phone..."
               value={search}
               onChange={e => setSearch(e.target.value)}
             />

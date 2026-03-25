@@ -27,7 +27,7 @@ const ALL_NAV = [
   // ── Dashboard ──────────────────────────────────────────────────────────────
   {
     to: '/admin', label: 'Dashboard', icon: FiBarChart2, exact: true,
-    roles: ['super_admin','admin','class_teacher','hostel_warden','librarian'],
+    roles: ['super_admin','admin','hostel_warden','librarian'],
   },
 
   // ── Students ───────────────────────────────────────────────────────────────
@@ -42,7 +42,7 @@ const ALL_NAV = [
   },
 
   // ── Fees & Payments ────────────────────────────────────────────────────────
-  { section: 'Fees & Payments', roles: ['super_admin','admin','class_teacher'] },
+  { section: 'Fees & Payments', roles: ['super_admin','admin'] },
   {
     to: '/admin/fees/structure', label: 'Fee Structure', icon: FiClipboard,
     roles: ['super_admin','admin'],
@@ -53,7 +53,7 @@ const ALL_NAV = [
   },
   {
     to: '/admin/fees/list', label: 'Fees List', icon: FiDollarSign,
-    roles: ['super_admin','admin','class_teacher'],
+    roles: ['super_admin','admin'],
   },
   {
     to: '/admin/payments', label: 'Payments', icon: FiCreditCard,
@@ -67,7 +67,7 @@ const ALL_NAV = [
   },
   {
     to: '/admin/leave', label: 'Leave', icon: FiCalendar,
-    roles: ['super_admin','admin','class_teacher','hostel_warden'],
+    roles: ['super_admin','admin','class_teacher'],
   },
   {
     to: '/admin/outpass', label: 'Outpass', icon: FiLogOut,
@@ -91,7 +91,7 @@ const ALL_NAV = [
   // ── Administration ─────────────────────────────────────────────────────────
   {
     section: 'Administration',
-    roles: ['super_admin','admin','class_teacher'],
+    roles: ['super_admin','admin'],
   },
   {
     to: '/admin/inventory', label: 'Inventory', icon: FiPackage,
@@ -100,6 +100,11 @@ const ALL_NAV = [
   {
     to: '/admin/expense', label: 'Expenses', icon: FiTrendingDown,
     roles: ['super_admin','admin'],
+  },
+  // Communication
+  {
+    section: 'Communication',
+    roles: ['super_admin','admin','class_teacher'],
   },
   {
     to: '/admin/circulars', label: 'Circulars', icon: FiFileText,
@@ -155,6 +160,20 @@ export default function AdminLayout() {
         return {
           ...item,
           to: '/admin/library/dashboard',
+          exact: true,
+        };
+      }
+      if (user?.role === 'hostel_warden' && item.to === '/admin') {
+        return {
+          ...item,
+          to: '/admin/hostel/dashboard',
+          exact: true,
+        };
+      }
+      if (user?.role === 'class_teacher' && item.to === '/admin') {
+        return {
+          ...item,
+          to: '/admin/students',
           exact: true,
         };
       }

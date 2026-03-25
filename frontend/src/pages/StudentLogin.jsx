@@ -245,7 +245,7 @@ export default function StudentLogin() {
                     Wrong password?
                   </p>
                   <p className="text-xs text-yellow-600 mt-0.5">
-                    Default password is your Roll No. If Roll No is not assigned yet, use your Admission No. Forgot it? Use OTP to login.
+                    Default password is your Admission No. After first login, set your own password. Forgot it? Use OTP to login.
                   </p>
                 </div>
               </div>

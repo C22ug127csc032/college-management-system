@@ -85,7 +85,7 @@ export default function SetPassword() {
                 First Login - Password Setup Required
               </p>
               <p className="text-xs text-indigo-600 mt-0.5">
-                Your default password was your Roll No. If your Roll No was not assigned yet, it was your Admission No.
+                Your default password was your Admission No.
                 Please set a new secure password that only you know.
               </p>
             </div>

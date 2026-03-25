@@ -1,99 +1,124 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../api/axios';
-import { PageHeader, Table, FilterBar, EmptyState, PageSpinner } from '../../components/common';
+import { PageHeader, FilterBar, EmptyState, PageSpinner } from '../../components/common';
+import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import { FiCheck, FiClock } from '../../components/common/icons';
 
 export default function CheckInOut() {
-  const [records, setRecords]         = useState([]);
-  const [loading, setLoading]         = useState(true);
-  const [courses, setCourses]         = useState([]);
-  const [studentId, setStudentId]     = useState('');
+  const { user } = useAuth();
+  const isHostelWarden = user?.role === 'hostel_warden';
+
+  const [records, setRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [courses, setCourses] = useState([]);
+  const [studentId, setStudentId] = useState('');
   const [studentName, setStudentName] = useState('');
   const [studentRollNo, setStudentRollNo] = useState('');
-  const [form, setForm]               = useState({
-    studentRegNo: '', type: 'check_in', location: 'gate', remarks: '',
+  const [studentHostelRoom, setStudentHostelRoom] = useState('');
+  const [form, setForm] = useState({
+    studentIdentifier: '',
+    type: 'check_in',
+    location: isHostelWarden ? 'hostel' : 'gate',
+    remarks: '',
   });
   const [filters, setFilters] = useState({
-    startDate: '', endDate: '', type: '', location: '', department: '',
+    startDate: '',
+    endDate: '',
+    type: '',
+    location: '',
+    department: '',
   });
 
   const fetchRecords = useCallback(async () => {
     setLoading(true);
     const params = {};
     if (filters.startDate) params.startDate = filters.startDate;
-    if (filters.endDate)   params.endDate   = filters.endDate;
-    if (filters.type)      params.type      = filters.type;
-    if (filters.location)  params.location  = filters.location;
-    if (filters.department) params.department = filters.department;
-    const r = await api.get('/checkin', { params });
-    setRecords(r.data.records);
+    if (filters.endDate) params.endDate = filters.endDate;
+    if (filters.type) params.type = filters.type;
+    if (filters.location) params.location = filters.location;
+    if (!isHostelWarden && filters.department) params.department = filters.department;
+    const response = await api.get('/checkin', { params });
+    setRecords(response.data.records || []);
     setLoading(false);
-  }, [filters]);
+  }, [filters, isHostelWarden]);
 
-  useEffect(() => { fetchRecords(); }, [fetchRecords]);
   useEffect(() => {
+    fetchRecords();
+  }, [fetchRecords]);
+
+  useEffect(() => {
+    if (isHostelWarden) return;
     api.get('/courses')
-      .then(r => setCourses(r.data.courses || []))
+      .then(response => setCourses(response.data.courses || []))
       .catch(() => {});
-  }, []);
+  }, [isHostelWarden]);
 
   const findStudent = async () => {
-    if (!form.studentRegNo) return;
+    if (!form.studentIdentifier.trim()) return;
     try {
-      const r = await api.get(`/students/reg/${form.studentRegNo}`);
-      setStudentId(r.data.student._id);
-      setStudentName(`${r.data.student.firstName} ${r.data.student.lastName}`);
-      setStudentRollNo(r.data.student.rollNo || '');
-      toast.success(`Found: ${r.data.student.firstName} ${r.data.student.lastName}`);
+      const response = await api.get(
+        `/students/lookup/${encodeURIComponent(form.studentIdentifier.trim())}`
+      );
+      const student = response.data.student;
+      setStudentId(student._id);
+      setStudentName(`${student.firstName} ${student.lastName}`);
+      setStudentRollNo(student.rollNo || '');
+      setStudentHostelRoom(student.hostelRoom || '');
+      toast.success(`Found: ${student.firstName} ${student.lastName}`);
     } catch {
       toast.error('Student not found');
       setStudentId('');
       setStudentName('');
       setStudentRollNo('');
+      setStudentHostelRoom('');
     }
   };
 
   const handleRecord = async () => {
-    if (!studentId) { toast.error('Find student first'); return; }
+    if (!studentId) {
+      toast.error('Find student first');
+      return;
+    }
+
     try {
       await api.post('/checkin', {
         studentId,
-        type:     form.type,
+        type: form.type,
         location: form.location,
-        remarks:  form.remarks,
+        remarks: form.remarks,
       });
       toast.success(
-        `${form.type === 'check_in' ? 'Check-in' : 'Check-out'} recorded — parent notified`
+        `${form.type === 'check_in' ? 'Check-in' : 'Check-out'} recorded and parent notified`
       );
-      setForm(f => ({ ...f, studentRegNo: '', remarks: '' }));
+      setForm(current => ({ ...current, studentIdentifier: '', remarks: '' }));
       setStudentId('');
       setStudentName('');
       setStudentRollNo('');
+      setStudentHostelRoom('');
       fetchRecords();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to record');
     }
   };
 
-  const setFilter = (k, v) => setFilters(f => ({ ...f, [k]: v }));
+  const setFilter = (key, value) => setFilters(current => ({ ...current, [key]: value }));
   const departments = [...new Set(
-    courses
-      .map(course => course.department?.trim())
-      .filter(Boolean)
+    courses.map(course => course.department?.trim()).filter(Boolean)
   )].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 
-  const todayIn  = records.filter(r => r.type === 'check_in').length;
-  const todayOut = records.filter(r => r.type === 'check_out').length;
+  const todayIn = records.filter(record => record.type === 'check_in').length;
+  const todayOut = records.filter(record => record.type === 'check_out').length;
 
   return (
     <div>
       <PageHeader
         title="Check-In / Check-Out"
-        subtitle="Record and track student movement"
+        subtitle={isHostelWarden
+          ? 'Record and track hostel student movement'
+          : 'Record and track student movement'}
       />
 
-      {/* Stats */}
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="card bg-green-50 border-green-200">
           <p className="text-2xl font-bold text-green-700">{todayIn}</p>
@@ -106,18 +131,19 @@ export default function CheckInOut() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {/* Record Form */}
         <div className="card">
           <h3 className="section-title">Record Entry</h3>
           <div className="space-y-3">
             <div className="flex gap-2">
               <input
                 className="input flex-1"
-                placeholder="Reg No e.g. REG12345"
-                value={form.studentRegNo}
-                onChange={e => setForm(f => ({ ...f, studentRegNo: e.target.value }))}
-                onKeyDown={e => e.key === 'Enter' && findStudent()}
+                placeholder={isHostelWarden ? 'Roll / Reg / Admission No' : 'Reg No e.g. REG12345'}
+                value={form.studentIdentifier}
+                onChange={event => setForm(current => ({
+                  ...current,
+                  studentIdentifier: event.target.value,
+                }))}
+                onKeyDown={event => event.key === 'Enter' && findStudent()}
               />
               <button onClick={findStudent} className="btn-secondary text-sm px-3">
                 Find
@@ -127,7 +153,10 @@ export default function CheckInOut() {
             {studentName && (
               <p className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded">
                 <span className="inline-flex items-center gap-1">
-                  <FiCheck /> {studentName}{studentRollNo ? ` (Roll No: ${studentRollNo})` : ''}
+                  <FiCheck />
+                  {studentName}
+                  {studentRollNo ? ` (Roll No: ${studentRollNo})` : ''}
+                  {isHostelWarden && studentHostelRoom ? ` • Room ${studentHostelRoom}` : ''}
                 </span>
               </p>
             )}
@@ -135,7 +164,7 @@ export default function CheckInOut() {
             <select
               className="input"
               value={form.type}
-              onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
+              onChange={event => setForm(current => ({ ...current, type: event.target.value }))}
             >
               <option value="check_in">Check In</option>
               <option value="check_out">Check Out</option>
@@ -144,55 +173,84 @@ export default function CheckInOut() {
             <select
               className="input"
               value={form.location}
-              onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
+              onChange={event => setForm(current => ({ ...current, location: event.target.value }))}
             >
-              <option value="gate">Main Gate</option>
-              <option value="hostel">Hostel</option>
-              <option value="campus">Campus</option>
+              {isHostelWarden ? (
+                <>
+                  <option value="hostel">Hostel</option>
+                  <option value="gate">Hostel Gate</option>
+                </>
+              ) : (
+                <>
+                  <option value="gate">Main Gate</option>
+                  <option value="hostel">Hostel</option>
+                  <option value="campus">Campus</option>
+                </>
+              )}
             </select>
 
             <input
               className="input"
               placeholder="Remarks (optional)"
               value={form.remarks}
-              onChange={e => setForm(f => ({ ...f, remarks: e.target.value }))}
+              onChange={event => setForm(current => ({ ...current, remarks: event.target.value }))}
             />
 
             <button onClick={handleRecord} className="btn-primary w-full">
-              Record & Notify Parent
+              Record Movement & Notify Parent
             </button>
           </div>
         </div>
 
-        {/* Records Table */}
         <div className="lg:col-span-2 card overflow-x-auto">
           <h3 className="section-title">Movement Records</h3>
 
           <FilterBar>
-            <input type="date" className="input w-36" value={filters.startDate}
-              onChange={e => setFilter('startDate', e.target.value)} />
-            <input type="date" className="input w-36" value={filters.endDate}
-              onChange={e => setFilter('endDate', e.target.value)} />
-            <select className="input w-32" value={filters.type}
-              onChange={e => setFilter('type', e.target.value)}>
+            <input
+              type="date"
+              className="input w-36"
+              value={filters.startDate}
+              onChange={event => setFilter('startDate', event.target.value)}
+            />
+            <input
+              type="date"
+              className="input w-36"
+              value={filters.endDate}
+              onChange={event => setFilter('endDate', event.target.value)}
+            />
+            <select
+              className="input w-32"
+              value={filters.type}
+              onChange={event => setFilter('type', event.target.value)}
+            >
               <option value="">All Types</option>
               <option value="check_in">Check In</option>
               <option value="check_out">Check Out</option>
             </select>
-            <select className="input w-32" value={filters.location}
-              onChange={e => setFilter('location', e.target.value)}>
+            <select
+              className="input w-32"
+              value={filters.location}
+              onChange={event => setFilter('location', event.target.value)}
+            >
               <option value="">All Locations</option>
-              <option value="gate">Gate</option>
+              <option value="gate">{isHostelWarden ? 'Hostel Gate' : 'Gate'}</option>
               <option value="hostel">Hostel</option>
-              <option value="campus">Campus</option>
+              {!isHostelWarden && <option value="campus">Campus</option>}
             </select>
-            <select className="input w-48" value={filters.department}
-              onChange={e => setFilter('department', e.target.value)}>
-              <option value="">All Departments</option>
-              {departments.map(department => (
-                <option key={department} value={department}>{department}</option>
-              ))}
-            </select>
+            {!isHostelWarden && (
+              <select
+                className="input w-48"
+                value={filters.department}
+                onChange={event => setFilter('department', event.target.value)}
+              >
+                <option value="">All Departments</option>
+                {departments.map(department => (
+                  <option key={department} value={department}>
+                    {department}
+                  </option>
+                ))}
+              </select>
+            )}
           </FilterBar>
 
           {loading ? <PageSpinner /> : (
@@ -200,7 +258,8 @@ export default function CheckInOut() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="table-header">Student</th>
-                  <th className="table-header">Department</th>
+                  <th className="table-header">{isHostelWarden ? 'Class' : 'Department'}</th>
+                  {isHostelWarden && <th className="table-header">Room</th>}
                   <th className="table-header">Reg No</th>
                   <th className="table-header">Roll No</th>
                   <th className="table-header">Type</th>
@@ -210,37 +269,45 @@ export default function CheckInOut() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {records.slice(0, 30).map(r => (
-                  <tr key={r._id} className="hover:bg-gray-50">
+                {records.slice(0, 30).map(record => (
+                  <tr key={record._id} className="hover:bg-gray-50">
                     <td className="table-cell">
                       <p className="font-medium">
-                        {r.student?.firstName} {r.student?.lastName}
+                        {record.student?.firstName} {record.student?.lastName}
                       </p>
                     </td>
                     <td className="table-cell text-xs text-gray-500">
-                      {r.student?.course?.department || 'â€“'}
+                      {isHostelWarden
+                        ? (record.student?.className || '—')
+                        : (record.student?.course?.department || '—')}
+                    </td>
+                    {isHostelWarden && (
+                      <td className="table-cell text-xs text-gray-500">
+                        {record.student?.hostelRoom || '—'}
+                      </td>
+                    )}
+                    <td className="table-cell font-mono text-xs text-gray-500">
+                      {record.student?.regNo || '—'}
                     </td>
                     <td className="table-cell font-mono text-xs text-gray-500">
-                      {r.student?.regNo || '–'}
-                    </td>
-                    <td className="table-cell font-mono text-xs text-gray-500">
-                      {r.student?.rollNo || '–'}
+                      {record.student?.rollNo || record.student?.admissionNo || '—'}
                     </td>
                     <td className="table-cell">
-                      <span className={`badge-${r.type === 'check_in' ? 'green' : 'yellow'}`}>
-                        {r.type.replace('_', ' ')}
+                      <span className={`badge-${record.type === 'check_in' ? 'green' : 'yellow'}`}>
+                        {record.type.replace('_', ' ')}
                       </span>
                     </td>
-                    <td className="table-cell capitalize">{r.location}</td>
+                    <td className="table-cell capitalize">{record.location}</td>
                     <td className="table-cell text-gray-500 text-xs">
-                      {new Date(r.timestamp).toLocaleString('en-IN')}
+                      {new Date(record.timestamp).toLocaleString('en-IN')}
                     </td>
-                    <td className="table-cell text-gray-400">{r.remarks || '–'}</td>
+                    <td className="table-cell text-gray-400">{record.remarks || '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           )}
+
           {!loading && records.length === 0 && (
             <EmptyState message="No records found" icon={<FiClock />} />
           )}
@@ -249,5 +316,3 @@ export default function CheckInOut() {
     </div>
   );
 }
-
-

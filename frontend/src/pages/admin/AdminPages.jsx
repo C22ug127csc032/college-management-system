@@ -4,6 +4,7 @@ import { PageHeader, Table, StatusBadge, FilterBar, EmptyState, Modal, PageSpinn
 import { FiAlertOctagon, FiBell, FiCheckCircle, FiClock, FiCreditCard, FiDollarSign, FiLogOut, FiPackage, FiTarget, FiTrendingDown, FiUsers } from '../../components/common/icons';
 import toast from 'react-hot-toast';
 import { isValidIndianPhone, sanitizePhoneField } from '../../utils/phone';
+import { useAuth } from '../../context/AuthContext';
 
 const SearchableStudentSelect = ({ students, value, onChange, placeholder = 'Select Student...' }) => {
   const [query, setQuery] = useState('');
@@ -627,24 +628,154 @@ export function ExpensePage() {
 
 // ─── CIRCULARS ─────────────────────────────────────────────────────────────────
 export function CircularsAdmin() {
-  const initialCircularForm = { title: '', content: '', type: 'circular', audience: ['all'] };
+  const { user } = useAuth();
+  const isClassTeacher = user?.role === 'class_teacher';
+  const initialCircularForm = {
+    title: '',
+    content: '',
+    type: 'circular',
+    audience: isClassTeacher ? ['students', 'parents'] : ['all'],
+    course: '',
+  };
   const [circulars, setCirculars] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [show, setShow] = useState(false);
   const [form, setForm] = useState(initialCircularForm);
+  const [editingId, setEditingId] = useState('');
 
-  useEffect(() => { api.get('/circulars').then(r => setCirculars(r.data.circulars)); }, []);
+  const teacherCourse = courses.find(course =>
+    course.name === user?.department || course.code === user?.department || course._id === user?.department
+  );
+  const visibleCourses = isClassTeacher && teacherCourse ? [teacherCourse] : courses;
+  const audienceOptions = isClassTeacher
+    ? [
+        { value: 'students', label: 'Students' },
+        { value: 'parents', label: 'Parents' },
+      ]
+    : [
+        { value: 'all', label: 'All Recipients' },
+        { value: 'students', label: 'Students' },
+        { value: 'parents', label: 'Parents' },
+        { value: 'staff', label: 'Staff' },
+      ];
+
+  useEffect(() => {
+    api.get('/circulars').then(r => setCirculars(r.data.circulars));
+    api.get('/courses').then(r => setCourses(r.data.courses || []));
+  }, []);
+
+  useEffect(() => {
+    setForm(current => {
+      if (!isClassTeacher) return current;
+      return {
+        ...current,
+        course: teacherCourse?._id || current.course,
+        audience: current.audience?.length ? current.audience.filter(value => ['students', 'parents'].includes(value)) : ['students', 'parents'],
+      };
+    });
+  }, [isClassTeacher, teacherCourse?._id]);
+
+  const toggleAudience = value => {
+    setForm(current => {
+      const currentAudience = current.audience || [];
+      if (value === 'all') {
+        return { ...current, audience: ['all'] };
+      }
+
+      const withoutAll = currentAudience.filter(item => item !== 'all');
+      const nextAudience = withoutAll.includes(value)
+        ? withoutAll.filter(item => item !== value)
+        : [...withoutAll, value];
+
+      return { ...current, audience: nextAudience };
+    });
+  };
+
+  const openCreateModal = () => {
+    setEditingId('');
+    setForm({
+      ...initialCircularForm,
+      course: isClassTeacher ? (teacherCourse?._id || '') : '',
+    });
+    setShow(true);
+  };
 
   const add = async e => {
     e.preventDefault();
-    const r = await api.post('/circulars', form);
-    setCirculars(p => [r.data.circular, ...p]); setShow(false); setForm(initialCircularForm); toast.success('Published');
+    const payload = {
+      ...form,
+      audience: form.audience || [],
+      course: form.course || undefined,
+    };
+
+    if (isClassTeacher) {
+      payload.course = teacherCourse?._id || payload.course;
+      payload.audience = (payload.audience || []).filter(value => ['students', 'parents'].includes(value));
+    }
+
+    if (!payload.audience?.length) {
+      toast.error('Select at least one audience');
+      return;
+    }
+
+    try {
+      const r = editingId
+        ? await api.put(`/circulars/${editingId}`, payload)
+        : await api.post('/circulars', payload);
+      setCirculars(p => (
+        editingId
+          ? p.map(circular => circular._id === editingId ? r.data.circular : circular)
+          : [r.data.circular, ...p]
+      ));
+      setShow(false);
+      setEditingId('');
+      setForm(initialCircularForm);
+      toast.success(editingId ? 'Circular updated' : 'Published');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to publish circular');
+    }
+  };
+
+  const editCircular = circular => {
+    setEditingId(circular._id);
+    setForm({
+      title: circular.title || '',
+      content: circular.content || '',
+      type: circular.type || 'circular',
+      audience: circular.audience?.length ? circular.audience : ['all'],
+      course: circular.course?._id || circular.course || '',
+    });
+    setShow(true);
+  };
+
+  const unpublishCircular = async id => {
+    try {
+      await api.delete(`/circulars/${id}`);
+      setCirculars(p => p.filter(circular => circular._id !== id));
+      toast.success('Circular unpublished');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to unpublish circular');
+    }
+  };
+
+  const closeCircularModal = () => {
+    setShow(false);
+    setEditingId('');
+    setForm({
+      ...initialCircularForm,
+      course: isClassTeacher ? (teacherCourse?._id || '') : '',
+    });
   };
 
   const typeColors = { circular: 'badge-blue', announcement: 'badge-yellow', exam_schedule: 'badge-red', event: 'badge-green', holiday: 'badge-gray' };
+  const canManageCircular = circular => !isClassTeacher || String(circular.publishedBy?._id || circular.publishedBy) === String(user?._id);
 
   return (
     <div>
-      <PageHeader title="Circulars & Announcements" action={<button onClick={() => { setForm(initialCircularForm); setShow(true); }} className="btn-primary">+ Publish</button>} />
+      <PageHeader
+        title="Circulars & Announcements"
+        action={<button onClick={openCreateModal} className="btn-primary">+ Publish</button>}
+      />
       <div className="space-y-4">
         {circulars.map(c => (
           <div key={c._id} className="card">
@@ -653,12 +784,24 @@ export function CircularsAdmin() {
               <span className={typeColors[c.type] || 'badge-gray'}>{c.type.replace('_', ' ')}</span>
             </div>
             <p className="text-sm text-gray-600 mb-2 line-clamp-3">{c.content}</p>
-            <p className="text-xs text-gray-400">{new Date(c.publishDate).toLocaleDateString('en-IN')} • {c.audience?.join(', ')}</p>
+            <div className="flex flex-wrap gap-2 text-xs text-gray-500">
+              <span>{new Date(c.publishDate).toLocaleDateString('en-IN')}</span>
+              <span>•</span>
+              <span>{c.audience?.join(', ')}</span>
+              <span>•</span>
+              <span>{c.course?.name || 'All courses'}</span>
+            </div>
+            {canManageCircular(c) && (
+              <div className="mt-3 pt-3 border-t border-gray-100 flex gap-3 text-sm">
+                <button type="button" onClick={() => editCircular(c)} className="text-primary-600 hover:underline">Edit</button>
+                <button type="button" onClick={() => unpublishCircular(c._id)} className="text-red-600 hover:underline">Unpublish</button>
+              </div>
+            )}
           </div>
         ))}
         {circulars.length === 0 && <EmptyState message="No circulars published" icon={<FiBell />} />}
       </div>
-      <Modal open={show} onClose={() => { setShow(false); setForm(initialCircularForm); }} title="Publish Circular" size="lg">
+      <Modal open={show} onClose={closeCircularModal} title={editingId ? 'Edit Circular' : 'Publish Circular'} size="lg">
         <form onSubmit={add} className="space-y-4">
           <div><label className="label">Title *</label><input className="input" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required /></div>
           <div><label className="label">Type</label>
@@ -666,8 +809,41 @@ export function CircularsAdmin() {
               {['circular','announcement','exam_schedule','event','holiday'].map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
             </select>
           </div>
+          <div>
+            <label className="label">{isClassTeacher ? 'Assigned Course' : 'Course Scope'}</label>
+            {isClassTeacher ? (
+              <input className="input bg-gray-50" value={teacherCourse?.name || 'No course assigned'} readOnly />
+            ) : (
+              <select className="input" value={form.course} onChange={e => setForm(f => ({ ...f, course: e.target.value }))}>
+                <option value="">All Courses</option>
+                {visibleCourses.map(course => (
+                  <option key={course._id} value={course._id}>{course.name}</option>
+                ))}
+              </select>
+            )}
+          </div>
+          <div>
+            <label className="label">Audience</label>
+            <div className="grid grid-cols-2 gap-2">
+              {audienceOptions.map(option => (
+                <label key={option.value} className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={(form.audience || []).includes(option.value)}
+                    onChange={() => toggleAudience(option.value)}
+                  />
+                  <span>{option.label}</span>
+                </label>
+              ))}
+            </div>
+            {isClassTeacher && (
+              <p className="mt-2 text-xs text-gray-500">
+                Class teacher circulars are restricted to your assigned course and can be sent only to students and parents.
+              </p>
+            )}
+          </div>
           <div><label className="label">Content *</label><textarea className="input" rows={5} value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} required /></div>
-          <div className="flex gap-3 justify-end"><button type="button" onClick={() => { setShow(false); setForm(initialCircularForm); }} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">Publish</button></div>
+          <div className="flex gap-3 justify-end"><button type="button" onClick={closeCircularModal} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">{editingId ? 'Save Changes' : 'Publish'}</button></div>
         </form>
       </Modal>
     </div>
@@ -686,6 +862,7 @@ export function LibraryAdmin() {
   const [students, setStudents] = useState([]);
   const [bookForm, setBookForm] = useState(initialBookForm);
   const [issueForm, setIssueForm] = useState(initialIssueForm);
+  const [editingBookId, setEditingBookId] = useState('');
   const getStudentIdentifier = student => student?.rollNo || student?.admissionNo || student?.regNo || '—';
 
   useEffect(() => {
@@ -702,14 +879,51 @@ export function LibraryAdmin() {
 
   const addBook = async e => {
     e.preventDefault();
-    const r = await api.post('/library/books', bookForm);
-    setBooks(p => [r.data.book, ...p]); setShowAdd(false); setBookForm(initialBookForm); toast.success('Book added');
+    const payload = { ...bookForm, totalCopies: Number(bookForm.totalCopies) || 1 };
+    const r = editingBookId
+      ? await api.put(`/library/books/${editingBookId}`, payload)
+      : await api.post('/library/books', payload);
+    setBooks(p => (
+      editingBookId
+        ? p.map(book => book._id === editingBookId ? r.data.book : book)
+        : [r.data.book, ...p]
+    ));
+    setShowAdd(false);
+    setEditingBookId('');
+    setBookForm(initialBookForm);
+    toast.success(editingBookId ? 'Book updated' : 'Book added');
   };
   const issueBook = async e => {
     e.preventDefault();
     await api.post('/library/issue', issueForm);
     toast.success('Book issued'); setShowIssue(false); setIssueForm(initialIssueForm);
     const r = await api.get('/library/issues'); setIssues(r.data.issues);
+  };
+  const editBook = book => {
+    setEditingBookId(book._id);
+    setBookForm({
+      title: book.title || '',
+      author: book.author || '',
+      isbn: book.isbn || '',
+      publisher: book.publisher || '',
+      category: book.category || '',
+      totalCopies: book.totalCopies || 1,
+    });
+    setShowAdd(true);
+  };
+  const markBookUnavailable = async id => {
+    try {
+      await api.delete(`/library/books/${id}`);
+      setBooks(p => p.filter(book => book._id !== id));
+      toast.success('Book marked unavailable');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update book');
+    }
+  };
+  const closeBookModal = () => {
+    setShowAdd(false);
+    setEditingBookId('');
+    setBookForm(initialBookForm);
   };
   const returnBook = async id => {
     const r = await api.put(`/library/return/${id}`);
@@ -721,7 +935,7 @@ export function LibraryAdmin() {
     <div>
       <PageHeader title="Library" action={
         <div className="flex gap-2">
-          <button onClick={() => { setBookForm(initialBookForm); setShowAdd(true); }} className="btn-secondary text-sm">+ Add Book</button>
+          <button onClick={() => { setEditingBookId(''); setBookForm(initialBookForm); setShowAdd(true); }} className="btn-secondary text-sm">+ Add Book</button>
           <button onClick={() => { setIssueForm(initialIssueForm); setShowIssue(true); }} className="btn-primary">Issue Book</button>
         </div>
       } />
@@ -731,7 +945,7 @@ export function LibraryAdmin() {
       </div>
       <div className="card">
         {tab === 'books' ? (
-          <Table headers={['Title', 'Author', 'ISBN', 'Category', 'Total', 'Available']}>
+          <Table headers={['Title', 'Author', 'ISBN', 'Category', 'Total', 'Available', 'Actions']}>
             {books.map(b => (
               <tr key={b._id} className="hover:bg-gray-50">
                 <td className="table-cell font-medium">{b.title}</td>
@@ -740,6 +954,12 @@ export function LibraryAdmin() {
                 <td className="table-cell">{b.category || '–'}</td>
                 <td className="table-cell text-center">{b.totalCopies}</td>
                 <td className="table-cell text-center"><span className={b.availableCopies > 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>{b.availableCopies}</span></td>
+                <td className="table-cell">
+                  <div className="flex gap-3 text-sm">
+                    <button type="button" onClick={() => editBook(b)} className="text-primary-600 hover:underline">Edit</button>
+                    <button type="button" onClick={() => markBookUnavailable(b._id)} className="text-red-600 hover:underline">Mark Unavailable</button>
+                  </div>
+                </td>
               </tr>
             ))}
           </Table>
@@ -762,7 +982,7 @@ export function LibraryAdmin() {
           </Table>
         )}
       </div>
-      <Modal open={showAdd} onClose={() => { setShowAdd(false); setBookForm(initialBookForm); }} title="Add Book">
+      <Modal open={showAdd} onClose={closeBookModal} title={editingBookId ? 'Edit Book' : 'Add Book'}>
         <form onSubmit={addBook} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div><label className="label">Title *</label><input className="input" value={bookForm.title} onChange={e => setBookForm(f => ({ ...f, title: e.target.value }))} required /></div>
@@ -772,7 +992,7 @@ export function LibraryAdmin() {
             <div><label className="label">Publisher</label><input className="input" value={bookForm.publisher} onChange={e => setBookForm(f => ({ ...f, publisher: e.target.value }))} /></div>
             <div><label className="label">Copies</label><input type="number" className="input" min="1" value={bookForm.totalCopies} onChange={e => setBookForm(f => ({ ...f, totalCopies: e.target.value }))} /></div>
           </div>
-          <div className="flex gap-3 justify-end"><button type="button" onClick={() => { setShowAdd(false); setBookForm(initialBookForm); }} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">Add</button></div>
+          <div className="flex gap-3 justify-end"><button type="button" onClick={closeBookModal} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">{editingBookId ? 'Save Changes' : 'Add'}</button></div>
         </form>
       </Modal>
       <Modal open={showIssue} onClose={() => { setShowIssue(false); setIssueForm(initialIssueForm); }} title="Issue Book">
@@ -799,15 +1019,71 @@ export function LibraryAdmin() {
 
 // ─── SHOP ─────────────────────────────────────────────────────────────────────
 export function ShopAdmin() {
+  const initialItemForm = { name: '', price: '', stock: '', unit: '', type: 'shop', isAvailable: true };
   const [items, setItems] = useState([]);
   const [sales, setSales] = useState([]);
   const [tab, setTab] = useState('items');
   const [shopType, setShopType] = useState('shop');
+  const [showItemModal, setShowItemModal] = useState(false);
+  const [itemForm, setItemForm] = useState(initialItemForm);
+  const [editingItemId, setEditingItemId] = useState('');
 
-  useEffect(() => {
+  const fetchShopData = () => {
     api.get(`/shop/items?type=${shopType}`).then(r => setItems(r.data.items));
     api.get(`/shop/sales?type=${shopType}`).then(r => setSales(r.data.sales));
+  };
+
+  useEffect(() => {
+    fetchShopData();
   }, [shopType]);
+
+  const editItem = item => {
+    setEditingItemId(item._id);
+    setItemForm({
+      name: item.name || '',
+      price: item.price || '',
+      stock: item.stock || '',
+      unit: item.unit || '',
+      type: item.type || shopType,
+      isAvailable: item.isAvailable !== false,
+    });
+    setShowItemModal(true);
+  };
+
+  const saveItem = async e => {
+    e.preventDefault();
+    try {
+      await api.put(`/shop/items/${editingItemId}`, {
+        ...itemForm,
+        type: shopType,
+        price: Number(itemForm.price) || 0,
+        stock: Number(itemForm.stock) || 0,
+      });
+      fetchShopData();
+      setShowItemModal(false);
+      setEditingItemId('');
+      setItemForm(initialItemForm);
+      toast.success('Item updated');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update item');
+    }
+  };
+
+  const markItemUnavailable = async id => {
+    try {
+      await api.delete(`/shop/items/${id}`);
+      fetchShopData();
+      toast.success('Item marked unavailable');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update item');
+    }
+  };
+
+  const closeItemModal = () => {
+    setShowItemModal(false);
+    setEditingItemId('');
+    setItemForm(initialItemForm);
+  };
 
   return (
     <div>
@@ -822,12 +1098,18 @@ export function ShopAdmin() {
       </div>
       <div className="card">
         {tab === 'items' ? (
-          <Table headers={['Name', 'Price', 'Stock', 'Available']}>
+          <Table headers={['Name', 'Price', 'Stock', 'Available', 'Actions']}>
             {items.map(i => <tr key={i._id} className="hover:bg-gray-50">
               <td className="table-cell font-medium">{i.name}</td>
               <td className="table-cell">₹{i.price}</td>
               <td className="table-cell">{i.stock} {i.unit}</td>
-              <td className="table-cell"><span className={i.isAvailable ? 'badge-green' : 'badge-red'}>{i.isAvailable ? 'Yes' : 'No'}</span></td>
+	              <td className="table-cell"><span className={i.isAvailable ? 'badge-green' : 'badge-red'}>{i.isAvailable ? 'Yes' : 'No'}</span></td>
+	              <td className="table-cell">
+	                <div className="flex gap-3 text-sm">
+	                  <button type="button" onClick={() => editItem(i)} className="text-primary-600 hover:underline">Edit</button>
+	                  <button type="button" onClick={() => markItemUnavailable(i._id)} className="text-red-600 hover:underline">Mark Unavailable</button>
+	                </div>
+	              </td>
             </tr>)}
           </Table>
         ) : (
@@ -843,19 +1125,34 @@ export function ShopAdmin() {
           </Table>
         )}
       </div>
+      <Modal open={showItemModal} onClose={closeItemModal} title="Edit Item">
+        <form onSubmit={saveItem} className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="label">Name *</label><input className="input" value={itemForm.name} onChange={e => setItemForm(f => ({ ...f, name: e.target.value }))} required /></div>
+            <div><label className="label">Unit</label><input className="input" value={itemForm.unit} onChange={e => setItemForm(f => ({ ...f, unit: e.target.value }))} /></div>
+            <div><label className="label">Price *</label><input type="number" className="input" value={itemForm.price} onChange={e => setItemForm(f => ({ ...f, price: e.target.value }))} required /></div>
+            <div><label className="label">Stock *</label><input type="number" className="input" value={itemForm.stock} onChange={e => setItemForm(f => ({ ...f, stock: e.target.value }))} required /></div>
+          </div>
+          <div className="flex gap-3 justify-end"><button type="button" onClick={closeItemModal} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">Save Changes</button></div>
+        </form>
+      </Modal>
     </div>
   );
 }
 
 // ─── STAFF ────────────────────────────────────────────────────────────────────
 export function StaffManagement() {
+  const initialStaffForm = { name: '', phone: '', email: '', password: '', role: 'class_teacher', department: '' };
   const [staff, setStaff] = useState([]);
   const [courses, setCourses] = useState([]);
   const [show, setShow] = useState(false);
-  const [form, setForm] = useState({ name: '', phone: '', email: '', password: '', role: 'class_teacher', department: '' });
+  const [form, setForm] = useState(initialStaffForm);
+  const [editingStaffId, setEditingStaffId] = useState('');
+
+  const fetchStaff = () => api.get('/staff').then(r => setStaff(r.data.staff));
 
   useEffect(() => {
-    api.get('/staff').then(r => setStaff(r.data.staff));
+    fetchStaff();
     api.get('/courses').then(r => setCourses(r.data.courses || []));
   }, []);
 
@@ -873,25 +1170,52 @@ export function StaffManagement() {
         name: form.name.trim(),
         phone,
         email: form.email.trim(),
-        password: form.password,
         department: form.department.trim(),
       };
+      if (form.password) payload.password = form.password;
 
-      await api.post('/auth/register', payload);
-      toast.success('Staff added');
+      if (editingStaffId) {
+        await api.put(`/staff/${editingStaffId}`, payload);
+      } else {
+        await api.post('/auth/register', payload);
+      }
+      toast.success(editingStaffId ? 'Staff updated' : 'Staff added');
       setShow(false);
-      setForm({
-        name: '',
-        phone: '',
-        email: '',
-        password: '',
-        role: 'class_teacher',
-        department: '',
-      });
-      api.get('/staff').then(r => setStaff(r.data.staff));
+      setEditingStaffId('');
+      setForm(initialStaffForm);
+      fetchStaff();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to add staff');
+      toast.error(err.response?.data?.message || 'Failed to save staff');
     }
+  };
+
+  const editStaff = member => {
+    setEditingStaffId(member._id);
+    setForm({
+      name: member.name || '',
+      phone: member.phone || '',
+      email: member.email || '',
+      password: '',
+      role: member.role || 'class_teacher',
+      department: member.department || '',
+    });
+    setShow(true);
+  };
+
+  const toggleStaffStatus = async member => {
+    try {
+      await api.put(`/auth/users/${member._id}/toggle`);
+      fetchStaff();
+      toast.success(`Staff ${member.isActive ? 'deactivated' : 'activated'}`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update staff status');
+    }
+  };
+
+  const closeStaffModal = () => {
+    setShow(false);
+    setEditingStaffId('');
+    setForm(initialStaffForm);
   };
 
   const roleColors = { admin: 'badge-red', class_teacher: 'badge-blue', hostel_warden: 'badge-green', shop_operator: 'badge-yellow', librarian: 'badge-purple', super_admin: 'badge-red' };
@@ -899,9 +1223,9 @@ export function StaffManagement() {
 
   return (
     <div>
-      <PageHeader title="Staff Management" action={<button onClick={() => setShow(true)} className="btn-primary">+ Add Staff</button>} />
+      <PageHeader title="Staff Management" action={<button onClick={() => { setEditingStaffId(''); setForm(initialStaffForm); setShow(true); }} className="btn-primary">+ Add Staff</button>} />
       <div className="card">
-        <Table headers={['Name', 'Phone', 'Email', 'Role', 'Department', 'Status']}>
+        <Table headers={['Name', 'Phone', 'Email', 'Role', 'Department', 'Status', 'Actions']}>
           {staff.map(s => <tr key={s._id} className="hover:bg-gray-50">
             <td className="table-cell font-medium">{s.name}</td>
             <td className="table-cell">{s.phone}</td>
@@ -909,17 +1233,23 @@ export function StaffManagement() {
             <td className="table-cell"><span className={roleColors[s.role] || 'badge-gray'}>{roleLabels[s.role] || s.role?.replace(/_/g, ' ')}</span></td>
             <td className="table-cell">{s.department || '–'}</td>
             <td className="table-cell"><span className={s.isActive ? 'badge-green' : 'badge-red'}>{s.isActive ? 'Active' : 'Inactive'}</span></td>
+            <td className="table-cell">
+              <div className="flex gap-3 text-sm">
+                <button type="button" onClick={() => editStaff(s)} className="text-primary-600 hover:underline">Edit</button>
+                <button type="button" onClick={() => toggleStaffStatus(s)} className={`${s.isActive ? 'text-red-600' : 'text-green-600'} hover:underline`}>{s.isActive ? 'Deactivate' : 'Activate'}</button>
+              </div>
+            </td>
           </tr>)}
         </Table>
         {staff.length === 0 && <EmptyState message="No staff members" icon={<FiUsers />} />}
       </div>
-      <Modal open={show} onClose={() => setShow(false)} title="Add Staff Member">
+      <Modal open={show} onClose={closeStaffModal} title={editingStaffId ? 'Edit Staff Member' : 'Add Staff Member'}>
         <form onSubmit={add} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div><label className="label">Name *</label><input className="input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required /></div>
             <div><label className="label">Phone *</label><input className="input" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: sanitizePhoneField(e.target.value) }))} inputMode="numeric" maxLength={10} required /></div>
             <div><label className="label">Email</label><input type="email" className="input" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
-            <div><label className="label">Password *</label><input type="password" className="input" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} required /></div>
+            <div><label className="label">{editingStaffId ? 'New Password' : 'Password *'}</label><input type="password" className="input" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} required={!editingStaffId} placeholder={editingStaffId ? 'Leave blank to keep current password' : ''} /></div>
             <div><label className="label">Role</label>
               <select className="input" value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>
                 {['admin','class_teacher','hostel_warden','shop_operator','librarian','super_admin'].map(r => <option key={r} value={r}>{r.replace(/_/g, ' ')}</option>)}
@@ -937,7 +1267,7 @@ export function StaffManagement() {
               )}
             </div>
           </div>
-          <div className="flex gap-3 justify-end"><button type="button" onClick={() => setShow(false)} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">Add Staff</button></div>
+          <div className="flex gap-3 justify-end"><button type="button" onClick={closeStaffModal} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">{editingStaffId ? 'Save Changes' : 'Add Staff'}</button></div>
         </form>
       </Modal>
     </div>
@@ -946,21 +1276,66 @@ export function StaffManagement() {
 
 // ─── COURSES ──────────────────────────────────────────────────────────────────
 export function CoursesPage() {
+  const initialCourseForm = { name: '', code: '', department: '', duration: 3, semesters: 6 };
   const [courses, setCourses] = useState([]);
   const [show, setShow] = useState(false);
-  const [form, setForm] = useState({ name: '', code: '', department: '', duration: 3, semesters: 6 });
+  const [form, setForm] = useState(initialCourseForm);
+  const [editingCourseId, setEditingCourseId] = useState('');
 
   useEffect(() => { api.get('/courses').then(r => setCourses(r.data.courses)); }, []);
 
   const add = async e => {
     e.preventDefault();
-    const r = await api.post('/courses', form);
-    setCourses(p => [r.data.course, ...p]); setShow(false); toast.success('Course added');
+    const payload = {
+      ...form,
+      duration: Number(form.duration) || 0,
+      semesters: Number(form.semesters) || 0,
+    };
+    const r = editingCourseId
+      ? await api.put(`/courses/${editingCourseId}`, payload)
+      : await api.post('/courses', payload);
+    setCourses(p => (
+      editingCourseId
+        ? p.map(course => course._id === editingCourseId ? r.data.course : course)
+        : [r.data.course, ...p]
+    ));
+    setShow(false);
+    setEditingCourseId('');
+    setForm(initialCourseForm);
+    toast.success(editingCourseId ? 'Course updated' : 'Course added');
+  };
+
+  const editCourse = course => {
+    setEditingCourseId(course._id);
+    setForm({
+      name: course.name || '',
+      code: course.code || '',
+      department: course.department || '',
+      duration: course.duration || 0,
+      semesters: course.semesters || 0,
+    });
+    setShow(true);
+  };
+
+  const deactivateCourse = async id => {
+    try {
+      await api.delete(`/courses/${id}`);
+      setCourses(p => p.filter(course => course._id !== id));
+      toast.success('Course deactivated');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to deactivate course');
+    }
+  };
+
+  const closeCourseModal = () => {
+    setShow(false);
+    setEditingCourseId('');
+    setForm(initialCourseForm);
   };
 
   return (
     <div>
-      <PageHeader title="Courses" action={<button onClick={() => setShow(true)} className="btn-primary">+ Add Course</button>} />
+      <PageHeader title="Courses" action={<button onClick={() => { setEditingCourseId(''); setForm(initialCourseForm); setShow(true); }} className="btn-primary">+ Add Course</button>} />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {courses.map(c => (
           <div key={c._id} className="card">
@@ -969,12 +1344,16 @@ export function CoursesPage() {
               <span className="badge-blue">{c.code}</span>
             </div>
             <p className="text-sm text-gray-500">{c.department}</p>
+            <div className="mt-3 pt-3 border-t border-gray-100 flex gap-3 text-sm">
+              <button type="button" onClick={() => editCourse(c)} className="text-primary-600 hover:underline">Edit</button>
+              <button type="button" onClick={() => deactivateCourse(c._id)} className="text-red-600 hover:underline">Deactivate</button>
+            </div>
             <p className="text-sm text-gray-400 mt-1">{c.duration} years • {c.semesters} semesters</p>
           </div>
         ))}
         {courses.length === 0 && <EmptyState message="No courses yet" icon={<FiTarget />} />}
       </div>
-      <Modal open={show} onClose={() => setShow(false)} title="Add Course">
+      <Modal open={show} onClose={closeCourseModal} title={editingCourseId ? 'Edit Course' : 'Add Course'}>
         <form onSubmit={add} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div><label className="label">Name *</label><input className="input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required /></div>
@@ -983,7 +1362,7 @@ export function CoursesPage() {
             <div><label className="label">Duration (yrs)</label><input type="number" className="input" value={form.duration} onChange={e => setForm(f => ({ ...f, duration: e.target.value }))} /></div>
             <div><label className="label">Semesters</label><input type="number" className="input" value={form.semesters} onChange={e => setForm(f => ({ ...f, semesters: e.target.value }))} /></div>
           </div>
-          <div className="flex gap-3 justify-end"><button type="button" onClick={() => setShow(false)} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">Add</button></div>
+          <div className="flex gap-3 justify-end"><button type="button" onClick={closeCourseModal} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">{editingCourseId ? 'Save Changes' : 'Add'}</button></div>
         </form>
       </Modal>
     </div>

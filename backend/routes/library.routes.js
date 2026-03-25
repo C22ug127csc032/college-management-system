@@ -7,6 +7,8 @@ const { protect, libStaff } = middleware_auth_middleware;
 r.get('/books', protect, library.getBooks);
 r.get('/students', protect, libStaff, library.getStudents);
 r.post('/books', protect, libStaff, library.addBook);
+r.put('/books/:id', protect, libStaff, library.updateBook);
+r.delete('/books/:id', protect, libStaff, library.deactivateBook);
 r.get('/issues', protect, library.getIssues);
 r.post('/issue', protect, libStaff, library.issueBook);
 r.put('/return/:id', protect, libStaff, library.returnBook);

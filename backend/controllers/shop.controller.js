@@ -146,7 +146,7 @@ export const findStudent = async (req, res) => {
     if (!student) {
       return res.status(404).json({
         success: false,
-        message: `No student found with: ${identifier}`,
+        message: `No student found with phone or student ID: ${identifier}`,
       });
     }
 

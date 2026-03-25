@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api/axios';
 import { PageHeader, EmptyState, PageSpinner } from '../../components/common';
+import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import {
   FiBell,
@@ -32,15 +33,29 @@ const typeColor = {
   general:         'bg-gray-50 border-gray-200',
 };
 
+const ROLE_FILTERS = {
+  hostel_warden: ['all', 'unread', 'outpass_status', 'checkin', 'circular', 'general'],
+  librarian: ['all', 'unread', 'circular', 'general'],
+  class_teacher: ['all', 'unread', 'leave_status', 'outpass_status', 'checkin', 'circular', 'general'],
+  admin: ['all', 'unread', 'fee_due', 'payment_confirm', 'leave_status', 'outpass_status', 'checkin', 'circular', 'general'],
+  super_admin: ['all', 'unread', 'fee_due', 'payment_confirm', 'leave_status', 'outpass_status', 'checkin', 'circular', 'general'],
+};
+
 export default function NotificationsPage() {
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [unread, setUnread]               = useState(0);
   const [loading, setLoading]             = useState(true);
   const [filter, setFilter]               = useState('all');
 
+  const allowedFilters = ROLE_FILTERS[user?.role] || ['all', 'unread', 'general'];
+  const visibleNotifications = notifications.filter(notification =>
+    allowedFilters.includes(notification.type) || notification.type === 'general'
+  );
+
   const fetchNotifications = async () => {
     const r = await api.get('/notifications');
-    setNotifications(r.data.notifications);
+    setNotifications(r.data.notifications || []);
     setUnread(r.data.unreadCount);
     setLoading(false);
   };
@@ -60,11 +75,17 @@ export default function NotificationsPage() {
     setUnread(u => Math.max(0, u - 1));
   };
 
+  useEffect(() => {
+    if (!allowedFilters.includes(filter)) {
+      setFilter('all');
+    }
+  }, [allowedFilters, filter]);
+
   const filtered = filter === 'unread'
-    ? notifications.filter(n => !n.isRead)
+    ? visibleNotifications.filter(n => !n.isRead)
     : filter === 'all'
-      ? notifications
-      : notifications.filter(n => n.type === filter);
+      ? visibleNotifications
+      : visibleNotifications.filter(n => n.type === filter);
 
   return (
     <div>
@@ -84,10 +105,7 @@ export default function NotificationsPage() {
 
         {/* Filter Tabs */}
         <div className="flex gap-2 flex-wrap mb-4 pb-4 border-b border-gray-100">
-          {[
-            'all', 'unread', 'fee_due', 'payment_confirm',
-            'leave_status', 'outpass_status', 'checkin', 'circular',
-          ].map(f => (
+          {allowedFilters.map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}

@@ -35,13 +35,13 @@ export default function ParentRegister() {
   const handleSendOTP = async e => {
     e.preventDefault();
     if (!studentIdentifier.trim()) {
-      toast.error('Enter Roll No');
+      toast.error('Enter Student ID');
       return;
     }
     setLoading(true);
     try {
       const r = await api.post('/parent/request-register-otp', {
-        rollNo: studentIdentifier.trim().toUpperCase(),
+        studentIdentifier: studentIdentifier.trim().toUpperCase(),
       });
       setMaskedPhone(r.data.maskedPhone);
       setStudentName(r.data.studentName);
@@ -64,7 +64,7 @@ export default function ParentRegister() {
     setLoading(true);
     try {
       const r = await api.post('/parent/verify-register-otp', {
-        rollNo: studentIdentifier.trim().toUpperCase(),
+        studentIdentifier: studentIdentifier.trim().toUpperCase(),
         otp: otp.trim(),
       });
       setStudentId(r.data.studentId);
@@ -101,7 +101,7 @@ export default function ParentRegister() {
         phone,
         email: form.email || undefined,
         password: form.password,
-        rollNo: studentIdentifier.trim().toUpperCase(),
+        studentIdentifier: studentIdentifier.trim().toUpperCase(),
         relation: form.relation,
       });
       localStorage.setItem('token', r.data.token);
@@ -119,7 +119,7 @@ export default function ParentRegister() {
     setLoading(true);
     try {
       const r = await api.post('/parent/request-register-otp', {
-        rollNo: studentIdentifier.trim().toUpperCase(),
+        studentIdentifier: studentIdentifier.trim().toUpperCase(),
       });
       toast.success(`OTP resent to ${r.data.maskedPhone}`);
     } catch (err) {
@@ -179,8 +179,8 @@ export default function ParentRegister() {
                 </div>
                 <h2 className="font-bold text-gray-800">Find Your Child</h2>
                 <p className="text-sm text-gray-500 mt-1">
-                  Enter your child's Roll Number.
-                  If Roll No is not assigned yet, you can use Admission Number.
+                  Enter your child's Student ID.
+                  You can use Roll Number or Admission Number.
                   OTP will be sent to the parent phone saved in college records.
                 </p>
               </div>
@@ -195,7 +195,7 @@ export default function ParentRegister() {
 
               <div>
                 <label className="label">
-                  Roll Number <span className="text-red-500">*</span>
+                  Student ID <span className="text-red-500">*</span>
                 </label>
                 <input
                   className="input font-mono text-center text-lg tracking-wider uppercase"
