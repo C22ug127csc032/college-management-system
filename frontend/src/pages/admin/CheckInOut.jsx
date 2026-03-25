@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import api from '../../api/axios';
-import { PageHeader, FilterBar, EmptyState, PageSpinner } from '../../components/common';
+import { EmptyState, FilterBar, PageHeader, PageSpinner } from '../../components/common';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import { FiCheck, FiClock } from '../../components/common/icons';
@@ -32,15 +32,20 @@ export default function CheckInOut() {
 
   const fetchRecords = useCallback(async () => {
     setLoading(true);
-    const params = {};
-    if (filters.startDate) params.startDate = filters.startDate;
-    if (filters.endDate) params.endDate = filters.endDate;
-    if (filters.type) params.type = filters.type;
-    if (filters.location) params.location = filters.location;
-    if (!isHostelWarden && filters.department) params.department = filters.department;
-    const response = await api.get('/checkin', { params });
-    setRecords(response.data.records || []);
-    setLoading(false);
+    try {
+      const params = { limit: 50 };
+      if (filters.startDate) params.startDate = filters.startDate;
+      if (filters.endDate) params.endDate = filters.endDate;
+      if (filters.type) params.type = filters.type;
+      if (filters.location) params.location = filters.location;
+      if (!isHostelWarden && filters.department) params.department = filters.department;
+      const response = await api.get('/checkin', { params });
+      setRecords(response.data.records || []);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to load movement records');
+    } finally {
+      setLoading(false);
+    }
   }, [filters, isHostelWarden]);
 
   useEffect(() => {
@@ -54,6 +59,14 @@ export default function CheckInOut() {
       .catch(() => {});
   }, [isHostelWarden]);
 
+  const today = new Date().toDateString();
+  const todaysRecords = useMemo(
+    () => records.filter(record => new Date(record.timestamp).toDateString() === today),
+    [records, today]
+  );
+  const todayIn = todaysRecords.filter(record => record.type === 'check_in').length;
+  const todayOut = todaysRecords.filter(record => record.type === 'check_out').length;
+
   const findStudent = async () => {
     if (!form.studentIdentifier.trim()) return;
     try {
@@ -63,11 +76,11 @@ export default function CheckInOut() {
       const student = response.data.student;
       setStudentId(student._id);
       setStudentName(`${student.firstName} ${student.lastName}`);
-      setStudentRollNo(student.rollNo || '');
+      setStudentRollNo(student.rollNo || student.admissionNo || student.regNo || '');
       setStudentHostelRoom(student.hostelRoom || '');
       toast.success(`Found: ${student.firstName} ${student.lastName}`);
-    } catch {
-      toast.error('Student not found');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Student not found');
       setStudentId('');
       setStudentName('');
       setStudentRollNo('');
@@ -89,16 +102,21 @@ export default function CheckInOut() {
         remarks: form.remarks,
       });
       toast.success(
-        `${form.type === 'check_in' ? 'Check-in' : 'Check-out'} recorded and parent notified`
+        `${form.type === 'check_in' ? 'Check-in' : 'Check-out'} recorded and portals updated`
       );
-      setForm(current => ({ ...current, studentIdentifier: '', remarks: '' }));
+      setForm({
+        studentIdentifier: '',
+        type: 'check_in',
+        location: isHostelWarden ? 'hostel' : 'gate',
+        remarks: '',
+      });
       setStudentId('');
       setStudentName('');
       setStudentRollNo('');
       setStudentHostelRoom('');
       fetchRecords();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to record');
+      toast.error(err.response?.data?.message || 'Failed to record movement');
     }
   };
 
@@ -107,100 +125,102 @@ export default function CheckInOut() {
     courses.map(course => course.department?.trim()).filter(Boolean)
   )].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 
-  const todayIn = records.filter(record => record.type === 'check_in').length;
-  const todayOut = records.filter(record => record.type === 'check_out').length;
-
   return (
     <div>
       <PageHeader
         title="Check-In / Check-Out"
         subtitle={isHostelWarden
-          ? 'Record and track hostel student movement'
-          : 'Record and track student movement'}
+          ? 'Hostel warden can record hostel and hostel gate movement'
+          : 'Admin and staff can record movement. The next entry must be the opposite action at the same place.'}
       />
 
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="card bg-green-50 border-green-200">
           <p className="text-2xl font-bold text-green-700">{todayIn}</p>
-          <p className="text-sm text-green-600">Check-ins shown</p>
+          <p className="text-sm text-green-600">Today's check-ins shown</p>
         </div>
         <div className="card bg-yellow-50 border-yellow-200">
           <p className="text-2xl font-bold text-yellow-700">{todayOut}</p>
-          <p className="text-sm text-yellow-600">Check-outs shown</p>
+          <p className="text-sm text-yellow-600">Today's check-outs shown</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className={`grid grid-cols-1 ${isHostelWarden ? 'lg:grid-cols-3' : 'lg:grid-cols-3'} gap-6`}>
         <div className="card">
-          <h3 className="section-title">Record Entry</h3>
-          <div className="space-y-3">
-            <div className="flex gap-2">
-              <input
-                className="input flex-1"
-                placeholder={isHostelWarden ? 'Roll / Reg / Admission No' : 'Reg No e.g. REG12345'}
-                value={form.studentIdentifier}
-                onChange={event => setForm(current => ({
-                  ...current,
-                  studentIdentifier: event.target.value,
-                }))}
-                onKeyDown={event => event.key === 'Enter' && findStudent()}
-              />
-              <button onClick={findStudent} className="btn-secondary text-sm px-3">
-                Find
-              </button>
-            </div>
+            <h3 className="section-title">Record Entry</h3>
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <input
+                  className="input flex-1"
+                  placeholder={isHostelWarden ? 'Roll / Reg / Admission No' : 'Roll / Reg / Admission No'}
+                  value={form.studentIdentifier}
+                  onChange={event => setForm(current => ({
+                    ...current,
+                    studentIdentifier: event.target.value,
+                  }))}
+                  onKeyDown={event => event.key === 'Enter' && findStudent()}
+                />
+                <button onClick={findStudent} className="btn-secondary text-sm px-3">
+                  Find
+                </button>
+              </div>
 
-            {studentName && (
-              <p className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded">
-                <span className="inline-flex items-center gap-1">
-                  <FiCheck />
-                  {studentName}
-                  {studentRollNo ? ` (Roll No: ${studentRollNo})` : ''}
-                  {isHostelWarden && studentHostelRoom ? ` • Room ${studentHostelRoom}` : ''}
-                </span>
-              </p>
-            )}
-
-            <select
-              className="input"
-              value={form.type}
-              onChange={event => setForm(current => ({ ...current, type: event.target.value }))}
-            >
-              <option value="check_in">Check In</option>
-              <option value="check_out">Check Out</option>
-            </select>
-
-            <select
-              className="input"
-              value={form.location}
-              onChange={event => setForm(current => ({ ...current, location: event.target.value }))}
-            >
-              {isHostelWarden ? (
-                <>
-                  <option value="hostel">Hostel</option>
-                  <option value="gate">Hostel Gate</option>
-                </>
-              ) : (
-                <>
-                  <option value="gate">Main Gate</option>
-                  <option value="hostel">Hostel</option>
-                  <option value="campus">Campus</option>
-                </>
+              {studentName && (
+                <p className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded">
+                  <span className="inline-flex items-center gap-1">
+                    <FiCheck />
+                    {studentName}
+                    {studentRollNo ? ` (${studentRollNo})` : ''}
+                    {studentHostelRoom ? ` - Room ${studentHostelRoom}` : ''}
+                  </span>
+                </p>
               )}
-            </select>
 
-            <input
-              className="input"
-              placeholder="Remarks (optional)"
-              value={form.remarks}
-              onChange={event => setForm(current => ({ ...current, remarks: event.target.value }))}
-            />
+              <select
+                className="input"
+                value={form.type}
+                onChange={event => setForm(current => ({ ...current, type: event.target.value }))}
+              >
+                <option value="check_in">Check In</option>
+                <option value="check_out">Check Out</option>
+              </select>
 
-            <button onClick={handleRecord} className="btn-primary w-full">
-              Record Movement & Notify Parent
-            </button>
+              <select
+                className="input"
+                value={form.location}
+                onChange={event => setForm(current => ({ ...current, location: event.target.value }))}
+              >
+                {isHostelWarden ? (
+                  <>
+                    <option value="hostel">Hostel</option>
+                    <option value="gate">Hostel Gate</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="gate">Main Gate</option>
+                    <option value="hostel">Hostel</option>
+                    <option value="campus">Campus</option>
+                  </>
+                )}
+              </select>
+
+              <input
+                className="input"
+                placeholder="Remarks (optional)"
+                value={form.remarks}
+                onChange={event => setForm(current => ({ ...current, remarks: event.target.value }))}
+              />
+
+              <button onClick={handleRecord} className="btn-primary w-full">
+                Record Movement
+              </button>
+
+              <p className="text-xs text-gray-500 leading-relaxed">
+                Students must alternate movement: check in, then check out, then check in again.
+                The next action must happen at the same place as the last movement record.
+              </p>
+            </div>
           </div>
-        </div>
 
         <div className="lg:col-span-2 card overflow-x-auto">
           <h3 className="section-title">Movement Records</h3>
@@ -228,7 +248,7 @@ export default function CheckInOut() {
               <option value="check_out">Check Out</option>
             </select>
             <select
-              className="input w-32"
+              className="input w-40"
               value={filters.location}
               onChange={event => setFilter('location', event.target.value)}
             >
@@ -258,18 +278,19 @@ export default function CheckInOut() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="table-header">Student</th>
-                  <th className="table-header">{isHostelWarden ? 'Class' : 'Department'}</th>
-                  {isHostelWarden && <th className="table-header">Room</th>}
+                  <th className="table-header">Class / Department</th>
+                  <th className="table-header">Room</th>
                   <th className="table-header">Reg No</th>
                   <th className="table-header">Roll No</th>
                   <th className="table-header">Type</th>
                   <th className="table-header">Location</th>
                   <th className="table-header">Time</th>
+                  <th className="table-header">Recorded By</th>
                   <th className="table-header">Remarks</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {records.slice(0, 30).map(record => (
+                {records.map(record => (
                   <tr key={record._id} className="hover:bg-gray-50">
                     <td className="table-cell">
                       <p className="font-medium">
@@ -277,31 +298,32 @@ export default function CheckInOut() {
                       </p>
                     </td>
                     <td className="table-cell text-xs text-gray-500">
-                      {isHostelWarden
-                        ? (record.student?.className || '—')
-                        : (record.student?.course?.department || '—')}
+                      {record.student?.className || record.student?.course?.department || '-'}
                     </td>
-                    {isHostelWarden && (
-                      <td className="table-cell text-xs text-gray-500">
-                        {record.student?.hostelRoom || '—'}
-                      </td>
-                    )}
-                    <td className="table-cell font-mono text-xs text-gray-500">
-                      {record.student?.regNo || '—'}
+                    <td className="table-cell text-xs text-gray-500">
+                      {record.student?.hostelRoom || '-'}
                     </td>
                     <td className="table-cell font-mono text-xs text-gray-500">
-                      {record.student?.rollNo || record.student?.admissionNo || '—'}
+                      {record.student?.regNo || '-'}
+                    </td>
+                    <td className="table-cell font-mono text-xs text-gray-500">
+                      {record.student?.rollNo || record.student?.admissionNo || '-'}
                     </td>
                     <td className="table-cell">
                       <span className={`badge-${record.type === 'check_in' ? 'green' : 'yellow'}`}>
                         {record.type.replace('_', ' ')}
                       </span>
                     </td>
-                    <td className="table-cell capitalize">{record.location}</td>
+                    <td className="table-cell capitalize">
+                      {(record.location || '').replace('gate', 'hostel gate')}
+                    </td>
                     <td className="table-cell text-gray-500 text-xs">
                       {new Date(record.timestamp).toLocaleString('en-IN')}
                     </td>
-                    <td className="table-cell text-gray-400">{record.remarks || '—'}</td>
+                    <td className="table-cell text-xs text-gray-500">
+                      {record.recordedBy?.name || '-'}
+                    </td>
+                    <td className="table-cell text-gray-400">{record.remarks || '-'}</td>
                   </tr>
                 ))}
               </tbody>

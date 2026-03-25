@@ -49,6 +49,8 @@ import { createNotifications, getCircularRecipientIds } from '../utils/appNotifi
 import Student from '../models/Student.model.js';
 import Course from '../models/Course.model.js';
 import { getPreferredStudentIdentifier } from '../utils/studentIdentity.js';
+import StudentFees from '../models/StudentFees.model.js';
+import Ledger from '../models/Ledger.model.js';
 
 const getTeacherCourseIds = async user => {
   if (user?.role !== 'class_teacher' || !user.department) return [];
@@ -226,17 +228,98 @@ export const circular = {
 import libraryModels from '../models/Library.model.js';
 const { Book, BookIssue } = libraryModels;
 
+const LIBRARY_FINE_HEAD = 'Library Fine';
+
+const getNumericValue = (value, fallback = 0) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+};
+
+const buildLibraryFineDescription = ({ bookTitle, dueDate, returnDate, overdueDays }) => (
+  `Library fine for \"${bookTitle}\" returned ${overdueDays} day(s) late. Due ${dueDate.toLocaleDateString('en-IN')}, returned ${returnDate.toLocaleDateString('en-IN')}.`
+);
+
+const addLibraryFineToStudentFees = async ({ studentId, amount, description, academicYear, userId }) => {
+  if (!amount || amount <= 0) return null;
+
+  let studentFees = await StudentFees.findOne({
+    student: studentId,
+    status: { $in: ['pending', 'partial', 'overdue'] },
+  }).sort({ dueDate: 1, createdAt: 1 });
+
+  if (!studentFees) {
+    studentFees = await StudentFees.findOne({ student: studentId }).sort({ createdAt: -1 });
+  }
+
+  if (!studentFees) {
+    const currentYear = new Date().getFullYear();
+    studentFees = new StudentFees({
+      student: studentId,
+      academicYear: academicYear || `${currentYear}-${currentYear + 1}`,
+      feeHeads: [],
+      totalAmount: 0,
+      totalFine: 0,
+      assignedBy: userId,
+    });
+  }
+
+  const existingHead = studentFees.feeHeads.find(head => head.headName === LIBRARY_FINE_HEAD);
+  if (existingHead) {
+    existingHead.amount = getNumericValue(existingHead.amount) + amount;
+    existingHead.due = getNumericValue(existingHead.due) + amount;
+  } else {
+    studentFees.feeHeads.push({
+      headName: LIBRARY_FINE_HEAD,
+      amount,
+      paid: 0,
+      due: amount,
+    });
+  }
+
+  studentFees.totalFine = getNumericValue(studentFees.totalFine) + amount;
+  studentFees.markModified('feeHeads');
+  await studentFees.save();
+
+  await Ledger.create({
+    student: studentId,
+    type: 'debit',
+    category: 'fine',
+    amount,
+    description,
+    feesRef: studentFees._id,
+    academicYear: studentFees.academicYear,
+    createdBy: userId,
+  });
+
+  return studentFees;
+};
+
 export const library = {
   addBook: async (req, res) => {
     try {
-      const book = await Book.create(req.body);
+      const totalCopies = Math.max(1, getNumericValue(req.body.totalCopies, 1));
+      const book = await Book.create({
+        ...req.body,
+        totalCopies,
+        availableCopies: totalCopies,
+      });
       res.status(201).json({ success: true, book });
     } catch (err) { res.status(500).json({ success: false, message: err.message }); }
   },
   updateBook: async (req, res) => {
     try {
-      const book = await Book.findByIdAndUpdate(req.params.id, req.body, { new: true });
-      if (!book) return res.status(404).json({ success: false, message: 'Book not found' });
+      const existingBook = await Book.findById(req.params.id);
+      if (!existingBook) return res.status(404).json({ success: false, message: 'Book not found' });
+
+      const payload = { ...req.body };
+      if (payload.totalCopies !== undefined) {
+        const nextTotalCopies = Math.max(1, getNumericValue(payload.totalCopies, existingBook.totalCopies));
+        const issuedCopies = Math.max(getNumericValue(existingBook.totalCopies) - getNumericValue(existingBook.availableCopies), 0);
+        payload.totalCopies = nextTotalCopies;
+        payload.availableCopies = Math.max(nextTotalCopies - issuedCopies, 0);
+      }
+
+      const book = await Book.findByIdAndUpdate(req.params.id, payload, { new: true });
       res.json({ success: true, book });
     } catch (err) { res.status(500).json({ success: false, message: err.message }); }
   },
@@ -294,32 +377,61 @@ export const library = {
   issueBook: async (req, res) => {
     try {
       const { bookId, studentId, dueDate } = req.body;
-      const book = await Book.findById(bookId);
-      if (!book || book.availableCopies < 1) return res.status(400).json({ success: false, message: 'Book not available' });
-      book.availableCopies -= 1;
-      await book.save();
+      const existingIssue = await BookIssue.findOne({ book: bookId, student: studentId, status: 'issued' });
+      if (existingIssue) return res.status(400).json({ success: false, message: 'This student already has this book issued' });
+
+      const book = await Book.findOneAndUpdate(
+        { _id: bookId, isActive: true, availableCopies: { $gt: 0 } },
+        { $inc: { availableCopies: -1 } },
+        { new: true }
+      );
+      if (!book) return res.status(400).json({ success: false, message: 'Book not available' });
+
       const issue = await BookIssue.create({ book: bookId, student: studentId, dueDate, issuedBy: req.user.id });
       res.status(201).json({ success: true, issue });
     } catch (err) { res.status(500).json({ success: false, message: err.message }); }
   },
   returnBook: async (req, res) => {
     try {
-      const issue = await BookIssue.findById(req.params.id);
+      const issue = await BookIssue.findById(req.params.id)
+        .populate('book', 'title')
+        .populate('student', 'academicYear');
       if (!issue) return res.status(404).json({ success: false, message: 'Issue record not found' });
+      if (issue.status === 'returned') return res.status(400).json({ success: false, message: 'Book already returned' });
+
       const returnDate = new Date();
       const dueDate = new Date(issue.dueDate);
       let fine = 0;
+      let overdueDays = 0;
       if (returnDate > dueDate) {
-        const overdueDays = Math.ceil((returnDate - dueDate) / (1000 * 60 * 60 * 24));
-        fine = overdueDays * 5; // ₹5 per day
+        overdueDays = Math.ceil((returnDate - dueDate) / (1000 * 60 * 60 * 24));
+        fine = overdueDays * 5;
       }
       issue.returnDate = returnDate;
       issue.fine = fine;
       issue.status = 'returned';
       issue.returnedTo = req.user.id;
       await issue.save();
-      await Book.findByIdAndUpdate(issue.book, { $inc: { availableCopies: 1 } });
-      res.json({ success: true, issue, fine });
+      await Book.findByIdAndUpdate(issue.book._id, { $inc: { availableCopies: 1 } });
+
+      let studentFees = null;
+      if (fine > 0) {
+        const description = buildLibraryFineDescription({
+          bookTitle: issue.book?.title || 'book',
+          dueDate,
+          returnDate,
+          overdueDays,
+        });
+        studentFees = await addLibraryFineToStudentFees({
+          studentId: issue.student._id,
+          amount: fine,
+          description,
+          academicYear: issue.student?.academicYear,
+          userId: req.user.id,
+        });
+      }
+
+      res.json({ success: true, issue, fine, studentFeesId: studentFees?._id || null });
     } catch (err) { res.status(500).json({ success: false, message: err.message }); }
   },
   getIssues: async (req, res) => {

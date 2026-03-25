@@ -25,16 +25,11 @@ import AssignFees from './pages/admin/AssignFees';
 import PaymentsAdmin from './pages/admin/PaymentsAdmin';
 import FeesList from './pages/admin/FeesList';
 import LeaveManagement from './pages/admin/LeaveManagement';
-import OutpassManagement from './pages/admin/OutpassManagement';
 import CheckInOut from './pages/admin/CheckInOut';
 import InventoryPage from './pages/admin/InventoryPage';
-import ExpensePage from './pages/admin/ExpensePage';
-import CircularsAdmin from './pages/admin/CircularsAdmin';
-import LibraryAdmin from './pages/admin/LibraryAdmin';
+import { CircularsAdmin, CoursesPage, ExpensePage, LibraryAdmin, OutpassManagement, StaffManagement } from './pages/admin/AdminPages';
 import LibraryDashboard from './pages/admin/LibraryDashboard';
 import HostelWardenDashboard from './pages/admin/HostelWardenDashboard';
-import StaffManagement from './pages/admin/StaffManagement';
-import CoursesPage from './pages/admin/CoursesPage';
 import ReportsPage from './pages/admin/ReportsPage';
 import NotificationsPage from './pages/admin/NotificationsPage';
 

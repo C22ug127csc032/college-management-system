@@ -121,6 +121,9 @@ export const getOutpasses = async (req, res) => {
 export const updateOutpassStatus = async (req, res) => {
   try {
     const { status, remarks } = req.body;
+    if (!['approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid outpass status update' });
+    }
     const existingOutpass = await Outpass.findById(req.params.id).populate('student', 'course isHosteler');
     if (!existingOutpass) return res.status(404).json({ success: false, message: 'Outpass not found' });
 
@@ -139,6 +142,10 @@ export const updateOutpassStatus = async (req, res) => {
         success: false,
         message: 'Hostel warden can manage outpass only for hostel students',
       });
+    }
+
+    if (existingOutpass.status !== 'pending') {
+      return res.status(400).json({ success: false, message: `Outpass is already ${existingOutpass.status}` });
     }
 
     const outpass = await Outpass.findByIdAndUpdate(req.params.id, {
@@ -186,6 +193,10 @@ export const markReturned = async (req, res) => {
         success: false,
         message: 'Hostel warden can manage outpass only for hostel students',
       });
+    }
+
+    if (existingOutpass.status !== 'approved') {
+      return res.status(400).json({ success: false, message: 'Only approved outpass can be marked returned' });
     }
 
     const outpass = await Outpass.findByIdAndUpdate(req.params.id, {

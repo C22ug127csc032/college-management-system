@@ -30,7 +30,10 @@ export const authorize = (...roles) => (req, res, next) => {
 export const superAdminOnly = authorize('super_admin');
 export const adminOnly      = authorize('super_admin', 'admin');
 export const adminOrTeacher = authorize('super_admin', 'admin', 'class_teacher');
+export const adminOrTeacherOrWarden = authorize('super_admin', 'admin', 'class_teacher', 'hostel_warden');
 export const hostelStaff    = authorize('super_admin', 'admin', 'hostel_warden', 'class_teacher');
+export const hostelWardenOnly = authorize('hostel_warden');
+export const hostelOutpassStaff = authorize('super_admin', 'admin', 'hostel_warden');
 export const shopStaff      = authorize('super_admin', 'admin', 'shop_operator');
 export const libStaff       = authorize('super_admin', 'admin', 'librarian');
 export const parentOnly     = authorize('parent');
@@ -42,7 +45,10 @@ export default {
   superAdminOnly,
   adminOnly,
   adminOrTeacher,
+  adminOrTeacherOrWarden,
   hostelStaff,
+  hostelWardenOnly,
+  hostelOutpassStaff,
   shopStaff,
   libStaff,
   parentOnly,

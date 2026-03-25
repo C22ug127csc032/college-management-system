@@ -2,11 +2,11 @@ import express from 'express';
 const r = express.Router();
 import c from '../controllers/student.controller.js';
 import middleware_auth_middleware from '../middleware/auth.middleware.js';
-const { protect, adminOnly, adminOrTeacher } = middleware_auth_middleware;
+const { protect, adminOnly, adminOrTeacher, adminOrTeacherOrWarden } = middleware_auth_middleware;
 import upload from '../middleware/upload.middleware.js';
 
 // ── Stats & Special routes first ──────────────────────────────────────────────
-r.get('/stats/summary',             protect, adminOrTeacher, c.getStudentStats);
+r.get('/stats/summary',             protect, adminOrTeacherOrWarden, c.getStudentStats);
 r.get('/adm/:admissionNo',          protect,                 c.getStudentByAdmissionNo);
 r.get('/reg/:regNo',                protect,                 c.getStudentByRegNo);
 r.get('/lookup/:identifier',        protect,                 c.getStudentByIdentifier);

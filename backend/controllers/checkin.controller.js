@@ -3,7 +3,10 @@ import Student from '../models/Student.model.js';
 import Course from '../models/Course.model.js';
 import mongoose from 'mongoose';
 import utils_notifications from '../utils/notifications.js';
-import { createNotifications, getStudentNotificationRecipientIds } from '../utils/appNotifications.js';
+import {
+  createNotifications,
+  getStudentNotificationRecipientIds,
+} from '../utils/appNotifications.js';
 const { sendSMS } = utils_notifications;
 
 const getTeacherCourseIds = async user => {
@@ -25,14 +28,34 @@ const getTeacherCourseIds = async user => {
 export const record = async (req, res) => {
   try {
     const { studentId, type, location, remarks } = req.body;
+    const normalizedType = String(type || '').trim();
+    const normalizedLocation = String(location || '').trim();
+
+    if (!['check_in', 'check_out'].includes(normalizedType)) {
+      return res.status(400).json({ success: false, message: 'Invalid movement type' });
+    }
+
+    if (!['hostel', 'gate', 'campus'].includes(normalizedLocation)) {
+      return res.status(400).json({ success: false, message: 'Invalid movement location' });
+    }
+
     const student = await Student.findById(studentId);
     if (!student) return res.status(404).json({ success: false, message: 'Student not found' });
 
-    if (req.user.role === 'hostel_warden' && !student.isHosteler) {
-      return res.status(403).json({
-        success: false,
-        message: 'Hostel warden can record movement only for hostel students',
-      });
+    if (req.user.role === 'hostel_warden') {
+      if (!student.isHosteler) {
+        return res.status(403).json({
+          success: false,
+          message: 'Hostel warden can record movement only for hostel students',
+        });
+      }
+
+      if (!['hostel', 'gate'].includes(normalizedLocation)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Hostel warden can record movement only for hostel or hostel gate',
+        });
+      }
     }
 
     if (req.user.role === 'class_teacher') {
@@ -45,14 +68,47 @@ export const record = async (req, res) => {
       }
     }
 
-    const record = await CheckIn.create({ student: studentId, type, location, remarks, recordedBy: req.user.id });
+    const latestRecord = await CheckIn.findOne({ student: studentId }).sort('-timestamp');
+    if (!latestRecord && normalizedType === 'check_out') {
+      return res.status(400).json({
+        success: false,
+        message: 'Student must check in first before check out',
+      });
+    }
 
-    const msg = `${student.firstName} ${student.lastName} has ${type === 'check_in' ? 'entered' : 'exited'} ${location} at ${new Date().toLocaleTimeString()}.`;
+    if (latestRecord?.type === normalizedType) {
+      const currentAction = normalizedType === 'check_in' ? 'checked in' : 'checked out';
+      const nextAction = normalizedType === 'check_in' ? 'check out' : 'check in';
+      return res.status(400).json({
+        success: false,
+        message: `Student is already ${currentAction} at ${latestRecord.location}. Please ${nextAction} next.`,
+      });
+    }
+
+    if (latestRecord && latestRecord.location !== normalizedLocation) {
+      const requiredAction = latestRecord.type === 'check_in' ? 'check out' : 'check in';
+      return res.status(400).json({
+        success: false,
+        message: `Student is currently linked to ${latestRecord.location}. Please ${requiredAction} at ${latestRecord.location} first.`,
+      });
+    }
+
+    const record = await CheckIn.create({
+      student: studentId,
+      type: normalizedType,
+      location: normalizedLocation,
+      remarks,
+      recordedBy: req.user.id,
+    });
+
+    const formattedLocation = normalizedLocation === 'gate' ? 'hostel gate' : normalizedLocation;
+    const msg = `${student.firstName} ${student.lastName} has ${normalizedType === 'check_in' ? 'checked in to' : 'checked out from'} ${formattedLocation} at ${new Date(record.timestamp).toLocaleTimeString('en-IN')}.`;
+
     await createNotifications({
       recipientIds: await getStudentNotificationRecipientIds(student),
       student: student._id,
       type: 'checkin',
-      title: type === 'check_in' ? 'Check-in recorded' : 'Check-out recorded',
+      title: normalizedType === 'check_in' ? 'Check-in recorded' : 'Check-out recorded',
       message: msg,
       reference: String(record._id),
     });

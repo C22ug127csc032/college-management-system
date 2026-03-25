@@ -92,435 +92,89 @@ export function OutpassManagement() {
 
   return (
     <div>
-      <PageHeader title="Outpass Management" />
-      <div className="card">
-        <FilterBar>
-          {['', 'pending', 'approved', 'returned', 'rejected'].map(s => (
-            <button key={s} onClick={() => setFilter(s)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium ${filter === s ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-              {s || 'All'}
+      <PageHeader
+        title="Library"
+        subtitle={tab === 'books' ? 'Catalog and stock overview' : 'Issued and returned books'}
+        action={
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <button
+              onClick={() => { setEditingBookId(''); setBookForm(initialBookForm); setShowAdd(true); }}
+              className="btn-secondary min-h-[42px] px-5 text-sm font-medium whitespace-nowrap"
+            >
+              + Add Book
             </button>
-          ))}
-        </FilterBar>
-        {loading ? <PageSpinner /> : (
-          <Table headers={['Student', 'Exit Date', 'Return Date', 'Destination', 'Reason', 'Status', 'Actions']}>
-            {list.map(o => (
-              <tr key={o._id} className="hover:bg-gray-50">
-                <td className="table-cell"><p className="font-medium">{o.student?.firstName} {o.student?.lastName}</p><p className="text-xs text-gray-400">{o.student?.regNo}</p></td>
-                <td className="table-cell">{new Date(o.exitDate).toLocaleDateString('en-IN')}</td>
-                <td className="table-cell">{new Date(o.expectedReturn).toLocaleDateString('en-IN')}</td>
-                <td className="table-cell">{o.destination || '–'}</td>
-                <td className="table-cell max-w-xs truncate">{o.reason}</td>
-                <td className="table-cell"><StatusBadge status={o.status} /></td>
-                <td className="table-cell flex gap-1">
-                  {o.status === 'pending' && <button onClick={() => { setSelected(o); setRemark(''); }} className="text-primary-600 text-sm hover:underline">Review</button>}
-                  {o.status === 'approved' && <button onClick={() => markReturned(o._id)} className="text-green-600 text-sm hover:underline">Return</button>}
-                </td>
-              </tr>
-            ))}
-          </Table>
-        )}
-        {!loading && list.length === 0 && <EmptyState message="No outpass requests" icon={<FiLogOut />} />}
-      </div>
-      <Modal open={!!selected} onClose={() => setSelected(null)} title="Review Outpass">
-        {selected && (
-          <div className="space-y-4">
-            <div className="bg-gray-50 p-3 rounded-lg text-sm space-y-1">
-              <p><strong>{selected.student?.firstName} {selected.student?.lastName}</strong></p>
-              <p>Exit: {new Date(selected.exitDate).toLocaleDateString('en-IN')} | Return: {new Date(selected.expectedReturn).toLocaleDateString('en-IN')}</p>
-              <p>Reason: {selected.reason}</p>
-            </div>
-            <textarea className="input" rows={2} value={remark} onChange={e => setRemark(e.target.value)} placeholder="Remarks..." />
-            <div className="flex gap-3">
-              <button onClick={() => action(selected._id, 'approved')} className="btn-success flex-1">Approve</button>
-              <button onClick={() => action(selected._id, 'rejected')} className="btn-danger flex-1">Reject</button>
-            </div>
-          </div>
-        )}
-      </Modal>
-    </div>
-  );
-}
-
-// ─── CHECK-IN / OUT ───────────────────────────────────────────────────────────
-export function CheckInOut() {
-  const [records, setRecords] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ studentRegNo: '', type: 'check_in', location: 'gate', remarks: '' });
-  const [studentId, setStudentId] = useState('');
-
-  useEffect(() => {
-    api.get('/checkin').then(r => setRecords(r.data.records)).finally(() => setLoading(false));
-  }, []);
-
-  const findStudent = async () => {
-    try {
-      const r = await api.get(`/students/reg/${form.studentRegNo}`);
-      setStudentId(r.data.student._id);
-      toast.success(`Student found: ${r.data.student.firstName} ${r.data.student.lastName}`);
-    } catch { toast.error('Student not found'); setStudentId(''); }
-  };
-
-  const handleRecord = async () => {
-    if (!studentId) { toast.error('Find student first'); return; }
-    await api.post('/checkin', { studentId, type: form.type, location: form.location, remarks: form.remarks });
-    toast.success('Check-in/out recorded');
-    const r = await api.get('/checkin');
-    setRecords(r.data.records);
-    setForm(f => ({ ...f, studentRegNo: '', remarks: '' })); setStudentId('');
-  };
-
-  return (
-    <div>
-      <PageHeader title="Check-In / Check-Out" />
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <div className="card">
-          <h3 className="section-title">Record Entry</h3>
-          <div className="space-y-3">
-            <div className="flex gap-2">
-              <input className="input flex-1" placeholder="Registration No" value={form.studentRegNo} onChange={e => setForm(f => ({ ...f, studentRegNo: e.target.value }))} />
-              <button onClick={findStudent} className="btn-secondary text-sm px-3">Find</button>
-            </div>
-            {studentId && <p className="text-xs text-green-600 font-medium flex items-center gap-1"><FiCheckCircle /> Student found</p>}
-            <select className="input" value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
-              <option value="check_in">Check In</option>
-              <option value="check_out">Check Out</option>
-            </select>
-            <select className="input" value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))}>
-              <option value="gate">Main Gate</option>
-              <option value="hostel">Hostel</option>
-              <option value="campus">Campus</option>
-            </select>
-            <input className="input" placeholder="Remarks (optional)" value={form.remarks} onChange={e => setForm(f => ({ ...f, remarks: e.target.value }))} />
-            <button onClick={handleRecord} className="btn-primary w-full">Record</button>
-          </div>
-        </div>
-        <div className="lg:col-span-2 card overflow-x-auto">
-          <h3 className="section-title">Recent Records</h3>
-          {loading ? <PageSpinner /> : (
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50"><tr><th className="table-header">Student</th><th className="table-header">Type</th><th className="table-header">Location</th><th className="table-header">Time</th></tr></thead>
-              <tbody className="divide-y divide-gray-50">
-                {records.slice(0, 20).map(r => (
-                  <tr key={r._id}>
-                    <td className="table-cell font-medium">{r.student?.firstName} {r.student?.lastName}</td>
-                    <td className="table-cell"><span className={`badge-${r.type === 'check_in' ? 'green' : 'yellow'}`}>{r.type.replace('_', ' ')}</span></td>
-                    <td className="table-cell capitalize">{r.location}</td>
-                    <td className="table-cell text-gray-500">{new Date(r.timestamp).toLocaleString('en-IN')}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── PAYMENTS ADMIN ───────────────────────────────────────────────────────────
-export function PaymentsAdmin() {
-  const [payments, setPayments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [filters, setFilters] = useState({ startDate: '', endDate: '', mode: '', search: '', department: '' });
-  const [showManual, setShowManual] = useState(false);
-  const [students, setStudents] = useState([]);
-  const [studentFeesOptions, setStudentFeesOptions] = useState([]);
-  const [manualForm, setManualForm] = useState({ studentId: '', studentFeesId: '', amount: '', paymentMode: 'cash', description: '' });
-
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    const r = await api.get('/payments', { params: { page, limit: 20, ...filters } });
-    setPayments(r.data.payments); setTotal(r.data.total); setLoading(false);
-  }, [page, filters]);
-  useEffect(() => { fetch(); }, [fetch]);
-  useEffect(() => { api.get('/students?limit=500').then(r => setStudents(r.data.students)); }, []);
-  useEffect(() => {
-    if (!manualForm.studentId) {
-      setStudentFeesOptions([]);
-      return;
-    }
-    api.get(`/fees/student/${manualForm.studentId}`)
-      .then(r => setStudentFeesOptions((r.data.fees || []).filter(f => f.totalDue > 0)))
-      .catch(() => setStudentFeesOptions([]));
-  }, [manualForm.studentId]);
-  const selectedFee = studentFeesOptions.find(f => f._id === manualForm.studentFeesId);
-  const departments = [...new Set(
-    students
-      .map(student => student.course?.department?.trim())
-      .filter(Boolean)
-  )].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
-
-  const groupedPayments = payments.reduce((groups, payment) => {
-    const department = payment.student?.course?.department || 'Unassigned Department';
-    const existingGroup = groups.find(group => group.key === department);
-
-    if (existingGroup) {
-      existingGroup.payments.push(payment);
-      return groups;
-    }
-
-    groups.push({
-      key: department,
-      title: department,
-      payments: [payment],
-    });
-    return groups;
-  }, []);
-
-  const renderPaymentsTable = paymentRows => (
-    <Table headers={['Receipt No', 'Student', 'Date', 'Amount', 'Mode', 'Status', 'Receipt']}>
-      {paymentRows.map(p => (
-        <tr key={p._id} className="hover:bg-gray-50">
-          <td className="table-cell font-mono text-xs">{p.receiptNo}</td>
-          <td className="table-cell"><p className="font-medium">{p.student?.firstName} {p.student?.lastName}</p><p className="text-xs text-gray-400">{p.student?.regNo}</p><p className="text-xs text-gray-400 mt-0.5">{p.student?.course?.name || 'No Course'}</p></td>
-          <td className="table-cell">{new Date(p.paymentDate).toLocaleDateString('en-IN')}</td>
-          <td className="table-cell font-semibold text-green-600">â‚¹{p.amount?.toLocaleString('en-IN')}</td>
-          <td className="table-cell uppercase text-xs">{p.paymentMode}</td>
-          <td className="table-cell"><StatusBadge status={p.status} /></td>
-          <td className="table-cell">
-            <button type="button" onClick={() => handleReceiptDownload(p._id)} className="text-primary-600 text-xs hover:underline">
-              PDF
+            <button
+              onClick={() => { setIssueForm(initialIssueForm); setShowIssue(true); }}
+              className="btn-primary min-h-[42px] px-5 text-sm font-medium whitespace-nowrap"
+            >
+              Issue Book
             </button>
-          </td>
-        </tr>
-      ))}
-    </Table>
-  );
-  const handleReceiptDownload = async (paymentId) => {
-    try {
-      await downloadPaymentReceipt(paymentId);
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to download receipt');
-    }
-  };
-
-  const handleManual = async e => {
-    e.preventDefault();
-    if (!manualForm.studentFeesId) {
-      toast.error('Select the assigned fee record');
-      return;
-    }
-    await api.post('/payments/manual', manualForm);
-    toast.success('Payment recorded'); setShowManual(false); fetch();
-    setManualForm({ studentId: '', studentFeesId: '', amount: '', paymentMode: 'cash', description: '' });
-  };
-
-  return (
-    <div>
-      <PageHeader title="Payments" action={<button onClick={() => setShowManual(true)} className="btn-primary">+ Manual Payment</button>} />
-      <div className="card">
-        <FilterBar>
-          <input className="input w-56" placeholder="Search student / reg no / phone" value={filters.search} onChange={e => { setFilters(f => ({ ...f, search: e.target.value })); setPage(1); }} />
-          <input type="date" className="input w-40" value={filters.startDate} onChange={e => { setFilters(f => ({ ...f, startDate: e.target.value })); setPage(1); }} />
-          <input type="date" className="input w-40" value={filters.endDate} onChange={e => { setFilters(f => ({ ...f, endDate: e.target.value })); setPage(1); }} />
-          <select className="input w-36" value={filters.mode} onChange={e => { setFilters(f => ({ ...f, mode: e.target.value })); setPage(1); }}>
-            <option value="">All Modes</option>
-            {['online','cash','cheque','dd','neft'].map(m => <option key={m} value={m}>{m.toUpperCase()}</option>)}
-          </select>
-          <select className="input w-48" value={filters.department} onChange={e => { setFilters(f => ({ ...f, department: e.target.value })); setPage(1); }}>
-            <option value="">All Departments</option>
-            {departments.map(department => <option key={department} value={department}>{department}</option>)}
-          </select>
-        </FilterBar>
-        {loading ? <PageSpinner /> : (
-          <Table headers={['Receipt No', 'Student', 'Date', 'Amount', 'Mode', 'Status', 'Receipt']}>
-            {payments.map(p => (
-              <tr key={p._id} className="hover:bg-gray-50">
-                <td className="table-cell font-mono text-xs">{p.receiptNo}</td>
-                <td className="table-cell"><p className="font-medium">{p.student?.firstName} {p.student?.lastName}</p><p className="text-xs text-gray-400">{p.student?.regNo}</p></td>
-                <td className="table-cell">{new Date(p.paymentDate).toLocaleDateString('en-IN')}</td>
-                <td className="table-cell font-semibold text-green-600">₹{p.amount?.toLocaleString('en-IN')}</td>
-                <td className="table-cell uppercase text-xs">{p.paymentMode}</td>
-                <td className="table-cell"><StatusBadge status={p.status} /></td>
-                <td className="table-cell">
-                  <button type="button" onClick={() => handleReceiptDownload(p._id)} className="text-primary-600 text-xs hover:underline">
-                    PDF
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </Table>
-        )}
-        {!loading && payments.length === 0 && <EmptyState message="No payments found" icon={<FiCreditCard />} />}
-        <Pagination page={page} pages={Math.ceil(total / 20)} onPage={setPage} />
-      </div>
-      <Modal open={showManual} onClose={() => setShowManual(false)} title="Manual Payment Entry">
-        <form onSubmit={handleManual} className="space-y-4">
-          <div><label className="label">Student *</label>
-            <SearchableStudentSelect
-              students={students}
-              value={manualForm.studentId}
-              onChange={studentId => setManualForm(f => ({ ...f, studentId, studentFeesId: '' }))}
-            />
           </div>
-          <div><label className="label">Assigned Fees *</label>
-            <select className="input" value={manualForm.studentFeesId} onChange={e => setManualForm(f => ({ ...f, studentFeesId: e.target.value }))} required disabled={!manualForm.studentId}>
-              <option value="">{manualForm.studentId ? 'Select assigned fee' : 'Select student first'}</option>
-              {studentFeesOptions.map(f => <option key={f._id} value={f._id}>{f.academicYear} / Sem {f.semester} - Due ₹{(f.totalDue || 0).toLocaleString('en-IN')}</option>)}
-            </select>
-          </div>
-          {selectedFee && (
-            <div className="bg-blue-50 rounded-lg p-3 text-sm space-y-1">
-              <p className="text-blue-800 font-medium">Total Fees: ₹{(selectedFee.totalAmount || 0).toLocaleString('en-IN')}</p>
-              <p className="text-green-700">Paid: ₹{(selectedFee.totalPaid || 0).toLocaleString('en-IN')}</p>
-              <p className="text-red-700">Remaining: ₹{(selectedFee.totalDue || 0).toLocaleString('en-IN')}</p>
-            </div>
-          )}
-          <div><label className="label">Amount *</label><input type="number" className="input" value={manualForm.amount} onChange={e => setManualForm(f => ({ ...f, amount: e.target.value }))} required /></div>
-          <div><label className="label">Mode</label>
-            <select className="input" value={manualForm.paymentMode} onChange={e => setManualForm(f => ({ ...f, paymentMode: e.target.value }))}>
-              {['cash','cheque','dd','neft'].map(m => <option key={m} value={m}>{m.toUpperCase()}</option>)}
-            </select>
-          </div>
-          <div><label className="label">Description</label><input className="input" value={manualForm.description} onChange={e => setManualForm(f => ({ ...f, description: e.target.value }))} /></div>
-          <div className="flex gap-3 justify-end">
-            <button type="button" onClick={() => setShowManual(false)} className="btn-secondary">Cancel</button>
-            <button type="submit" className="btn-primary">Record Payment</button>
-          </div>
-        </form>
-      </Modal>
-    </div>
-  );
-}
-
-// ─── FEES LIST ────────────────────────────────────────────────────────────────
-export function FeesList() {
-  const [fees, setFees] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [summary, setSummary] = useState({});
-  const [filters, setFilters] = useState({ status: '', academicYear: '', department: '' });
-
-  useEffect(() => {
-    setLoading(true);
-    Promise.all([
-      api.get('/fees/all', { params: { status: filters.status, academicYear: filters.academicYear } }),
-      api.get('/fees/summary', { params: { status: filters.status, academicYear: filters.academicYear } }),
-    ]).then(([f, s]) => { setFees(f.data.fees); setSummary(s.data.summary); }).finally(() => setLoading(false));
-  }, [filters.status, filters.academicYear]);
-
-  const fmt = n => '₹' + (n || 0).toLocaleString('en-IN');
-
-  return (
-    <div>
-      <PageHeader title="Fees List" />
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard icon={<FiDollarSign />} label="Total Billed" value={fmt(summary.totalBilled)} color="blue" />
-        <StatCard icon={<FiCheckCircle />} label="Collected" value={fmt(summary.totalCollected)} color="green" />
-        <StatCard icon={<FiClock />} label="Pending Dues" value={fmt(summary.totalDue)} color="yellow" />
-        <StatCard icon={<FiAlertOctagon />} label="Overdue" value={summary.overdueCount || 0} color="red" />
+        }
+      />
+      <div className="mb-5 flex flex-wrap items-center gap-2">
+        {['books', 'issues'].map(t => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`min-w-[96px] rounded-full px-4 py-2 text-sm font-semibold capitalize transition-colors ${tab === t ? 'bg-primary-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          >
+            {t}
+          </button>
+        ))}
       </div>
-      <div className="card">
-        <FilterBar>
-          <select className="input w-36" value={filters.status} onChange={e => setFilters(f => ({ ...f, status: e.target.value }))}>
-            <option value="">All Status</option>
-            {['pending','partial','paid','overdue'].map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <input className="input w-48" placeholder="Search Academic Year" value={filters.academicYear} onChange={e => setFilters(f => ({ ...f, academicYear: e.target.value }))} />
-        </FilterBar>
-        {loading ? <PageSpinner /> : (
-          <Table headers={['Student', 'Course', 'Year/Sem', 'Total', 'Paid', 'Balance', 'Status']}>
-            {fees.map(f => (
-              <tr key={f._id} className="hover:bg-gray-50">
-                <td className="table-cell"><p className="font-medium">{f.student?.firstName} {f.student?.lastName}</p><p className="text-xs text-gray-400">{f.student?.regNo}</p></td>
-                <td className="table-cell text-sm text-gray-500">{f.student?.course?.name}</td>
-                <td className="table-cell text-sm">{f.academicYear} / Sem {f.semester}</td>
-                <td className="table-cell font-medium">{fmt(f.totalAmount)}</td>
-                <td className="table-cell text-green-600">{fmt(f.totalPaid)}</td>
-                <td className="table-cell text-red-600 font-medium">{fmt(f.totalDue)}</td>
-                <td className="table-cell"><StatusBadge status={f.status} /></td>
-              </tr>
-            ))}
-          </Table>
+      <div className="card overflow-hidden p-0">
+        {tab === 'books' ? (
+          <div className="overflow-x-auto">
+            <Table headers={['Title', 'Author', 'ISBN', 'Category', 'Total', 'Available', 'Actions']}>
+              {books.map(b => (
+                <tr key={b._id} className="align-middle hover:bg-gray-50/80">
+                  <td className="table-cell font-semibold text-gray-900">{b.title}</td>
+                  <td className="table-cell text-gray-700">{b.author}</td>
+                  <td className="table-cell font-mono text-xs text-gray-500">{b.isbn || '?'}</td>
+                  <td className="table-cell text-gray-700">{b.category || '?'}</td>
+                  <td className="table-cell text-center font-medium text-gray-800">{b.totalCopies}</td>
+                  <td className="table-cell text-center">
+                    <span className={b.availableCopies > 0 ? 'font-semibold text-green-600' : 'font-semibold text-red-600'}>{b.availableCopies}</span>
+                  </td>
+                  <td className="table-cell">
+                    <div className="flex items-center justify-end gap-4 whitespace-nowrap text-sm font-medium">
+                      <button type="button" onClick={() => editBook(b)} className="text-primary-600 hover:underline">Edit</button>
+                      <button type="button" onClick={() => markBookUnavailable(b._id)} className="text-red-600 hover:underline">Mark Unavailable</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </Table>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table headers={['Student', 'Book', 'Issue Date', 'Due Date', 'Status', 'Fine', 'Actions']}>
+              {issues.map(i => (
+                <tr key={i._id} className="align-middle hover:bg-gray-50/80">
+                  <td className="table-cell">
+                    <p className="font-semibold text-gray-900">{i.student?.firstName} {i.student?.lastName}</p>
+                    <p className="mt-0.5 text-xs text-gray-400">{getStudentIdentifier(i.student)}</p>
+                  </td>
+                  <td className="table-cell text-gray-700">{i.book?.title}</td>
+                  <td className="table-cell text-gray-600">{new Date(i.issueDate).toLocaleDateString('en-IN')}</td>
+                  <td className="table-cell text-gray-600">{new Date(i.dueDate).toLocaleDateString('en-IN')}</td>
+                  <td className="table-cell text-center"><StatusBadge status={i.status} /></td>
+                  <td className="table-cell text-center">{i.fine > 0 ? <span className="font-semibold text-red-600">?{i.fine}</span> : '?'}</td>
+                  <td className="table-cell">
+                    <div className="flex items-center justify-end whitespace-nowrap">
+                      {i.status === 'issued' ? (
+                        <button onClick={() => returnBook(i._id)} className="text-green-600 text-sm font-medium hover:underline">Return</button>
+                      ) : (
+                        <span className="text-sm text-gray-300">?</span>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </Table>
+          </div>
         )}
-        {!loading && fees.length === 0 && <EmptyState message="No fees records found" />}
-      </div>
-    </div>
-  );
-}
-
-// ─── INVENTORY ───────────────────────────────────────────────────────────────
-export function InventoryPage() {
-  const initialInventoryForm = { name: '', category: 'general', unit: 'pcs', currentStock: 0, minStockAlert: 5, purchasePrice: 0 };
-  const initialTxnForm = { type: 'purchase', quantity: '', unitPrice: '', remarks: '' };
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showAdd, setShowAdd] = useState(false);
-  const [showTxn, setShowTxn] = useState(null);
-  const [transactions, setTransactions] = useState([]);
-  const [form, setForm] = useState(initialInventoryForm);
-  const [txnForm, setTxnForm] = useState(initialTxnForm);
-
-  const fetch = async () => {
-    const [itemsRes, txnsRes] = await Promise.all([
-      api.get('/inventory'),
-      api.get('/inventory/transactions'),
-    ]);
-    setItems(itemsRes.data.items);
-    setTransactions(txnsRes.data.transactions || []);
-    setLoading(false);
-  };
-  useEffect(() => { fetch(); }, []);
-
-  const addItem = async e => {
-    e.preventDefault();
-    await api.post('/inventory', form); toast.success('Item added'); setShowAdd(false); setForm(initialInventoryForm); fetch();
-  };
-  const addTxn = async e => {
-    e.preventDefault();
-    await api.post('/inventory/transactions', { inventoryId: showTxn._id, ...txnForm });
-    toast.success('Transaction recorded'); setShowTxn(null); setTxnForm(initialTxnForm); fetch();
-  };
-  return (
-    <div>
-      <PageHeader title="Inventory" action={<button onClick={() => { setForm(initialInventoryForm); setShowAdd(true); }} className="btn-primary">+ Add Item</button>} />
-      <div className="card">
-        {loading ? <PageSpinner /> : (
-          <Table headers={['Name', 'Category', 'Stock', 'Min Alert', 'Unit Price', 'Actions']}>
-            {items.map(item => (
-              <tr key={item._id} className={`hover:bg-gray-50 ${item.currentStock <= item.minStockAlert ? 'bg-red-50' : ''}`}>
-                <td className="table-cell font-medium">{item.name}</td>
-                <td className="table-cell capitalize">{item.category}</td>
-                <td className="table-cell">
-                  <span className={`font-semibold ${item.currentStock <= item.minStockAlert ? 'text-red-600' : 'text-gray-800'}`}>{item.currentStock} {item.unit}</span>
-                  <p className="text-xs text-gray-400 mt-1">Opening: {item.openingStock || 0} {item.unit}</p>
-                </td>
-                <td className="table-cell text-gray-500">{item.minStockAlert}</td>
-                <td className="table-cell">₹{item.purchasePrice}</td>
-                <td className="table-cell">
-                  <div className="flex flex-col items-start gap-1">
-                    <button onClick={() => { setShowTxn(item); setTxnForm(initialTxnForm); }} className="text-primary-600 text-sm hover:underline">+ Transaction</button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </Table>
-        )}
-        {!loading && items.length === 0 && <EmptyState message="No inventory items" icon={<FiPackage />} />}
-      </div>
-      <div className="card mt-6">
-        <div className="mb-4">
-          <h3 className="section-title">Inventory Transactions</h3>
-          <p className="text-sm text-gray-500">All purchase, usage, adjustment, and return entries are listed below.</p>
-        </div>
-        {loading ? <PageSpinner /> : (
-          <Table headers={['Date', 'Item', 'Type', 'Quantity', 'Unit Price', 'Total', 'Remarks']}>
-            {transactions.map(txn => (
-              <tr key={txn._id} className="hover:bg-gray-50">
-                <td className="table-cell">{new Date(txn.date || txn.createdAt).toLocaleString('en-IN')}</td>
-                <td className="table-cell font-medium">{txn.inventory?.name || '-'}</td>
-                <td className="table-cell capitalize">{txn.type}</td>
-                <td className="table-cell">{txn.quantity} {txn.inventory?.unit || ''}</td>
-                <td className="table-cell">{txn.unitPrice ? `₹${Number(txn.unitPrice).toLocaleString('en-IN')}` : '-'}</td>
-                <td className="table-cell">{txn.totalAmount ? `₹${Number(txn.totalAmount).toLocaleString('en-IN')}` : '-'}</td>
-                <td className="table-cell text-gray-600">{txn.remarks || '-'}</td>
-              </tr>
-            ))}
-          </Table>
-        )}
-        {!loading && transactions.length === 0 && <EmptyState message="No inventory transactions recorded yet" icon={<FiClock />} />}
       </div>
       <Modal open={showAdd} onClose={() => { setShowAdd(false); setForm(initialInventoryForm); }} title="Add Inventory Item">
         <form onSubmit={addItem} className="space-y-3">
@@ -863,7 +517,7 @@ export function LibraryAdmin() {
   const [bookForm, setBookForm] = useState(initialBookForm);
   const [issueForm, setIssueForm] = useState(initialIssueForm);
   const [editingBookId, setEditingBookId] = useState('');
-  const getStudentIdentifier = student => student?.rollNo || student?.admissionNo || student?.regNo || '—';
+  const getStudentIdentifier = student => student?.rollNo || student?.admissionNo || student?.regNo || '?';
 
   useEffect(() => {
     api.get('/library/books')
@@ -893,12 +547,21 @@ export function LibraryAdmin() {
     setBookForm(initialBookForm);
     toast.success(editingBookId ? 'Book updated' : 'Book added');
   };
+
   const issueBook = async e => {
     e.preventDefault();
     await api.post('/library/issue', issueForm);
-    toast.success('Book issued'); setShowIssue(false); setIssueForm(initialIssueForm);
-    const r = await api.get('/library/issues'); setIssues(r.data.issues);
+    toast.success('Book issued');
+    setShowIssue(false);
+    setIssueForm(initialIssueForm);
+    const [booksResponse, issuesResponse] = await Promise.all([
+      api.get('/library/books'),
+      api.get('/library/issues'),
+    ]);
+    setBooks(booksResponse.data.books);
+    setIssues(issuesResponse.data.issues);
   };
+
   const editBook = book => {
     setEditingBookId(book._id);
     setBookForm({
@@ -911,6 +574,7 @@ export function LibraryAdmin() {
     });
     setShowAdd(true);
   };
+
   const markBookUnavailable = async id => {
     try {
       await api.delete(`/library/books/${id}`);
@@ -920,68 +584,127 @@ export function LibraryAdmin() {
       toast.error(err.response?.data?.message || 'Failed to update book');
     }
   };
+
   const closeBookModal = () => {
     setShowAdd(false);
     setEditingBookId('');
     setBookForm(initialBookForm);
   };
+
   const returnBook = async id => {
-    const r = await api.put(`/library/return/${id}`);
-    toast.success(`Returned. Fine: ₹${r.data.fine}`);
-    const r2 = await api.get('/library/issues'); setIssues(r2.data.issues);
+    const response = await api.put(`/library/return/${id}`);
+    const fine = Number(response.data.fine || 0);
+    toast.success(
+      fine > 0
+        ? `Returned. Fine added to fees ledger: Rs ${fine}`
+        : 'Book returned'
+    );
+    const [booksResponse, issuesResponse] = await Promise.all([
+      api.get('/library/books'),
+      api.get('/library/issues'),
+    ]);
+    setBooks(booksResponse.data.books);
+    setIssues(issuesResponse.data.issues);
   };
 
   return (
     <div>
-      <PageHeader title="Library" action={
-        <div className="flex gap-2">
-          <button onClick={() => { setEditingBookId(''); setBookForm(initialBookForm); setShowAdd(true); }} className="btn-secondary text-sm">+ Add Book</button>
-          <button onClick={() => { setIssueForm(initialIssueForm); setShowIssue(true); }} className="btn-primary">Issue Book</button>
-        </div>
-      } />
-      <div className="flex gap-2 mb-4">
-        {['books', 'issues'].map(t => <button key={t} onClick={() => setTab(t)}
-          className={`px-4 py-1.5 rounded-full text-sm font-medium ${tab === t ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600'}`}>{t}</button>)}
+      <PageHeader
+        title="Library"
+        subtitle={tab === 'books' ? 'Catalog and stock overview' : 'Issued and returned books'}
+        action={
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <button
+              onClick={() => {
+                setEditingBookId('');
+                setBookForm(initialBookForm);
+                setShowAdd(true);
+              }}
+              className="btn-secondary min-h-[42px] px-5 text-sm font-medium whitespace-nowrap"
+            >
+              + Add Book
+            </button>
+            <button
+              onClick={() => {
+                setIssueForm(initialIssueForm);
+                setShowIssue(true);
+              }}
+              className="btn-primary min-h-[42px] px-5 text-sm font-medium whitespace-nowrap"
+            >
+              Issue Book
+            </button>
+          </div>
+        }
+      />
+
+      <div className="mb-5 flex flex-wrap items-center gap-2">
+        {['books', 'issues'].map(t => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`min-w-[96px] rounded-full px-4 py-2 text-sm font-semibold capitalize transition-colors ${tab === t ? 'bg-primary-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          >
+            {t}
+          </button>
+        ))}
       </div>
-      <div className="card">
+
+      <div className="card overflow-hidden p-0">
         {tab === 'books' ? (
-          <Table headers={['Title', 'Author', 'ISBN', 'Category', 'Total', 'Available', 'Actions']}>
-            {books.map(b => (
-              <tr key={b._id} className="hover:bg-gray-50">
-                <td className="table-cell font-medium">{b.title}</td>
-                <td className="table-cell">{b.author}</td>
-                <td className="table-cell font-mono text-xs">{b.isbn || '–'}</td>
-                <td className="table-cell">{b.category || '–'}</td>
-                <td className="table-cell text-center">{b.totalCopies}</td>
-                <td className="table-cell text-center"><span className={b.availableCopies > 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>{b.availableCopies}</span></td>
-                <td className="table-cell">
-                  <div className="flex gap-3 text-sm">
-                    <button type="button" onClick={() => editBook(b)} className="text-primary-600 hover:underline">Edit</button>
-                    <button type="button" onClick={() => markBookUnavailable(b._id)} className="text-red-600 hover:underline">Mark Unavailable</button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </Table>
+          <div className="overflow-x-auto">
+            <Table headers={['Title', 'Author', 'ISBN', 'Category', 'Total', 'Available', 'Actions']}>
+              {books.map(b => (
+                <tr key={b._id} className="align-middle hover:bg-gray-50/80">
+                  <td className="table-cell min-w-[180px] font-semibold text-gray-900">{b.title}</td>
+                  <td className="table-cell min-w-[160px] text-gray-700">{b.author}</td>
+                  <td className="table-cell min-w-[140px] font-mono text-xs text-gray-500">{b.isbn || '?'}</td>
+                  <td className="table-cell min-w-[160px] text-gray-700">{b.category || '?'}</td>
+                  <td className="table-cell text-center font-medium text-gray-800">{b.totalCopies}</td>
+                  <td className="table-cell text-center">
+                    <span className={b.availableCopies > 0 ? 'font-semibold text-green-600' : 'font-semibold text-red-600'}>{b.availableCopies}</span>
+                  </td>
+                  <td className="table-cell">
+                    <div className="flex items-center justify-end gap-4 whitespace-nowrap text-sm font-medium">
+                      <button type="button" onClick={() => editBook(b)} className="text-primary-600 hover:underline">Edit</button>
+                      <button type="button" onClick={() => markBookUnavailable(b._id)} className="text-red-600 hover:underline">Mark Unavailable</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </Table>
+            {books.length === 0 && <EmptyState message="No books added yet" icon={<FiPackage />} />}
+          </div>
         ) : (
-          <Table headers={['Student', 'Book', 'Issue Date', 'Due Date', 'Status', 'Fine', 'Actions']}>
-            {issues.map(i => (
-              <tr key={i._id} className="hover:bg-gray-50">
-                <td className="table-cell">
-                  <p className="font-medium">{i.student?.firstName} {i.student?.lastName}</p>
-                  <p className="text-xs text-gray-400">{getStudentIdentifier(i.student)}</p>
-                </td>
-                <td className="table-cell">{i.book?.title}</td>
-                <td className="table-cell">{new Date(i.issueDate).toLocaleDateString('en-IN')}</td>
-                <td className="table-cell">{new Date(i.dueDate).toLocaleDateString('en-IN')}</td>
-                <td className="table-cell"><StatusBadge status={i.status} /></td>
-                <td className="table-cell">{i.fine > 0 ? <span className="text-red-600">₹{i.fine}</span> : '–'}</td>
-                <td className="table-cell">{i.status === 'issued' && <button onClick={() => returnBook(i._id)} className="text-green-600 text-sm hover:underline">Return</button>}</td>
-              </tr>
-            ))}
-          </Table>
+          <div className="overflow-x-auto">
+            <Table headers={['Student', 'Book', 'Issue Date', 'Due Date', 'Status', 'Fine', 'Actions']}>
+              {issues.map(i => (
+                <tr key={i._id} className="align-middle hover:bg-gray-50/80">
+                  <td className="table-cell min-w-[220px]">
+                    <p className="font-semibold text-gray-900">{i.student?.firstName} {i.student?.lastName}</p>
+                    <p className="mt-0.5 text-xs text-gray-400">{getStudentIdentifier(i.student)}</p>
+                  </td>
+                  <td className="table-cell min-w-[180px] text-gray-700">{i.book?.title}</td>
+                  <td className="table-cell whitespace-nowrap text-gray-600">{new Date(i.issueDate).toLocaleDateString('en-IN')}</td>
+                  <td className="table-cell whitespace-nowrap text-gray-600">{new Date(i.dueDate).toLocaleDateString('en-IN')}</td>
+                  <td className="table-cell text-center"><StatusBadge status={i.status} /></td>
+                  <td className="table-cell text-center">{i.fine > 0 ? <span className="font-semibold text-red-600">?{i.fine}</span> : '?'}</td>
+                  <td className="table-cell">
+                    <div className="flex items-center justify-end whitespace-nowrap">
+                      {i.status === 'issued' ? (
+                        <button onClick={() => returnBook(i._id)} className="text-sm font-medium text-green-600 hover:underline">Return</button>
+                      ) : (
+                        <span className="text-sm text-gray-300">?</span>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </Table>
+            {issues.length === 0 && <EmptyState message="No issue records found" icon={<FiPackage />} />}
+          </div>
         )}
       </div>
+
       <Modal open={showAdd} onClose={closeBookModal} title={editingBookId ? 'Edit Book' : 'Add Book'}>
         <form onSubmit={addBook} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
@@ -992,9 +715,10 @@ export function LibraryAdmin() {
             <div><label className="label">Publisher</label><input className="input" value={bookForm.publisher} onChange={e => setBookForm(f => ({ ...f, publisher: e.target.value }))} /></div>
             <div><label className="label">Copies</label><input type="number" className="input" min="1" value={bookForm.totalCopies} onChange={e => setBookForm(f => ({ ...f, totalCopies: e.target.value }))} /></div>
           </div>
-          <div className="flex gap-3 justify-end"><button type="button" onClick={closeBookModal} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">{editingBookId ? 'Save Changes' : 'Add'}</button></div>
+          <div className="flex justify-end gap-3"><button type="button" onClick={closeBookModal} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">{editingBookId ? 'Save Changes' : 'Add'}</button></div>
         </form>
       </Modal>
+
       <Modal open={showIssue} onClose={() => { setShowIssue(false); setIssueForm(initialIssueForm); }} title="Issue Book">
         <form onSubmit={issueBook} className="space-y-3">
           <div><label className="label">Student *</label>
@@ -1006,18 +730,18 @@ export function LibraryAdmin() {
           <div><label className="label">Book *</label>
             <select className="input" value={issueForm.bookId} onChange={e => setIssueForm(f => ({ ...f, bookId: e.target.value }))} required>
               <option value="">Select Book</option>
-              {books.filter(b => b.availableCopies > 0).map(b => <option key={b._id} value={b._id}>{b.title} – {b.author}</option>)}
+              {books.filter(b => b.availableCopies > 0).map(b => <option key={b._id} value={b._id}>{b.title} - {b.author}</option>)}
             </select>
           </div>
           <div><label className="label">Due Date *</label><input type="date" className="input" value={issueForm.dueDate} onChange={e => setIssueForm(f => ({ ...f, dueDate: e.target.value }))} required /></div>
-          <div className="flex gap-3 justify-end"><button type="button" onClick={() => { setShowIssue(false); setIssueForm(initialIssueForm); }} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">Issue</button></div>
+          <div className="flex justify-end gap-3"><button type="button" onClick={() => { setShowIssue(false); setIssueForm(initialIssueForm); }} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">Issue</button></div>
         </form>
       </Modal>
     </div>
   );
 }
 
-// ─── SHOP ─────────────────────────────────────────────────────────────────────
+// ??? SHOP ─────────────────────────────────────────────────────────────────────
 export function ShopAdmin() {
   const initialItemForm = { name: '', price: '', stock: '', unit: '', type: 'shop', isAvailable: true };
   const [items, setItems] = useState([]);
