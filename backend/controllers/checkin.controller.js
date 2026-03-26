@@ -42,22 +42,6 @@ export const record = async (req, res) => {
     const student = await Student.findById(studentId);
     if (!student) return res.status(404).json({ success: false, message: 'Student not found' });
 
-    if (req.user.role === 'hostel_warden') {
-      if (!student.isHosteler) {
-        return res.status(403).json({
-          success: false,
-          message: 'Hostel warden can record movement only for hostel students',
-        });
-      }
-
-      if (!['hostel', 'gate'].includes(normalizedLocation)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Hostel warden can record movement only for hostel or hostel gate',
-        });
-      }
-    }
-
     if (req.user.role === 'class_teacher') {
       const teacherCourseIds = await getTeacherCourseIds(req.user);
       const isAssignedStudent = teacherCourseIds.some(
@@ -166,9 +150,6 @@ export const getRecords = async (req, res) => {
     if (req.user.role === 'class_teacher') {
       const teacherCourseIds = await getTeacherCourseIds(req.user);
       studentFilters.push({ course: { $in: teacherCourseIds } });
-    }
-    if (req.user.role === 'hostel_warden') {
-      studentFilters.push({ isHosteler: true });
     }
 
     if (studentFilters.length > 0) {

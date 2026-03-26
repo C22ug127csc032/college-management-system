@@ -7,7 +7,6 @@ import { FiCheck, FiClock } from '../../components/common/icons';
 
 export default function CheckInOut() {
   const { user } = useAuth();
-  const isHostelWarden = user?.role === 'hostel_warden';
 
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,7 +18,7 @@ export default function CheckInOut() {
   const [form, setForm] = useState({
     studentIdentifier: '',
     type: 'check_in',
-    location: isHostelWarden ? 'hostel' : 'gate',
+    location: 'gate',
     remarks: '',
   });
   const [filters, setFilters] = useState({
@@ -38,7 +37,7 @@ export default function CheckInOut() {
       if (filters.endDate) params.endDate = filters.endDate;
       if (filters.type) params.type = filters.type;
       if (filters.location) params.location = filters.location;
-      if (!isHostelWarden && filters.department) params.department = filters.department;
+      if (filters.department) params.department = filters.department;
       const response = await api.get('/checkin', { params });
       setRecords(response.data.records || []);
     } catch (err) {
@@ -46,18 +45,17 @@ export default function CheckInOut() {
     } finally {
       setLoading(false);
     }
-  }, [filters, isHostelWarden]);
+  }, [filters]);
 
   useEffect(() => {
     fetchRecords();
   }, [fetchRecords]);
 
   useEffect(() => {
-    if (isHostelWarden) return;
     api.get('/courses')
       .then(response => setCourses(response.data.courses || []))
       .catch(() => {});
-  }, [isHostelWarden]);
+  }, []);
 
   const today = new Date().toDateString();
   const todaysRecords = useMemo(
@@ -107,7 +105,7 @@ export default function CheckInOut() {
       setForm({
         studentIdentifier: '',
         type: 'check_in',
-        location: isHostelWarden ? 'hostel' : 'gate',
+        location: 'gate',
         remarks: '',
       });
       setStudentId('');
@@ -129,9 +127,7 @@ export default function CheckInOut() {
     <div>
       <PageHeader
         title="Check-In / Check-Out"
-        subtitle={isHostelWarden
-          ? 'Hostel warden can record hostel and hostel gate movement'
-          : 'Admin and staff can record movement. The next entry must be the opposite action at the same place.'}
+        subtitle="Class teacher, admin, super admin, and hostel warden can record movement. A student must check out from the current place before checking in anywhere else."
       />
 
       <div className="grid grid-cols-2 gap-4 mb-6">
@@ -145,14 +141,14 @@ export default function CheckInOut() {
         </div>
       </div>
 
-      <div className={`grid grid-cols-1 ${isHostelWarden ? 'lg:grid-cols-3' : 'lg:grid-cols-3'} gap-6`}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="card">
             <h3 className="section-title">Record Entry</h3>
             <div className="space-y-3">
               <div className="flex gap-2">
                 <input
                   className="input flex-1"
-                  placeholder={isHostelWarden ? 'Roll / Reg / Admission No' : 'Roll / Reg / Admission No'}
+                  placeholder="Roll / Reg / Admission No"
                   value={form.studentIdentifier}
                   onChange={event => setForm(current => ({
                     ...current,
@@ -190,18 +186,9 @@ export default function CheckInOut() {
                 value={form.location}
                 onChange={event => setForm(current => ({ ...current, location: event.target.value }))}
               >
-                {isHostelWarden ? (
-                  <>
-                    <option value="hostel">Hostel</option>
-                    <option value="gate">Hostel Gate</option>
-                  </>
-                ) : (
-                  <>
-                    <option value="gate">Main Gate</option>
-                    <option value="hostel">Hostel</option>
-                    <option value="campus">Campus</option>
-                  </>
-                )}
+                <option value="gate">Main Gate</option>
+                <option value="hostel">Hostel</option>
+                <option value="campus">Campus</option>
               </select>
 
               <input
@@ -253,24 +240,22 @@ export default function CheckInOut() {
               onChange={event => setFilter('location', event.target.value)}
             >
               <option value="">All Locations</option>
-              <option value="gate">{isHostelWarden ? 'Hostel Gate' : 'Gate'}</option>
+              <option value="gate">Gate</option>
               <option value="hostel">Hostel</option>
-              {!isHostelWarden && <option value="campus">Campus</option>}
+              <option value="campus">Campus</option>
             </select>
-            {!isHostelWarden && (
-              <select
-                className="input w-48"
-                value={filters.department}
-                onChange={event => setFilter('department', event.target.value)}
-              >
-                <option value="">All Departments</option>
-                {departments.map(department => (
-                  <option key={department} value={department}>
-                    {department}
-                  </option>
-                ))}
-              </select>
-            )}
+            <select
+              className="input w-48"
+              value={filters.department}
+              onChange={event => setFilter('department', event.target.value)}
+            >
+              <option value="">All Departments</option>
+              {departments.map(department => (
+                <option key={department} value={department}>
+                  {department}
+                </option>
+              ))}
+            </select>
           </FilterBar>
 
           {loading ? <PageSpinner /> : (

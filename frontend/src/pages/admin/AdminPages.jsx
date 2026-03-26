@@ -92,127 +92,57 @@ export function OutpassManagement() {
 
   return (
     <div>
-      <PageHeader
-        title="Library"
-        subtitle={tab === 'books' ? 'Catalog and stock overview' : 'Issued and returned books'}
-        action={
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <button
-              onClick={() => { setEditingBookId(''); setBookForm(initialBookForm); setShowAdd(true); }}
-              className="btn-secondary min-h-[42px] px-5 text-sm font-medium whitespace-nowrap"
-            >
-              + Add Book
+      <PageHeader title="Outpass Management" />
+      <div className="card">
+        <FilterBar>
+          {['', 'pending', 'approved', 'returned', 'rejected'].map(s => (
+            <button key={s} onClick={() => setFilter(s)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium ${filter === s ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+              {s || 'All'}
             </button>
-            <button
-              onClick={() => { setIssueForm(initialIssueForm); setShowIssue(true); }}
-              className="btn-primary min-h-[42px] px-5 text-sm font-medium whitespace-nowrap"
-            >
-              Issue Book
-            </button>
-          </div>
-        }
-      />
-      <div className="mb-5 flex flex-wrap items-center gap-2">
-        {['books', 'issues'].map(t => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`min-w-[96px] rounded-full px-4 py-2 text-sm font-semibold capitalize transition-colors ${tab === t ? 'bg-primary-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-          >
-            {t}
-          </button>
-        ))}
+          ))}
+        </FilterBar>
+        {loading ? <PageSpinner /> : (
+          <Table headers={['Student', 'Exit Date', 'Return Date', 'Destination', 'Reason', 'Status', 'Actions']}>
+            {list.map(o => (
+              <tr key={o._id} className="hover:bg-gray-50">
+                <td className="table-cell"><p className="font-medium">{o.student?.firstName} {o.student?.lastName}</p><p className="text-xs text-gray-400">{o.student?.regNo}</p></td>
+                <td className="table-cell">{new Date(o.exitDate).toLocaleDateString('en-IN')}</td>
+                <td className="table-cell">{new Date(o.expectedReturn).toLocaleDateString('en-IN')}</td>
+                <td className="table-cell">{o.destination || '?'}</td>
+                <td className="table-cell max-w-xs truncate">{o.reason}</td>
+                <td className="table-cell"><StatusBadge status={o.status} /></td>
+                <td className="table-cell flex gap-1">
+                  {o.status === 'pending' && <button onClick={() => { setSelected(o); setRemark(''); }} className="text-primary-600 text-sm hover:underline">Review</button>}
+                  {o.status === 'approved' && <button onClick={() => markReturned(o._id)} className="text-green-600 text-sm hover:underline">Return</button>}
+                </td>
+              </tr>
+            ))}
+          </Table>
+        )}
+        {!loading && list.length === 0 && <EmptyState message="No outpass requests" icon={<FiLogOut />} />}
       </div>
-      <div className="card overflow-hidden p-0">
-        {tab === 'books' ? (
-          <div className="overflow-x-auto">
-            <Table headers={['Title', 'Author', 'ISBN', 'Category', 'Total', 'Available', 'Actions']}>
-              {books.map(b => (
-                <tr key={b._id} className="align-middle hover:bg-gray-50/80">
-                  <td className="table-cell font-semibold text-gray-900">{b.title}</td>
-                  <td className="table-cell text-gray-700">{b.author}</td>
-                  <td className="table-cell font-mono text-xs text-gray-500">{b.isbn || '?'}</td>
-                  <td className="table-cell text-gray-700">{b.category || '?'}</td>
-                  <td className="table-cell text-center font-medium text-gray-800">{b.totalCopies}</td>
-                  <td className="table-cell text-center">
-                    <span className={b.availableCopies > 0 ? 'font-semibold text-green-600' : 'font-semibold text-red-600'}>{b.availableCopies}</span>
-                  </td>
-                  <td className="table-cell">
-                    <div className="flex items-center justify-end gap-4 whitespace-nowrap text-sm font-medium">
-                      <button type="button" onClick={() => editBook(b)} className="text-primary-600 hover:underline">Edit</button>
-                      <button type="button" onClick={() => markBookUnavailable(b._id)} className="text-red-600 hover:underline">Mark Unavailable</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </Table>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table headers={['Student', 'Book', 'Issue Date', 'Due Date', 'Status', 'Fine', 'Actions']}>
-              {issues.map(i => (
-                <tr key={i._id} className="align-middle hover:bg-gray-50/80">
-                  <td className="table-cell">
-                    <p className="font-semibold text-gray-900">{i.student?.firstName} {i.student?.lastName}</p>
-                    <p className="mt-0.5 text-xs text-gray-400">{getStudentIdentifier(i.student)}</p>
-                  </td>
-                  <td className="table-cell text-gray-700">{i.book?.title}</td>
-                  <td className="table-cell text-gray-600">{new Date(i.issueDate).toLocaleDateString('en-IN')}</td>
-                  <td className="table-cell text-gray-600">{new Date(i.dueDate).toLocaleDateString('en-IN')}</td>
-                  <td className="table-cell text-center"><StatusBadge status={i.status} /></td>
-                  <td className="table-cell text-center">{i.fine > 0 ? <span className="font-semibold text-red-600">?{i.fine}</span> : '?'}</td>
-                  <td className="table-cell">
-                    <div className="flex items-center justify-end whitespace-nowrap">
-                      {i.status === 'issued' ? (
-                        <button onClick={() => returnBook(i._id)} className="text-green-600 text-sm font-medium hover:underline">Return</button>
-                      ) : (
-                        <span className="text-sm text-gray-300">?</span>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </Table>
+      <Modal open={!!selected} onClose={() => setSelected(null)} title="Review Outpass">
+        {selected && (
+          <div className="space-y-4">
+            <div className="bg-gray-50 p-3 rounded-lg text-sm space-y-1">
+              <p><strong>{selected.student?.firstName} {selected.student?.lastName}</strong></p>
+              <p>Exit: {new Date(selected.exitDate).toLocaleDateString('en-IN')} | Return: {new Date(selected.expectedReturn).toLocaleDateString('en-IN')}</p>
+              <p>Reason: {selected.reason}</p>
+            </div>
+            <textarea className="input" rows={2} value={remark} onChange={e => setRemark(e.target.value)} placeholder="Remarks..." />
+            <div className="flex gap-3">
+              <button onClick={() => action(selected._id, 'approved')} className="btn-success flex-1">Approve</button>
+              <button onClick={() => action(selected._id, 'rejected')} className="btn-danger flex-1">Reject</button>
+            </div>
           </div>
         )}
-      </div>
-      <Modal open={showAdd} onClose={() => { setShowAdd(false); setForm(initialInventoryForm); }} title="Add Inventory Item">
-        <form onSubmit={addItem} className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div><label className="label">Name *</label><input className="input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required /></div>
-            <div><label className="label">Category</label>
-              <select className="input" value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
-                {['academic','hostel','general','lab','sports'].map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-            <div><label className="label">Opening Stock</label><input type="number" className="input" value={form.currentStock} onChange={e => setForm(f => ({ ...f, currentStock: e.target.value }))} /></div>
-            <div><label className="label">Unit</label><input className="input" value={form.unit} onChange={e => setForm(f => ({ ...f, unit: e.target.value }))} /></div>
-            <div><label className="label">Min Alert</label><input type="number" className="input" value={form.minStockAlert} onChange={e => setForm(f => ({ ...f, minStockAlert: e.target.value }))} /></div>
-            <div><label className="label">Purchase Price</label><input type="number" className="input" value={form.purchasePrice} onChange={e => setForm(f => ({ ...f, purchasePrice: e.target.value }))} /></div>
-          </div>
-          <div className="flex gap-3 justify-end"><button type="button" onClick={() => { setShowAdd(false); setForm(initialInventoryForm); }} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">Add Item</button></div>
-        </form>
-      </Modal>
-      <Modal open={!!showTxn} onClose={() => setShowTxn(null)} title={`Transaction – ${showTxn?.name}`}>
-        <form onSubmit={addTxn} className="space-y-3">
-          <div><label className="label">Type</label>
-            <select className="input" value={txnForm.type} onChange={e => setTxnForm(f => ({ ...f, type: e.target.value }))}>
-              {['purchase','usage','adjustment','return'].map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </div>
-          <div><label className="label">Quantity *</label><input type="number" className="input" value={txnForm.quantity} onChange={e => setTxnForm(f => ({ ...f, quantity: e.target.value }))} required /></div>
-          {txnForm.type === 'purchase' && (
-            <div><label className="label">Unit Price</label><input type="number" className="input" value={txnForm.unitPrice} onChange={e => setTxnForm(f => ({ ...f, unitPrice: e.target.value }))} /></div>
-          )}
-          <div><label className="label">Remarks</label><input className="input" value={txnForm.remarks} onChange={e => setTxnForm(f => ({ ...f, remarks: e.target.value }))} /></div>
-          <div className="flex gap-3 justify-end"><button type="button" onClick={() => { setShowTxn(null); setTxnForm(initialTxnForm); }} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">Record</button></div>
-        </form>
       </Modal>
     </div>
   );
 }
 
-// ─── EXPENSE ──────────────────────────────────────────────────────────────────
+// ??? EXPENSE ──────────────────────────────────────────────────────────────────
 export function ExpensePage() {
   const initialExpenseForm = { title: '', category: 'miscellaneous', amount: '', date: new Date().toISOString().slice(0, 10), paymentMode: 'cash', description: '' };
   const [expenses, setExpenses] = useState([]);
