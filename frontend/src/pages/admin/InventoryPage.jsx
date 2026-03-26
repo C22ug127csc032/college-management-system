@@ -12,17 +12,13 @@ const CATEGORY_OPTIONS = [
 
 const initialItemForm = {
   name: '',
+  quantity: '',
   code: '',
   category: 'academic',
   unit: 'pcs',
-  description: '',
   openingStock: '',
   currentStock: '',
   minStockAlert: '5',
-  purchasePrice: '',
-  sellingPrice: '',
-  supplier: '',
-  location: '',
 };
 
 const initialTxnForm = {
@@ -91,17 +87,13 @@ export default function InventoryPage() {
     setEditingItem(item);
     setForm({
       name: item.name || '',
+      quantity: item.currentStock ?? '',
       code: item.code || '',
       category: item.category || 'academic',
       unit: item.unit || 'pcs',
-      description: item.description || '',
       openingStock: item.openingStock ?? '',
       currentStock: item.currentStock ?? '',
       minStockAlert: item.minStockAlert ?? '5',
-      purchasePrice: item.purchasePrice ?? '',
-      sellingPrice: item.sellingPrice ?? '',
-      supplier: item.supplier || '',
-      location: item.location || '',
     });
     setShowItemModal(true);
   };
@@ -129,13 +121,18 @@ export default function InventoryPage() {
 
   const saveItem = async e => {
     e.preventDefault();
+    const quantity = Number(form.quantity || 0);
+    const openingStock = Number(form.openingStock || quantity || 0);
+    const currentStock = Number(form.currentStock || quantity || openingStock || 0);
+
     const payload = {
-      ...form,
-      openingStock: Number(form.openingStock || 0),
-      currentStock: Number(form.currentStock || form.openingStock || 0),
+      name: form.name,
+      code: form.code,
+      category: form.category,
+      unit: form.unit,
+      openingStock,
+      currentStock,
       minStockAlert: Number(form.minStockAlert || 0),
-      purchasePrice: Number(form.purchasePrice || 0),
-      sellingPrice: Number(form.sellingPrice || 0),
     };
 
     try {
@@ -325,6 +322,10 @@ export default function InventoryPage() {
               <input className="input" value={form.name} onChange={e => setForm(current => ({ ...current, name: e.target.value }))} required />
             </div>
             <div>
+              <label className="label">Quantity</label>
+              <input type="number" min="0" className="input" value={form.quantity} onChange={e => setForm(current => ({ ...current, quantity: e.target.value }))} placeholder="Quick stock entry" />
+            </div>
+            <div>
               <label className="label">Code</label>
               <input className="input" value={form.code} onChange={e => setForm(current => ({ ...current, code: e.target.value }))} placeholder="Auto-generated if empty" />
             </div>
@@ -349,28 +350,8 @@ export default function InventoryPage() {
               <input type="number" min="0" className="input" value={form.currentStock} onChange={e => setForm(current => ({ ...current, currentStock: e.target.value }))} />
             </div>
             <div>
-              <label className="label">Min Alert</label>
+              <label className="label">Minimum Alert</label>
               <input type="number" min="0" className="input" value={form.minStockAlert} onChange={e => setForm(current => ({ ...current, minStockAlert: e.target.value }))} />
-            </div>
-            <div>
-              <label className="label">Buying Price</label>
-              <input type="number" min="0" className="input" value={form.purchasePrice} onChange={e => setForm(current => ({ ...current, purchasePrice: e.target.value }))} />
-            </div>
-            <div>
-              <label className="label">Selling Price</label>
-              <input type="number" min="0" className="input" value={form.sellingPrice} onChange={e => setForm(current => ({ ...current, sellingPrice: e.target.value }))} />
-            </div>
-            <div>
-              <label className="label">Default Vendor</label>
-              <input className="input" value={form.supplier} onChange={e => setForm(current => ({ ...current, supplier: e.target.value }))} />
-            </div>
-            <div className="md:col-span-2">
-              <label className="label">Location</label>
-              <input className="input" value={form.location} onChange={e => setForm(current => ({ ...current, location: e.target.value }))} placeholder="Store room, canteen shelf, etc." />
-            </div>
-            <div className="md:col-span-2">
-              <label className="label">Description</label>
-              <textarea className="input min-h-[96px]" value={form.description} onChange={e => setForm(current => ({ ...current, description: e.target.value }))} />
             </div>
           </div>
           <div className="flex justify-end gap-3">
