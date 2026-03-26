@@ -70,10 +70,11 @@ export const applyLeave = async (req, res) => {
 
 export const getLeaves = async (req, res) => {
   try {
-    const { studentId, status, startDate, endDate, page = 1, limit = 20 } = req.query;
+    const { studentId, status, appliedByRole, startDate, endDate, page = 1, limit = 20 } = req.query;
     const query = {};
     if (studentId) query.student = studentId;
     if (status) query.status = status;
+    if (appliedByRole) query.appliedByRole = appliedByRole;
     if (startDate || endDate) {
       query.fromDate = {};
       if (startDate) query.fromDate.$gte = new Date(startDate);
@@ -90,6 +91,7 @@ export const getLeaves = async (req, res) => {
         course: { $in: teacherCourseIds },
       }).select('_id');
       query.student = { $in: students.map(student => student._id) };
+      query.appliedByRole = 'parent';
     }
     const total = await Leave.countDocuments(query);
     const leaves = await Leave.find(query)
@@ -111,6 +113,9 @@ export const updateLeaveStatus = async (req, res) => {
     if (!existingLeave) return res.status(404).json({ success: false, message: 'Leave not found' });
 
     if (req.user.role === 'class_teacher') {
+      if (existingLeave.appliedByRole !== 'parent') {
+        return res.status(403).json({ success: false, message: 'Class teachers can review only parent portal leave requests' });
+      }
       const teacherCourseIds = await getTeacherCourseIds(req.user);
       const isAssignedStudent = teacherCourseIds.some(
         courseId => String(courseId) === String(existingLeave.student?.course)
@@ -150,6 +155,9 @@ export const getLeave = async (req, res) => {
     if (!leave) return res.status(404).json({ success: false, message: 'Leave not found' });
 
     if (req.user.role === 'class_teacher') {
+      if (leave.appliedByRole !== 'parent') {
+        return res.status(403).json({ success: false, message: 'Class teachers can review only parent portal leave requests' });
+      }
       const teacherCourseIds = await getTeacherCourseIds(req.user);
       const isAssignedStudent = teacherCourseIds.some(
         courseId => String(courseId) === String(leave.student?.course)

@@ -13,6 +13,11 @@ export const getDashboard = async (req, res) => {
     const today = new Date();
     const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
+    const overdueQuery = {
+      dueDate: { $lt: today },
+      totalDue: { $gt: 0 },
+    };
+
     const [
       totalStudents,
       activeStudents,
@@ -44,7 +49,7 @@ export const getDashboard = async (req, res) => {
         .populate('student', 'firstName lastName regNo rollNo')
         .sort('-paymentDate')
         .limit(5),
-      StudentFees.countDocuments({ status: 'overdue' }),
+      StudentFees.countDocuments(overdueQuery),
     ]);
 
     res.json({
@@ -71,7 +76,14 @@ export const getFeesReport = async (req, res) => {
     const { academicYear, status } = req.query;
     const query = {};
     if (academicYear) query.academicYear = academicYear;
-    if (status)       query.status       = status;
+
+    const now = new Date();
+    if (status === 'overdue') {
+      query.dueDate = { $lt: now };
+      query.totalDue = { $gt: 0 };
+    } else if (status) {
+      query.status = status;
+    }
 
     const fees = await StudentFees.find(query)
       .populate({
@@ -81,6 +93,12 @@ export const getFeesReport = async (req, res) => {
       })
       .sort('-createdAt');
 
+    const isOverdue = fee => {
+      if (!(fee?.totalDue > 0)) return false;
+      if (!fee?.dueDate) return false;
+      return new Date(fee.dueDate) < now;
+    };
+
     const summary = {
       totalBilled:    fees.reduce((s, f) => s + f.totalAmount,       0),
       totalCollected: fees.reduce((s, f) => s + f.totalPaid,         0),
@@ -88,7 +106,7 @@ export const getFeesReport = async (req, res) => {
       paid:           fees.filter(f => f.status === 'paid').length,
       partial:        fees.filter(f => f.status === 'partial').length,
       pending:        fees.filter(f => f.status === 'pending').length,
-      overdue:        fees.filter(f => f.status === 'overdue').length,
+      overdue:        fees.filter(isOverdue).length,
     };
 
     res.json({ success: true, fees, summary });

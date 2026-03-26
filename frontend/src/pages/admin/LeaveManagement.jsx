@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../api/axios';
+import { useAuth } from '../../context/AuthContext';
 import { PageHeader, Table, StatusBadge, FilterBar, EmptyState, Modal, PageSpinner } from '../../components/common';
 import { FiCalendar, FiCheck, FiX } from '../../components/common/icons';
 import toast from 'react-hot-toast';
 
 export default function LeaveManagement() {
+  const { user } = useAuth();
   const [leaves, setLeaves] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('pending');
@@ -14,10 +16,15 @@ export default function LeaveManagement() {
   const fetch = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await api.get('/leave', { params: { status: filter || undefined } });
+      const r = await api.get('/leave', {
+        params: {
+          status: filter || undefined,
+          ...(user?.role === 'class_teacher' ? { appliedByRole: 'parent' } : {}),
+        },
+      });
       setLeaves(r.data.leaves);
     } finally { setLoading(false); }
-  }, [filter]);
+  }, [filter, user?.role]);
 
   useEffect(() => { fetch(); }, [fetch]);
 

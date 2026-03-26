@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
 import { PageSpinner, StatusBadge, StatCard, EmptyState } from '../../components/common';
@@ -9,6 +9,7 @@ import {
   FiCalendar,
   FiCheckCircle,
   FiClipboard,
+  FiClock,
   FiDollarSign,
   FiEye,
   FiInfo,
@@ -23,25 +24,54 @@ export function StudentDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!user?.studentRef) { setLoading(false); return; }
-    const id = user.studentRef._id || user.studentRef;
-    Promise.all([
-      api.get(`/fees/student/${id}`),
-      api.get(`/leave?studentId=${id}`),
-      api.get(`/circulars`),
-    ]).then(([f, l, c]) => setData({
-      fees:      f.data.fees.filter(fee => fee.status !== 'pending'),
-      leaves:    l.data.leaves,
-      circulars: c.data.circulars,
-    })).finally(() => setLoading(false));
+  const fetchDashboard = useCallback(async () => {
+    if (!user?.studentRef) {
+      setData({ fees: [], pendingLeaves: 0, circulars: [], circularCount: 0 });
+      setLoading(false);
+      return;
+    }
+
+    const studentId = user.studentRef._id || user.studentRef;
+    const courseId = user.studentRef?.course?._id || user.studentRef?.course || null;
+
+    try {
+      const [feesRes, leavesRes, circularsRes] = await Promise.all([
+        api.get(`/fees/student/${studentId}`),
+        api.get('/leave', { params: { studentId, status: 'pending', limit: 1 } }),
+        api.get('/circulars', {
+          params: {
+            audience: 'students',
+            ...(courseId ? { course: courseId } : {}),
+            limit: 5,
+          },
+        }),
+      ]);
+
+      setData({
+        fees: feesRes.data.fees || [],
+        pendingLeaves: leavesRes.data.total ?? (leavesRes.data.leaves || []).length,
+        circulars: circularsRes.data.circulars || [],
+        circularCount: circularsRes.data.total ?? (circularsRes.data.circulars || []).length,
+      });
+    } catch {
+      setData({ fees: [], pendingLeaves: 0, circulars: [], circularCount: 0 });
+      toast.error('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
   }, [user]);
+
+  useEffect(() => {
+    fetchDashboard();
+    const onFocus = () => fetchDashboard();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [fetchDashboard]);
 
   if (loading) return <PageSpinner />;
 
-  const pendingFees  = data?.fees?.filter(f => f.status !== 'paid') || [];
-  const totalDue     = pendingFees.reduce((s, f) => s + (f.totalDue || 0), 0);
-  const pendingLeaves = data?.leaves?.filter(l => l.status === 'pending').length || 0;
+  const pendingDues = data?.fees?.filter(f => f.status !== 'paid' && (f.totalDue || 0) > 0) || [];
+  const totalDue = pendingDues.reduce((s, f) => s + (f.totalDue || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -63,11 +93,12 @@ export function StudentDashboard() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard icon={<FiDollarSign />} label="Total Due"     value={'₹' + totalDue.toLocaleString('en-IN')} color="red" />
-        <StatCard icon={<FiClipboard />} label="Fee Records"    value={data?.fees?.length || 0}                color="blue" />
-        <StatCard icon={<FiCalendar />}  label="Pending Leaves" value={pendingLeaves}                          color="yellow" />
-        <StatCard icon={<FiBell />}      label="Circulars"      value={data?.circulars?.length || 0}           color="purple" />
+        <StatCard icon={<FiClipboard />} label="Fee Records"    value={data?.fees?.length || 0}                 color="blue" />
+        <StatCard icon={<FiClock />}     label="Pending Dues"   value={pendingDues.length}                      color="yellow" />
+        <StatCard icon={<FiCalendar />}  label="Pending Leaves" value={data?.pendingLeaves || 0}                color="yellow" />
+        <StatCard icon={<FiBell />}      label="Circulars"      value={data?.circularCount || 0}                color="purple" />
       </div>
 
       <div className="card">
@@ -87,8 +118,6 @@ export function StudentDashboard() {
     </div>
   );
 }
-
-// ─── STUDENT FEES ─────────────────────────────────────────────────────────────
 export function StudentFees() {
   const { user } = useAuth();
   const [fees, setFees] = useState([]);

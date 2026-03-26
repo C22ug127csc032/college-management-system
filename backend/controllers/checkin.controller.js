@@ -35,7 +35,7 @@ export const record = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid movement type' });
     }
 
-    if (!['hostel', 'gate', 'campus'].includes(normalizedLocation)) {
+    if (!['hostel', 'campus'].includes(normalizedLocation)) {
       return res.status(400).json({ success: false, message: 'Invalid movement location' });
     }
 
@@ -85,7 +85,7 @@ export const record = async (req, res) => {
       recordedBy: req.user.id,
     });
 
-    const formattedLocation = normalizedLocation === 'gate' ? 'hostel gate' : normalizedLocation;
+    const formattedLocation = normalizedLocation;
     const msg = `${student.firstName} ${student.lastName} has ${normalizedType === 'check_in' ? 'checked in to' : 'checked out from'} ${formattedLocation} at ${new Date(record.timestamp).toLocaleTimeString('en-IN')}.`;
 
     await createNotifications({

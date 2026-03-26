@@ -54,6 +54,37 @@ export const deactivateStructure = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+export const reactivateStructure = async (req, res) => {
+  try {
+    const structure = await FeesStructure.findByIdAndUpdate(
+      req.params.id,
+      { isActive: true },
+      { new: true }
+    );
+    if (!structure) return res.status(404).json({ success: false, message: 'Structure not found' });
+    res.json({ success: true, structure, message: 'Fee structure reactivated' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+export const deleteStructurePermanent = async (req, res) => {
+  try {
+    const usageCount = await StudentFees.countDocuments({ structure: req.params.id });
+    if (usageCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete permanently. This structure is already assigned to student fee records.',
+      });
+    }
+
+    const structure = await FeesStructure.findByIdAndDelete(req.params.id);
+    if (!structure) return res.status(404).json({ success: false, message: 'Structure not found' });
+    res.json({ success: true, message: 'Fee structure deleted permanently' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
 
 // ─── Assign Fees to Student ───────────────────────────────────────────────────
 
@@ -164,11 +195,17 @@ export const getFeesSummary = async (req, res) => {
     const query = academicYear?.trim()
       ? { academicYear: { $regex: academicYear.trim(), $options: 'i' } }
       : {};
+    const overdueQuery = {
+      ...query,
+      dueDate: { $lt: new Date() },
+      totalDue: { $gt: 0 },
+    };
+
     const [totalBilled, totalCollected, totalDue, overdueCount] = await Promise.all([
       StudentFees.aggregate([{ $match: query }, { $group: { _id: null, total: { $sum: '$totalAmount' } } }]),
       StudentFees.aggregate([{ $match: query }, { $group: { _id: null, total: { $sum: '$totalPaid' } } }]),
       StudentFees.aggregate([{ $match: query }, { $group: { _id: null, total: { $sum: '$totalDue' } } }]),
-      StudentFees.countDocuments({ ...query, status: 'overdue' }),
+      StudentFees.countDocuments(overdueQuery),
     ]);
     res.json({
       success: true,
@@ -219,6 +256,8 @@ export default {
   getStructure,
   updateStructure,
   deactivateStructure,
+  reactivateStructure,
+  deleteStructurePermanent,
   assignFees,
   getStudentFees,
   getFeesSummary,

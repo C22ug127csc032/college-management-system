@@ -115,6 +115,33 @@ export default function FeesStructure() {
     }
   };
 
+
+  const handleReactivate = async structureId => {
+    try {
+      const response = await api.put(`/fees/structure/${structureId}/reactivate`);
+      setStructures(current => current.map(structure => (
+        structure._id === structureId
+          ? { ...structure, ...(response.data.structure || {}), isActive: true }
+          : structure
+      )));
+      toast.success('Fee structure reactivated');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to reactivate fee structure');
+    }
+  };
+
+  const handleDeletePermanent = async structureId => {
+    const confirmed = window.confirm('Delete this fee structure permanently? This action cannot be undone.');
+    if (!confirmed) return;
+
+    try {
+      await api.delete(`/fees/structure/${structureId}/permanent`);
+      setStructures(current => current.filter(structure => structure._id !== structureId));
+      toast.success('Fee structure deleted permanently');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete fee structure');
+    }
+  };
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingId('');
@@ -168,7 +195,7 @@ export default function FeesStructure() {
                   Rs.{structure.totalAmount?.toLocaleString('en-IN')}
                 </span>
               </div>
-              <div className="mt-3 pt-3 border-t border-gray-100 flex gap-3 text-sm">
+              <div className="mt-3 pt-3 border-t border-gray-100 flex gap-3 text-sm flex-wrap">
                 <button
                   type="button"
                   onClick={() => handleEdit(structure)}
@@ -176,7 +203,7 @@ export default function FeesStructure() {
                 >
                   Edit
                 </button>
-                {structure.isActive && (
+                {structure.isActive ? (
                   <button
                     type="button"
                     onClick={() => handleDeactivate(structure._id)}
@@ -184,6 +211,23 @@ export default function FeesStructure() {
                   >
                     Deactivate
                   </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleReactivate(structure._id)}
+                      className="text-green-600 hover:underline"
+                    >
+                      Reactivate
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeletePermanent(structure._id)}
+                      className="text-red-700 hover:underline"
+                    >
+                      Delete
+                    </button>
+                  </>
                 )}
               </div>
             </div>

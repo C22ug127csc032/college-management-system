@@ -8,7 +8,9 @@ r.post('/structure', protect, adminOnly, c.createStructure);
 r.get('/structure', protect, c.getAllStructures);
 r.get('/structure/:id', protect, c.getStructure);
 r.put('/structure/:id', protect, adminOnly, c.updateStructure);
+r.put('/structure/:id/reactivate', protect, adminOnly, c.reactivateStructure);
 r.delete('/structure/:id', protect, adminOnly, c.deactivateStructure);
+r.delete('/structure/:id/permanent', protect, adminOnly, c.deleteStructurePermanent);
 
 r.post('/assign', protect, adminOnly, c.assignFees);
 r.get('/summary', protect, adminOnly, c.getFeesSummary);

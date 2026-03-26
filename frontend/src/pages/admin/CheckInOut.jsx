@@ -18,7 +18,7 @@ export default function CheckInOut() {
   const [form, setForm] = useState({
     studentIdentifier: '',
     type: 'check_in',
-    location: 'gate',
+    location: 'campus',
     remarks: '',
   });
   const [filters, setFilters] = useState({
@@ -105,7 +105,7 @@ export default function CheckInOut() {
       setForm({
         studentIdentifier: '',
         type: 'check_in',
-        location: 'gate',
+        location: 'campus',
         remarks: '',
       });
       setStudentId('');
@@ -186,7 +186,6 @@ export default function CheckInOut() {
                 value={form.location}
                 onChange={event => setForm(current => ({ ...current, location: event.target.value }))}
               >
-                <option value="gate">Main Gate</option>
                 <option value="hostel">Hostel</option>
                 <option value="campus">Campus</option>
               </select>
@@ -240,7 +239,6 @@ export default function CheckInOut() {
               onChange={event => setFilter('location', event.target.value)}
             >
               <option value="">All Locations</option>
-              <option value="gate">Gate</option>
               <option value="hostel">Hostel</option>
               <option value="campus">Campus</option>
             </select>
@@ -300,7 +298,7 @@ export default function CheckInOut() {
                       </span>
                     </td>
                     <td className="table-cell capitalize">
-                      {(record.location || '').replace('gate', 'hostel gate')}
+                      {record.location || '-'}
                     </td>
                     <td className="table-cell text-gray-500 text-xs">
                       {new Date(record.timestamp).toLocaleString('en-IN')}

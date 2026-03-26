@@ -1,13 +1,25 @@
 import express from 'express';
+import {
+  addTransaction,
+  createItem,
+  deleteItem,
+  getAllItems,
+  getInventoryStats,
+  getItem,
+  getTransactions,
+  updateItem,
+} from '../controllers/inventory.controller.js';
+import { adminOnly, protect } from '../middleware/auth.middleware.js';
+
 const r = express.Router();
-import c from '../controllers/inventory.controller.js';
-import middleware_auth_middleware from '../middleware/auth.middleware.js';
-const { protect, adminOnly } = middleware_auth_middleware;
-r.get('/stats', protect, c.getInventoryStats);
-r.get('/transactions', protect, c.getTransactions);
-r.post('/transactions', protect, c.addTransaction);
-r.get('/', protect, c.getAllItems);
-r.post('/', protect, adminOnly, c.createItem);
-r.get('/:id', protect, c.getItem);
-r.put('/:id', protect, adminOnly, c.updateItem);
+
+r.get('/stats', protect, adminOnly, getInventoryStats);
+r.get('/transactions', protect, adminOnly, getTransactions);
+r.post('/transactions', protect, adminOnly, addTransaction);
+r.get('/', protect, adminOnly, getAllItems);
+r.post('/', protect, adminOnly, createItem);
+r.get('/:id', protect, adminOnly, getItem);
+r.put('/:id', protect, adminOnly, updateItem);
+r.delete('/:id', protect, adminOnly, deleteItem);
+
 export default r;
