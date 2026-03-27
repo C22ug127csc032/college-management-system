@@ -95,6 +95,8 @@ export const getCircularRecipientIds = async ({ audience = [], courseId = null }
     recipients.push(...await getRoleRecipientIds([
       'super_admin',
       'admin',
+      'accountant',
+      'admission_staff',
       'class_teacher',
       'hostel_warden',
       'librarian',

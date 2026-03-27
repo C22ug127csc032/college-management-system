@@ -83,6 +83,7 @@ const ProtectedRoute = ({ children, roles, redirectTo = '/login' }) => {
 
 const ADMIN_ROLES = [
   'super_admin', 'admin', 'class_teacher', 'hostel_warden', 'librarian',
+  'accountant', 'admission_staff',
 ];
 
 const RoleHomeRedirect = () => {
@@ -139,12 +140,12 @@ export default function App() {
             <Route index element={<AdminHome />} />
             <Route path="students" element={<Students />} />
             <Route path="students/add" element={
-              <ProtectedRoute roles={['super_admin', 'admin']}>
+              <ProtectedRoute roles={['super_admin', 'admin', 'admission_staff']}>
                 <AddStudent />
               </ProtectedRoute>
             } />
             <Route path="students/:id/edit" element={
-              <ProtectedRoute roles={['super_admin', 'admin']}>
+              <ProtectedRoute roles={['super_admin', 'admin', 'admission_staff', 'class_teacher']}>
                 <AddStudent />
               </ProtectedRoute>
             } />
@@ -160,12 +161,12 @@ export default function App() {
               </ProtectedRoute>
             } />
             <Route path="fees/list" element={
-              <ProtectedRoute roles={['super_admin', 'admin']}>
+              <ProtectedRoute roles={['super_admin', 'admin', 'accountant']}>
                 <FeesList />
               </ProtectedRoute>
             } />
             <Route path="payments" element={
-              <ProtectedRoute roles={['super_admin', 'admin']}>
+              <ProtectedRoute roles={['super_admin', 'admin', 'accountant']}>
                 <PaymentsAdmin />
               </ProtectedRoute>
             } />
@@ -190,7 +191,7 @@ export default function App() {
               </ProtectedRoute>
             } />
             <Route path="expense" element={
-              <ProtectedRoute roles={['super_admin', 'admin']}>
+              <ProtectedRoute roles={['super_admin', 'admin', 'accountant']}>
                 <ExpensePage />
               </ProtectedRoute>
             } />
@@ -225,12 +226,12 @@ export default function App() {
               </ProtectedRoute>
             } />
             <Route path="reports" element={
-              <ProtectedRoute roles={['super_admin', 'admin']}>
+              <ProtectedRoute roles={['super_admin', 'admin', 'accountant']}>
                 <ReportsPage />
               </ProtectedRoute>
             } />
             <Route path="notifications" element={
-              <ProtectedRoute roles={['super_admin', 'admin', 'class_teacher', 'hostel_warden', 'librarian']}>
+              <ProtectedRoute roles={['super_admin', 'admin', 'class_teacher', 'hostel_warden', 'librarian', 'accountant', 'admission_staff']}>
                 <NotificationsPage />
               </ProtectedRoute>
             } />

@@ -6,7 +6,7 @@ const { protect, superAdminOnly } = middleware_auth_middleware;
 
 r.get('/', protect, superAdminOnly, async (req, res) => {
   try {
-    const staff = await User.find({ role: { $in: ['admin','class_teacher','hostel_warden','shop_operator','canteen_operator','librarian'] } })
+    const staff = await User.find({ role: { $in: ['admin','class_teacher','hostel_warden','shop_operator','canteen_operator','librarian','accountant','admission_staff'] } })
       .select('-password').sort('name');
     res.json({ success: true, staff });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }

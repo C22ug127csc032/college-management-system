@@ -2,6 +2,7 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../../api/axios';
 import { PageHeader } from '../../components/common';
+import { useAuth } from '../../context/AuthContext';
 import {
   FiAlertCircle,
   FiAlertTriangle,
@@ -68,6 +69,9 @@ export default function AddStudent() {
   const { id }       = useParams();
   const isEdit       = Boolean(id);
   const navigate     = useNavigate();
+  const { user }     = useAuth();
+  const isClassTeacher = user?.role === 'class_teacher';
+  const teacherEnrollmentOnly = isClassTeacher && isEdit;
 
   const [courses, setCourses]               = useState([]);
   const [loading, setLoading]               = useState(false);
@@ -97,6 +101,10 @@ export default function AddStudent() {
     course: '', academicYear: '', batch: '',
     semester: '', admissionDate: new Date().toISOString().slice(0, 10),
     admissionType: 'management',
+    // -- Admission finance --
+    advanceAmount: '',
+    advancePaymentMode: 'cash',
+    advanceDescription: '',
     // -- Academic — fill AFTER enrollment --
     regNo: '', rollNo: '', section: '', className: '',
     // -- Hostel --
@@ -317,7 +325,9 @@ export default function AddStudent() {
         title={isEdit ? 'Edit Student' : 'Add Student'}
         subtitle={
           isEdit
-            ? 'Update student profile'
+            ? teacherEnrollmentOnly
+              ? 'Update university enrollment details for your department student'
+              : 'Update student profile'
             : 'Fill admission details. Register No is added after university enrollment.'
         }
         action={
@@ -327,6 +337,14 @@ export default function AddStudent() {
           </button>
         }
       />
+
+      {teacherEnrollmentOnly && (
+        <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+          <p className="text-sm font-medium text-blue-800">
+            Class teachers can update only the register number here. Roll number, section and class will be assigned when roll numbers are generated for your department.
+          </p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit}>
 
@@ -343,7 +361,7 @@ export default function AddStudent() {
         )}
 
         {/* -- Personal Details -- */}
-        <Section title={
+        {!teacherEnrollmentOnly && <Section title={
           <span className="flex items-center gap-2">
             <FiClipboard /> Personal Details
           </span>
@@ -359,10 +377,10 @@ export default function AddStudent() {
           <Field label="Religion"      name="religion"   value={form.religion}   onChange={handleChange} />
           <Field label="Category"      name="category"   value={form.category}   onChange={handleChange}
             options={['General', 'OBC', 'SC', 'ST', 'EWS']} />
-        </Section>
+        </Section>}
 
         {/* -- Address -- */}
-        <Section title={
+        {!teacherEnrollmentOnly && <Section title={
           <span className="flex items-center gap-2">
             <FiHome /> Address
           </span>
@@ -371,10 +389,10 @@ export default function AddStudent() {
           <Field label="City"    name="address.city"    value={form['address.city']}    onChange={handleChange} />
           <Field label="State"   name="address.state"   value={form['address.state']}   onChange={handleChange} />
           <Field label="Pincode" name="address.pincode" value={form['address.pincode']} onChange={handleChange} />
-        </Section>
+        </Section>}
 
         {/* -- Parent Details -- */}
-        <div className="card mb-4">
+        {!teacherEnrollmentOnly && <div className="card mb-4">
           <h3 className="section-title border-b border-gray-100 pb-3 mb-4
             flex items-center gap-2">
             <FiUsers /> Parent / Guardian Details
@@ -425,10 +443,10 @@ export default function AddStudent() {
               </select>
             </div>
           </div>
-        </div>
+        </div>}
 
         {/* -- Academic Details -- */}
-        <div className="card mb-4">
+        {!teacherEnrollmentOnly && <div className="card mb-4">
           <h3 className="section-title border-b border-gray-100 pb-3 mb-4
             flex items-center gap-2">
             <FiAward /> Academic Details
@@ -452,10 +470,49 @@ export default function AddStudent() {
                 { value: 'lateral',    label: 'Lateral Entry'    },
               ]} />
           </div>
-        </div>
+        </div>}
+
+        {!isEdit && !teacherEnrollmentOnly && (
+          <div className="card mb-4">
+            <h3 className="section-title border-b border-gray-100 pb-3 mb-4 flex items-center gap-2">
+              <FiAward /> Admission Advance
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <Field
+                label="Advance Amount"
+                name="advanceAmount"
+                type="number"
+                value={form.advanceAmount}
+                onChange={handleChange}
+              />
+              <Field
+                label="Payment Mode"
+                name="advancePaymentMode"
+                value={form.advancePaymentMode}
+                onChange={handleChange}
+                options={[
+                  { value: 'cash', label: 'Cash' },
+                  { value: 'cheque', label: 'Cheque' },
+                  { value: 'dd', label: 'DD' },
+                  { value: 'neft', label: 'NEFT' },
+                  { value: 'online', label: 'Online' },
+                ]}
+              />
+              <Field
+                label="Description"
+                name="advanceDescription"
+                value={form.advanceDescription}
+                onChange={handleChange}
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-4">
+              If you collect an advance during admission, it will be recorded now and automatically adjusted when first semester fees are assigned.
+            </p>
+          </div>
+        )}
 
         {/* -- Photo & Hostel -- */}
-        <div className="card mb-4">
+        {!teacherEnrollmentOnly && <div className="card mb-4">
           <h3 className="section-title border-b border-gray-100 pb-3 mb-4
             flex items-center gap-2">
             <FiCamera /> Photo & Hostel
@@ -492,7 +549,7 @@ export default function AddStudent() {
               )}
             </div>
           </div>
-        </div>
+        </div>}
 
         {/* --------------------------------------------------------------
             SECTION 2 — FILL AFTER UNIVERSITY ENROLLMENT (Edit only)
@@ -521,7 +578,7 @@ export default function AddStudent() {
                   <p className="text-xs text-gray-400 mt-0.5">
                     Fill Register Number after university enrollment.
                     Roll No, Section and Class are assigned automatically
-                    when admin generates roll numbers.
+                    when roll numbers are generated for the course.
                   </p>
                 </div>
                 {enrollmentDone && (
@@ -576,7 +633,9 @@ export default function AddStudent() {
           >
             {loading
               ? 'Saving...'
-              : isEdit ? 'Update Student' : 'Create Student'}
+              : teacherEnrollmentOnly
+                ? 'Save Register Number'
+                : isEdit ? 'Update Student' : 'Create Student'}
           </button>
         </div>
 

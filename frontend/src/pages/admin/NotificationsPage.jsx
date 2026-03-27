@@ -37,6 +37,8 @@ const ROLE_FILTERS = {
   hostel_warden: ['all', 'unread', 'outpass_status', 'checkin', 'circular', 'general'],
   librarian: ['all', 'unread', 'circular', 'general'],
   class_teacher: ['all', 'unread', 'leave_status', 'outpass_status', 'checkin', 'circular', 'general'],
+  accountant: ['all', 'unread', 'fee_due', 'payment_confirm', 'general'],
+  admission_staff: ['all', 'unread', 'circular', 'general'],
   admin: ['all', 'unread', 'fee_due', 'payment_confirm', 'leave_status', 'outpass_status', 'checkin', 'circular', 'general'],
   super_admin: ['all', 'unread', 'fee_due', 'payment_confirm', 'leave_status', 'outpass_status', 'checkin', 'circular', 'general'],
 };

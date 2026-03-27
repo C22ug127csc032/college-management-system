@@ -12,6 +12,7 @@ import {
   FiMenu,
   FiUser,
 } from '../common/icons';
+import PortalCopyright from '../common/PortalCopyright';
 
 const NAV = [
   { to: '/student', label: 'Dashboard', icon: FiHome, exact: true },
@@ -43,7 +44,7 @@ export default function StudentLayout() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="app-shell flex h-screen overflow-hidden">
       {mobileOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-20 lg:hidden"
@@ -51,10 +52,11 @@ export default function StudentLayout() {
         />
       )}
 
-      <aside className={`fixed inset-y-0 left-0 z-30 w-60 bg-indigo-900 flex flex-col transform transition-transform duration-300 lg:relative lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="p-5 border-b border-indigo-700">
+      <aside className={`fixed inset-y-0 left-0 z-30 w-60 bg-gradient-to-b from-indigo-950 via-indigo-900 to-slate-900 flex flex-col transform transition-transform duration-300 lg:relative lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="border-b border-white/10 p-5">
           <p className="text-white font-bold">Student Portal</p>
-          <p className="text-indigo-300 text-xs mt-0.5 truncate">{user?.name}</p>
+          <p className="mt-0.5 text-xs uppercase tracking-[0.18em] text-indigo-200">Campus Academic Access</p>
+          <p className="mt-2 truncate text-xs text-indigo-300">{user?.name}</p>
         </div>
 
         <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-0.5">
@@ -86,26 +88,30 @@ export default function StudentLayout() {
           ))}
         </nav>
 
-        <div className="p-3 border-t border-indigo-700">
+        <div className="border-t border-white/10 p-3">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-2 px-3 py-2 text-indigo-300 hover:text-white text-sm transition-colors rounded-lg hover:bg-white/10"
+            className="w-full flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-indigo-300 transition-colors hover:bg-white/10 hover:text-white"
           >
             <FiLogOut className="shrink-0" />
             <span>Logout</span>
           </button>
+          <PortalCopyright className="mt-3 px-1 text-indigo-200" />
         </div>
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 shrink-0">
+        <header className="campus-panel mx-4 mt-4 flex shrink-0 items-center gap-3 px-4 py-3 md:mx-6">
           <button
             onClick={() => setMobileOpen(true)}
-            className="p-2 rounded-lg hover:bg-gray-100 lg:hidden"
+            className="rounded-xl p-2 hover:bg-gray-100 lg:hidden"
           >
             <FiMenu />
           </button>
-          <span className="text-gray-700 font-medium text-sm">Student Portal</span>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-indigo-600">Student Portal</p>
+            <span className="text-sm font-medium text-gray-700">Academic self-service and student records</span>
+          </div>
 
           {user?.isFirstLogin && (
             <div className="ml-3 flex items-center gap-2 px-3 py-1 bg-yellow-50 border border-yellow-200 rounded-lg">

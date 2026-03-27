@@ -2,10 +2,15 @@ import Student from '../models/Student.model.js';
 import User    from '../models/User.model.js';
 import Ledger  from '../models/Ledger.model.js';
 import Course  from '../models/Course.model.js';
+import Payment from '../models/Payment.model.js';
 import mongoose from 'mongoose';
 import utils_notifications from '../utils/notifications.js';
 import { assertValidIndianPhone, normalizePhone } from '../utils/phone.js';
 import { buildStudentIdentifierQuery, normalizeStudentIdentifier } from '../utils/studentIdentity.js';
+import {
+  classTeacherHasCourseAccess,
+  getTeacherCourseIds,
+} from '../utils/staffCourseScope.js';
 const { sendSMS } = utils_notifications;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -34,26 +39,13 @@ const normalizeStudentPayload = body => {
   if ('semester' in data && data.semester !== '') {
     data.semester = Number(data.semester);
   }
+  if ('advanceAmount' in data && data.advanceAmount !== '') {
+    data.advanceAmount = Number(data.advanceAmount);
+  }
   if (data.father)   delete data.father.email;
   if (data.mother)   delete data.mother.email;
   if (data.guardian) delete data.guardian.email;
   return data;
-};
-
-const getTeacherCourseIds = async user => {
-  if (user?.role !== 'class_teacher' || !user.department) return [];
-
-  const filters = [
-    { name: user.department },
-    { code: String(user.department).toUpperCase() },
-  ];
-
-  if (mongoose.Types.ObjectId.isValid(user.department)) {
-    filters.unshift({ _id: user.department });
-  }
-
-  const courses = await Course.find({ $or: filters }).select('_id');
-  return courses.map(course => course._id);
 };
 
 // ── Generate Admission No — ADM2024001 format ─────────────────────────────────
@@ -380,6 +372,10 @@ export const getStudent = async (req, res) => {
 export const createStudent = async (req, res) => {
   try {
     const data = normalizeStudentPayload(req.body);
+    const advanceAmount = Number(data.advanceAmount || 0);
+    const advancePaymentMode = data.advancePaymentMode || 'cash';
+    const advanceDescription = String(data.advanceDescription || '').trim();
+
     if (req.file) data.photo = `/uploads/${req.file.filename}`;
     data.email = data.email || undefined;
     assertValidIndianPhone(data.phone, 'Student phone number');
@@ -389,6 +385,23 @@ export const createStudent = async (req, res) => {
     delete data.rollNo;
     delete data.section;
     delete data.className;
+    delete data.advancePaymentMode;
+    delete data.advanceDescription;
+
+    if (advanceAmount < 0 || Number.isNaN(advanceAmount)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Advance amount must be a valid positive number',
+      });
+    }
+
+    if (advanceAmount > 0) {
+      data.advanceAmount = advanceAmount;
+      data.advanceAdjusted = false;
+    } else {
+      delete data.advanceAmount;
+      delete data.advanceAdjusted;
+    }
 
     // Check phone already exists
     const existingUser = await User.findOne({ phone: data.phone });
@@ -437,6 +450,41 @@ export const createStudent = async (req, res) => {
       throw userErr;
     }
 
+    if (advanceAmount > 0) {
+      let payment = null;
+      try {
+        payment = await Payment.create({
+          student: student._id,
+          amount: advanceAmount,
+          paymentMode: advancePaymentMode,
+          status: 'success',
+          description: advanceDescription || 'Admission advance payment',
+          isAdvance: true,
+          collectedBy: req.user.id,
+        });
+
+        await Ledger.create({
+          student: student._id,
+          type: 'credit',
+          category: 'advance',
+          amount: advanceAmount,
+          description: advanceDescription || 'Admission advance payment received',
+          paymentRef: payment._id,
+          date: new Date(),
+          createdBy: req.user.id,
+        });
+      } catch (advanceErr) {
+        if (payment?._id) {
+          await Payment.findByIdAndDelete(payment._id);
+        }
+        if (student.userRef) {
+          await User.findByIdAndDelete(student.userRef);
+        }
+        await Student.findByIdAndDelete(student._id);
+        throw advanceErr;
+      }
+    }
+
     // ── Welcome SMS with admission credentials ────────────────────────────
     try {
       await sendSMS(
@@ -454,7 +502,9 @@ export const createStudent = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Student created successfully',
+      message: advanceAmount > 0
+        ? 'Student created successfully with advance payment recorded'
+        : 'Student created successfully',
       student,
     });
   } catch (err) {
@@ -482,9 +532,27 @@ export const updateStudent = async (req, res) => {
     delete data.className;
 
     const existing = await Student.findById(req.params.id)
-      .select('userRef regNo admissionNo status className course batch');
+      .select('userRef regNo admissionNo status className course batch semester');
     if (!existing)
       return res.status(404).json({ success: false, message: 'Student not found' });
+
+    if (req.user?.role === 'class_teacher') {
+      const isAssignedStudent = await classTeacherHasCourseAccess(req.user, existing.course);
+      if (!isAssignedStudent) {
+        return res.status(403).json({
+          success: false,
+          message: 'Not authorized to update this student',
+        });
+      }
+
+      const teacherUpdate = {};
+      if ('regNo' in data) {
+        teacherUpdate.regNo = data.regNo;
+      }
+
+      Object.keys(data).forEach(key => delete data[key]);
+      Object.assign(data, teacherUpdate);
+    }
 
     // Protect admissionNo — never overwrite existing one
     if (existing.admissionNo) {
@@ -817,6 +885,16 @@ export const generateCourseWiseRollNos = async (req, res) => {
         success: false,
         message: 'courseId is required',
       });
+    }
+
+    if (req.user?.role === 'class_teacher') {
+      const hasAccess = await classTeacherHasCourseAccess(req.user, courseId);
+      if (!hasAccess) {
+        return res.status(403).json({
+          success: false,
+          message: 'You can generate roll numbers only for your assigned department',
+        });
+      }
     }
 
     const course = await Course.findById(courseId).select('name code');

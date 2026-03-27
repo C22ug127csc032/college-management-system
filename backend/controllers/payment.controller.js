@@ -10,6 +10,7 @@ const { generateReceipt } = utils_pdfGenerator;
 import utils_notifications from '../utils/notifications.js';
 const { sendSMS, sendEmail } = utils_notifications;
 import { createNotifications, getStudentNotificationRecipientIds } from '../utils/appNotifications.js';
+import { classTeacherHasStudentAccess } from '../utils/staffCourseScope.js';
 
 // @POST /api/payments/create-order
 export const createOrder = async (req, res) => {
@@ -208,6 +209,13 @@ async function _recordPayment({ studentId, studentFeesId, amount, paymentMode,
 // @GET /api/payments/student/:studentId
 export const getStudentPayments = async (req, res) => {
   try {
+    if (req.user?.role === 'class_teacher') {
+      const hasAccess = await classTeacherHasStudentAccess(req.user, req.params.studentId);
+      if (!hasAccess) {
+        return res.status(404).json({ success: false, message: 'Student not found' });
+      }
+    }
+
     const { startDate, endDate, status, page = 1, limit = 20 } = req.query;
     const query = { student: req.params.studentId };
     if (status) query.status = status;

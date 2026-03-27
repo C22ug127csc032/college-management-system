@@ -404,9 +404,25 @@ export default function Students() {
   };
 
   const isClassTeacher = user?.role === 'class_teacher';
-  const teacherCourse = courses.find(c =>
-    c.name === user?.department || c.code === user?.department
-  );
+  const isAdmissionStaff = user?.role === 'admission_staff';
+  const canAddStudent = ['super_admin', 'admin', 'admission_staff'].includes(user?.role);
+  const canEditStudent = ['super_admin', 'admin', 'admission_staff', 'class_teacher'].includes(user?.role);
+  const canDeactivateStudent = ['super_admin', 'admin'].includes(user?.role);
+  const canPromoteOrGenerateRollNos = ['super_admin', 'admin'].includes(user?.role);
+  const canGenerateRollNos = ['super_admin', 'admin', 'class_teacher'].includes(user?.role);
+  const normalizedDepartment = String(user?.department || '').trim().toUpperCase();
+  const teacherCourse = courses.find(c => {
+    const courseName = String(c.name || '').trim().toUpperCase();
+    const courseCode = String(c.code || '').trim().toUpperCase();
+    const courseDepartment = String(c.department || '').trim().toUpperCase();
+    const courseId = String(c._id || '').trim().toUpperCase();
+    return (
+      courseName === normalizedDepartment ||
+      courseCode === normalizedDepartment ||
+      courseDepartment === normalizedDepartment ||
+      courseId === normalizedDepartment
+    );
+  });
   const visibleCourses = isClassTeacher && teacherCourse ? [teacherCourse] : courses;
 
   const fetchStudents = useCallback(async () => {
@@ -504,8 +520,12 @@ export default function Students() {
   };
 
   const handleGenerateRollNos = async () => {
+    const fallbackTeacherCourseId = currentCourseSection?.courseId ||
+      students.find(student => student.course?._id || student.course)?.course?._id ||
+      students.find(student => student.course?._id || student.course)?.course;
+
     const selectedCourseId = isClassTeacher
-      ? teacherCourse?._id
+      ? teacherCourse?._id || fallbackTeacherCourseId
       : filters.course || currentCourseSection?.courseId;
 
     if (!selectedCourseId) {
@@ -739,7 +759,7 @@ export default function Students() {
               hover:text-primary-800 font-medium hover:underline">
             View
           </button>
-          {!isClassTeacher && (
+          {canEditStudent && (
             <>
               <span className="text-gray-200">|</span>
               <button
@@ -750,7 +770,7 @@ export default function Students() {
               </button>
             </>
           )}
-          {!isClassTeacher && s.status !== 'inactive' && (
+          {canDeactivateStudent && s.status !== 'inactive' && (
             <>
               <span className="text-gray-200">|</span>
               <button
@@ -802,31 +822,41 @@ export default function Students() {
       <PageHeader
         title="Students"
         subtitle={isClassTeacher
-          ? `${total} students in your assigned course`
+          ? `${total} students in your assigned department. You can update register numbers and generate roll numbers here.`
+          : isAdmissionStaff
+            ? `${total} students in admission and enrollment records`
           : `${total} students total`}
         action={
-          !isClassTeacher ? (
+          (canAddStudent || canPromoteOrGenerateRollNos || canGenerateRollNos) ? (
             <div className="flex gap-2">
-              <button
-                onClick={() => setShowPromote(true)}
-                className="btn-secondary flex items-center gap-2"
-              >
-                <FiTrendingUp />
-                Promote Class
-              </button>
-              <button
-                onClick={handleGenerateRollNos}
-                disabled={generatingRollNos}
-                className="btn-secondary disabled:opacity-50"
-              >
-                {generatingRollNos ? 'Generating...' : 'Generate Roll No'}
-              </button>
-              <button
-                className="btn-primary"
-                onClick={() => navigate('/admin/students/add')}
-              >
-                + Add Student
-              </button>
+              {canPromoteOrGenerateRollNos && (
+                <>
+                  <button
+                    onClick={() => setShowPromote(true)}
+                    className="btn-secondary flex items-center gap-2"
+                  >
+                    <FiTrendingUp />
+                    Promote Class
+                  </button>
+                </>
+              )}
+              {canGenerateRollNos && (
+                <button
+                  onClick={handleGenerateRollNos}
+                  disabled={generatingRollNos}
+                  className="btn-secondary disabled:opacity-50"
+                >
+                  {generatingRollNos ? 'Generating...' : 'Generate Roll No'}
+                </button>
+              )}
+              {canAddStudent && (
+                <button
+                  className="btn-primary"
+                  onClick={() => navigate('/admin/students/add')}
+                >
+                  + Add Student
+                </button>
+              )}
             </div>
           ) : null
         }
@@ -956,6 +986,16 @@ export default function Students() {
                 whitespace-nowrap">
               View →
             </button>
+          </div>
+        )}
+        {pendingCount > 0 && isClassTeacher && !filters.status && (
+          <div className="flex items-center gap-2 p-3 bg-blue-50
+            border border-blue-200 rounded-xl mb-4">
+            <FiClock className="text-blue-500 text-lg shrink-0" />
+            <p className="text-sm text-blue-800 flex-1">
+              <strong>{pendingCount} student{pendingCount > 1 ? 's' : ''}</strong>{' '}
+              in your department are waiting for enrollment details. Add the register number in the student record, then generate roll numbers for your course.
+            </p>
           </div>
         )}
 

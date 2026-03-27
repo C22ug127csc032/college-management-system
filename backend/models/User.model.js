@@ -21,7 +21,8 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: [
       'super_admin', 'admin', 'class_teacher', 'hostel_warden',
-      'shop_operator', 'canteen_operator', 'librarian',
+      'shop_operator', 'canteen_operator', 'librarian', 'accountant',
+      'admission_staff',
       'student', 'parent',
     ],
     default: 'student',

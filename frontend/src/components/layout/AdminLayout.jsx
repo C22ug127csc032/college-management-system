@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import NotificationBell from '../common/NotificationBell';
+import PortalCopyright from '../common/PortalCopyright';
 import {
   FiBarChart2,
   FiBell,
@@ -27,14 +28,14 @@ const ALL_NAV = [
   // ── Dashboard ──────────────────────────────────────────────────────────────
   {
     to: '/admin', label: 'Dashboard', icon: FiBarChart2, exact: true,
-    roles: ['super_admin','admin','hostel_warden','librarian'],
+    roles: ['super_admin','admin','hostel_warden','librarian','accountant','admission_staff'],
   },
 
   // ── Students ───────────────────────────────────────────────────────────────
-  { section: 'Students', roles: ['super_admin','admin','class_teacher'] },
+  { section: 'Students', roles: ['super_admin','admin','class_teacher','admission_staff'] },
   {
     to: '/admin/students', label: 'Students', icon: FiUser,
-    roles: ['super_admin','admin','class_teacher'],
+    roles: ['super_admin','admin','class_teacher','admission_staff'],
   },
   {
     to: '/admin/courses', label: 'Courses', icon: FiTarget,
@@ -42,7 +43,7 @@ const ALL_NAV = [
   },
 
   // ── Fees & Payments ────────────────────────────────────────────────────────
-  { section: 'Fees & Payments', roles: ['super_admin','admin'] },
+  { section: 'Fees & Payments', roles: ['super_admin','admin','accountant'] },
   {
     to: '/admin/fees/structure', label: 'Fee Structure', icon: FiClipboard,
     roles: ['super_admin','admin'],
@@ -53,11 +54,11 @@ const ALL_NAV = [
   },
   {
     to: '/admin/fees/list', label: 'Fees List', icon: FiDollarSign,
-    roles: ['super_admin','admin'],
+    roles: ['super_admin','admin','accountant'],
   },
   {
     to: '/admin/payments', label: 'Payments', icon: FiCreditCard,
-    roles: ['super_admin','admin'],
+    roles: ['super_admin','admin','accountant'],
   },
 
   // ── Hostel & Attendance ────────────────────────────────────────────────────
@@ -91,7 +92,7 @@ const ALL_NAV = [
   // ── Administration ─────────────────────────────────────────────────────────
   {
     section: 'Administration',
-    roles: ['super_admin','admin'],
+    roles: ['super_admin','admin','accountant'],
   },
   {
     to: '/admin/inventory', label: 'Inventory', icon: FiPackage,
@@ -99,7 +100,7 @@ const ALL_NAV = [
   },
   {
     to: '/admin/expense', label: 'Expenses', icon: FiTrendingDown,
-    roles: ['super_admin','admin'],
+    roles: ['super_admin','admin','accountant'],
   },
   // Communication
   {
@@ -112,20 +113,20 @@ const ALL_NAV = [
   },
 
   // ── Settings & Reports ─────────────────────────────────────────────────────
-  { section: 'Settings & Reports', roles: ['super_admin','admin'] },
+  { section: 'Settings & Reports', roles: ['super_admin','admin','accountant'] },
   {
     to: '/admin/staff', label: 'Staff', icon: FiUsers,
     roles: ['super_admin'],
   },
   {
     to: '/admin/reports', label: 'Reports', icon: FiTrendingUp,
-    roles: ['super_admin','admin'],
+    roles: ['super_admin','admin','accountant'],
   },
 
   // ── Notifications ──────────────────────────────────────────────────────────
   {
     to: '/admin/notifications', label: 'Notifications', icon: FiBell,
-    roles: ['super_admin','admin','class_teacher','hostel_warden','librarian'],
+    roles: ['super_admin','admin','class_teacher','hostel_warden','librarian','accountant','admission_staff'],
   },
 ];
 
@@ -136,6 +137,8 @@ const roleConfig = {
   hostel_warden:    { label: 'Hostel Warden',    color: 'bg-green-500'  },
   shop_operator:    { label: 'Operator',         color: 'bg-yellow-500' },
   librarian:        { label: 'Librarian',        color: 'bg-purple-500' },
+  accountant:       { label: 'Accountant',       color: 'bg-emerald-500' },
+  admission_staff:  { label: 'Admission Staff',  color: 'bg-sky-500' },
 };
 
 export default function AdminLayout() {
@@ -177,6 +180,13 @@ export default function AdminLayout() {
           exact: true,
         };
       }
+      if (user?.role === 'admission_staff' && item.to === '/admin') {
+        return {
+          ...item,
+          to: '/admin',
+          exact: true,
+        };
+      }
       return item;
     });
   const currentRole = roleConfig[user?.role] || {
@@ -196,18 +206,17 @@ export default function AdminLayout() {
     <div className="flex flex-col h-full">
 
       {/* Logo */}
-      <div className="p-5 border-b border-primary-700">
+      <div className="border-b border-white/10 bg-white/5 p-5">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-white rounded-lg flex items-center
-            justify-center text-primary-700 font-bold text-lg shrink-0">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-lg font-bold text-primary-700 shadow-lg shadow-black/10">
             C
           </div>
           {expanded && (
             <div>
-              <p className="text-white font-bold text-sm leading-tight">
+              <p className="text-sm font-bold leading-tight text-white">
                 College
               </p>
-              <p className="text-primary-300 text-xs">Management System</p>
+              <p className="text-xs uppercase tracking-[0.18em] text-primary-200">Academic ERP Portal</p>
             </div>
           )}
         </div>
@@ -216,7 +225,7 @@ export default function AdminLayout() {
       {/* Nav Items */}
       <nav
         ref={navRef}
-        className="flex-1 overflow-y-auto py-4 px-2 space-y-0.5"
+        className="flex-1 space-y-0.5 overflow-y-auto px-2 py-4"
         onScroll={e => {
           sidebarScrollPositions.current[navKey] = e.currentTarget.scrollTop;
         }}
@@ -224,11 +233,10 @@ export default function AdminLayout() {
         {filteredNav.map((item, i) => {
           if (item.section) {
             return expanded
-              ? <p key={i} className="text-primary-400 text-xs font-semibold
-                  uppercase tracking-wider px-3 pt-4 pb-1">
+              ? <p key={i} className="px-3 pb-1 pt-4 text-xs font-semibold uppercase tracking-[0.22em] text-primary-300/80">
                   {item.section}
                 </p>
-              : <hr key={i} className="border-primary-700 my-2" />;
+              : <hr key={i} className="my-2 border-white/10" />;
           }
           return (
             <NavLink
@@ -236,11 +244,11 @@ export default function AdminLayout() {
               to={item.to}
               end={item.exact}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded-lg text-sm
-                transition-colors
+                `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm
+                transition-all duration-200
                 ${isActive
-                  ? 'bg-white/20 text-white font-medium'
-                  : 'text-primary-200 hover:bg-white/10 hover:text-white'}`
+                  ? 'bg-white text-primary-800 shadow-lg shadow-black/10 font-semibold'
+                  : 'text-primary-100 hover:bg-white/10 hover:text-white hover:translate-x-1'}`
               }
               onClick={e => {
                 const navElement = e.currentTarget.closest('nav');
@@ -258,10 +266,9 @@ export default function AdminLayout() {
       </nav>
 
       {/* User Info */}
-      <div className="p-3 border-t border-primary-700">
+      <div className="border-t border-white/10 bg-white/5 p-3">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-primary-400 flex items-center
-            justify-center text-white text-sm font-bold shrink-0">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-300 to-primary-500 text-sm font-bold text-white">
             {user?.name?.charAt(0) || 'A'}
           </div>
           {expanded && (
@@ -274,18 +281,20 @@ export default function AdminLayout() {
           <button
             onClick={handleLogout}
             title="Logout"
-            className="text-primary-300 hover:text-white transition-colors
-              text-lg shrink-0"
+            className="shrink-0 text-lg text-primary-200 transition-colors hover:text-white"
           >
             <FiLogOut />
           </button>
         </div>
+        {expanded && (
+          <PortalCopyright className="mt-3 px-1 text-primary-100/80" />
+        )}
       </div>
     </div>
   );
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="app-shell flex h-screen overflow-hidden">
 
       {/* Mobile Overlay */}
       {mobileOpen && (
@@ -296,7 +305,7 @@ export default function AdminLayout() {
       )}
 
       {/* Desktop Sidebar */}
-      <aside className={`hidden lg:flex flex-col bg-primary-800
+      <aside className={`hidden lg:flex flex-col bg-gradient-to-b from-primary-900 via-primary-800 to-slate-900
         transition-all duration-300 shrink-0
         ${sidebarOpen ? 'w-60' : 'w-16'}`}>
         <SidebarContent
@@ -307,7 +316,7 @@ export default function AdminLayout() {
       </aside>
 
       {/* Mobile Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-30 w-60 bg-primary-800
+      <aside className={`fixed inset-y-0 left-0 z-30 w-60 bg-gradient-to-b from-primary-900 via-primary-800 to-slate-900
         flex flex-col lg:hidden transform transition-transform duration-300
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <SidebarContent
@@ -321,21 +330,20 @@ export default function AdminLayout() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* Top Bar */}
-        <header className="bg-white border-b border-gray-200 px-4 py-3
-          flex items-center gap-3 shrink-0">
+        <header className="campus-panel mx-4 mt-4 flex shrink-0 items-center gap-3 border border-white/80 px-4 py-3 md:mx-6">
           <button
             onClick={() => {
               setSidebarOpen(!sidebarOpen);
               setMobileOpen(!mobileOpen);
             }}
-            className="p-2 rounded-lg hover:bg-gray-100 text-gray-600
-              transition-colors"
+            className="rounded-xl p-2 text-gray-600 transition-colors hover:bg-slate-100"
           >
             <FiMenu />
           </button>
-          <h1 className="text-gray-800 font-semibold text-sm flex-1 min-w-0 truncate">
-            College Management System
-          </h1>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary-600">College Management System</p>
+            <h1 className="truncate text-sm font-semibold text-slate-800">Academic operations and administration workspace</h1>
+          </div>
           <div className="flex items-center gap-2 shrink-0">
             <NotificationBell />
             <span className={`hidden sm:inline-flex items-center px-2.5 py-1

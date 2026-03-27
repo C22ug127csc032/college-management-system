@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api, { downloadPaymentReceipt } from '../../api/axios';
 import { PageSpinner, StatusBadge } from '../../components/common';
+import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import {
   FiAlertCircle,
@@ -24,6 +25,7 @@ const Row = ({ label, value }) => (
 export default function StudentDetail() {
   const { id }       = useParams();
   const navigate     = useNavigate();
+  const { user }     = useAuth();
   const [student, setStudent]     = useState(null);
   const [fees, setFees]           = useState([]);
   const [payments, setPayments]   = useState([]);
@@ -69,6 +71,7 @@ export default function StudentDetail() {
   const fmt = n => `₹${(n || 0).toLocaleString('en-IN')}`;
   const isPending = !student.regNo ||
                     student.status === 'admission_pending';
+  const canEditStudent = ['super_admin', 'admin', 'admission_staff', 'class_teacher'].includes(user?.role);
 
   const displayClassName = (() => {
     const courseCode = String(student?.course?.code || '').trim().toUpperCase();
@@ -102,12 +105,14 @@ export default function StudentDetail() {
             </span>
           : <StatusBadge status={student.status} />
         }
-        <button
-          onClick={() => navigate(`/admin/students/${id}/edit`)}
-          className="btn-primary text-sm inline-flex items-center gap-2 ml-auto"
-        >
-          <FiEdit3 /> Edit Student
-        </button>
+        {canEditStudent && (
+          <button
+            onClick={() => navigate(`/admin/students/${id}/edit`)}
+            className="btn-primary text-sm inline-flex items-center gap-2 ml-auto"
+          >
+            <FiEdit3 /> {user?.role === 'class_teacher' ? 'Update Enrollment' : 'Edit Student'}
+          </button>
+        )}
       </div>
 
       {/* ── Enrollment Pending Warning ── */}
@@ -122,8 +127,8 @@ export default function StudentDetail() {
             <p className="text-xs text-yellow-600 mt-0.5">
               This student has admission no <strong>{student.admissionNo || 'Not assigned'}</strong>.
               After university enrollment, click{' '}
-              <strong>Edit Student</strong> and fill in the official
-              Register Number, Roll Number and Section.
+              <strong>{user?.role === 'class_teacher' ? 'Update Enrollment' : 'Edit Student'}</strong> and fill in the official
+              Register Number. Roll Number and Section are assigned during roll number generation.
             </p>
           </div>
           <button

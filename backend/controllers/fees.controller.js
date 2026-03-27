@@ -2,6 +2,7 @@ import FeesStructure from '../models/FeesStructure.model.js';
 import StudentFees from '../models/StudentFees.model.js';
 import Student from '../models/Student.model.js';
 import Ledger from '../models/Ledger.model.js';
+import { classTeacherHasStudentAccess } from '../utils/staffCourseScope.js';
 
 // ─── Fee Structure CRUD ────────────────────────────────────────────────────────
 
@@ -174,6 +175,12 @@ export const assignFees = async (req, res) => {
 export const getStudentFees = async (req, res) => {
   try {
     const { studentId } = req.params;
+    if (req.user?.role === 'class_teacher') {
+      const hasAccess = await classTeacherHasStudentAccess(req.user, studentId);
+      if (!hasAccess) {
+        return res.status(404).json({ success: false, message: 'Student not found' });
+      }
+    }
     const { academicYear, status } = req.query;
     const query = { student: studentId };
     if (academicYear?.trim()) query.academicYear = { $regex: academicYear.trim(), $options: 'i' };

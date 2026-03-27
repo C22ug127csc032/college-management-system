@@ -29,8 +29,22 @@ export const authorize = (...roles) => (req, res, next) => {
 
 export const superAdminOnly = authorize('super_admin');
 export const adminOnly      = authorize('super_admin', 'admin');
+export const financeStaff   = authorize('super_admin', 'admin', 'accountant');
+export const admissionStaff = authorize('super_admin', 'admin', 'admission_staff');
 export const adminOrTeacher = authorize('super_admin', 'admin', 'class_teacher');
+export const adminTeacherOrFinance = authorize('super_admin', 'admin', 'class_teacher', 'accountant');
 export const adminOrTeacherOrWarden = authorize('super_admin', 'admin', 'class_teacher', 'hostel_warden');
+export const adminWardenOrFinance = authorize('super_admin', 'admin', 'class_teacher', 'hostel_warden', 'accountant');
+export const studentOfficeStaff = authorize(
+  'super_admin',
+  'admin',
+  'class_teacher',
+  'hostel_warden',
+  'accountant',
+  'admission_staff'
+);
+export const studentManagementStaff = authorize('super_admin', 'admin', 'admission_staff');
+export const studentEnrollmentStaff = authorize('super_admin', 'admin', 'admission_staff', 'class_teacher');
 export const hostelStaff    = authorize('super_admin', 'admin', 'hostel_warden', 'class_teacher');
 export const hostelWardenOnly = authorize('hostel_warden');
 export const hostelOutpassStaff = authorize('super_admin', 'admin', 'hostel_warden');
@@ -44,8 +58,15 @@ export default {
   authorize,
   superAdminOnly,
   adminOnly,
+  financeStaff,
+  admissionStaff,
   adminOrTeacher,
+  adminTeacherOrFinance,
   adminOrTeacherOrWarden,
+  adminWardenOrFinance,
+  studentOfficeStaff,
+  studentManagementStaff,
+  studentEnrollmentStaff,
   hostelStaff,
   hostelWardenOnly,
   hostelOutpassStaff,

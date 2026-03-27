@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { isValidIndianPhone, normalizeIdentifierInput, sanitizePhoneField } from '../utils/phone';
+import PortalCopyright from '../components/common/PortalCopyright';
 
 const INVALID_LOGIN_MESSAGE = 'Invalid email, phone number, or password';
 
@@ -262,6 +263,7 @@ export default function StudentLogin() {
             </div>
           )}
         </div>
+        <PortalCopyright className="mt-6 px-4" />
       </div>
     </div>
   );

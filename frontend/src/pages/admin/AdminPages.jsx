@@ -227,9 +227,20 @@ export function CircularsAdmin() {
   const [form, setForm] = useState(initialCircularForm);
   const [editingId, setEditingId] = useState('');
 
-  const teacherCourse = courses.find(course =>
-    course.name === user?.department || course.code === user?.department || course._id === user?.department
-  );
+  const normalizedDepartment = String(user?.department || '').trim().toUpperCase();
+  const teacherCourse = courses.find(course => {
+    const courseName = String(course.name || '').trim().toUpperCase();
+    const courseCode = String(course.code || '').trim().toUpperCase();
+    const courseDepartment = String(course.department || '').trim().toUpperCase();
+    const courseId = String(course._id || '').trim().toUpperCase();
+
+    return (
+      courseName === normalizedDepartment ||
+      courseCode === normalizedDepartment ||
+      courseDepartment === normalizedDepartment ||
+      courseId === normalizedDepartment
+    );
+  });
   const visibleCourses = isClassTeacher && teacherCourse ? [teacherCourse] : courses;
   const audienceOptions = isClassTeacher
     ? [
@@ -872,7 +883,7 @@ export function StaffManagement() {
     setForm(initialStaffForm);
   };
 
-  const roleColors = { admin: 'badge-red', class_teacher: 'badge-blue', hostel_warden: 'badge-green', shop_operator: 'badge-yellow', librarian: 'badge-purple', super_admin: 'badge-red' };
+  const roleColors = { admin: 'badge-red', class_teacher: 'badge-blue', hostel_warden: 'badge-green', shop_operator: 'badge-yellow', librarian: 'badge-purple', accountant: 'badge-green', admission_staff: 'badge-blue', super_admin: 'badge-red' };
   const roleLabels = { shop_operator: 'operator', canteen_operator: 'operator' };
 
   return (
@@ -906,7 +917,7 @@ export function StaffManagement() {
             <div><label className="label">{editingStaffId ? 'New Password' : 'Password *'}</label><input type="password" className="input" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} required={!editingStaffId} placeholder={editingStaffId ? 'Leave blank to keep current password' : ''} /></div>
             <div><label className="label">Role</label>
               <select className="input" value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>
-                {['admin','class_teacher','hostel_warden','shop_operator','librarian','super_admin'].map(r => <option key={r} value={r}>{r.replace(/_/g, ' ')}</option>)}
+                {['admin','class_teacher','hostel_warden','shop_operator','librarian','accountant','admission_staff','super_admin'].map(r => <option key={r} value={r}>{r.replace(/_/g, ' ')}</option>)}
               </select>
             </div>
             <div>
