@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import NotificationBell from '../common/NotificationBell';
-import PortalCopyright from '../common/PortalCopyright';
 import {
   FiBarChart2,
   FiBell,
@@ -131,14 +130,14 @@ const ALL_NAV = [
 ];
 
 const roleConfig = {
-  super_admin:      { label: 'Super Admin',      color: 'bg-red-500'    },
-  admin:            { label: 'Admin',            color: 'bg-rose-500'   },
-  class_teacher:    { label: 'Class Teacher',    color: 'bg-blue-500'   },
-  hostel_warden:    { label: 'Hostel Warden',    color: 'bg-green-500'  },
-  shop_operator:    { label: 'Operator',         color: 'bg-yellow-500' },
-  librarian:        { label: 'Librarian',        color: 'bg-purple-500' },
-  accountant:       { label: 'Accountant',       color: 'bg-emerald-500' },
-  admission_staff:  { label: 'Admission Staff',  color: 'bg-sky-500' },
+  super_admin:      { label: 'Super Admin',      color: 'bg-primary-500' },
+  admin:            { label: 'Admin',            color: 'bg-primary-500' },
+  class_teacher:    { label: 'Class Teacher',    color: 'bg-primary-500' },
+  hostel_warden:    { label: 'Hostel Warden',    color: 'bg-primary-500' },
+  shop_operator:    { label: 'Operator',         color: 'bg-primary-500' },
+  librarian:        { label: 'Librarian',        color: 'bg-primary-500' },
+  accountant:       { label: 'Accountant',       color: 'bg-primary-500' },
+  admission_staff:  { label: 'Admission Staff',  color: 'bg-primary-500' },
 };
 
 export default function AdminLayout() {
@@ -206,9 +205,9 @@ export default function AdminLayout() {
     <div className="flex flex-col h-full">
 
       {/* Logo */}
-      <div className="border-b border-white/10 bg-white/5 p-5">
+      <div className="border-b border-white/10 p-5">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-lg font-bold text-primary-700 shadow-lg shadow-black/10">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-lg font-bold text-primary-500 shadow-sm">
             C
           </div>
           {expanded && (
@@ -216,7 +215,7 @@ export default function AdminLayout() {
               <p className="text-sm font-bold leading-tight text-white">
                 College
               </p>
-              <p className="text-xs uppercase tracking-[0.18em] text-primary-200">Academic ERP Portal</p>
+              <p className="text-xs uppercase tracking-[0.18em] text-white/70">Management System</p>
             </div>
           )}
         </div>
@@ -225,7 +224,7 @@ export default function AdminLayout() {
       {/* Nav Items */}
       <nav
         ref={navRef}
-        className="flex-1 space-y-0.5 overflow-y-auto px-2 py-4"
+        className="portal-sidebar-scroll flex-1 space-y-0.5 overflow-y-auto px-2 py-4"
         onScroll={e => {
           sidebarScrollPositions.current[navKey] = e.currentTarget.scrollTop;
         }}
@@ -233,7 +232,7 @@ export default function AdminLayout() {
         {filteredNav.map((item, i) => {
           if (item.section) {
             return expanded
-              ? <p key={i} className="px-3 pb-1 pt-4 text-xs font-semibold uppercase tracking-[0.22em] text-primary-300/80">
+              ? <p key={i} className="px-3 pb-1 pt-4 text-xs font-semibold uppercase tracking-[0.18em] text-white/60">
                   {item.section}
                 </p>
               : <hr key={i} className="my-2 border-white/10" />;
@@ -247,8 +246,8 @@ export default function AdminLayout() {
                 `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm
                 transition-all duration-200
                 ${isActive
-                  ? 'bg-white text-primary-800 shadow-lg shadow-black/10 font-semibold'
-                  : 'text-primary-100 hover:bg-white/10 hover:text-white hover:translate-x-1'}`
+                  ? 'bg-primary-500 text-white shadow-sm font-semibold'
+                  : 'text-white/80 hover:bg-primary-700 hover:text-white'}`
               }
               onClick={e => {
                 const navElement = e.currentTarget.closest('nav');
@@ -266,9 +265,9 @@ export default function AdminLayout() {
       </nav>
 
       {/* User Info */}
-      <div className="border-t border-white/10 bg-white/5 p-3">
+      <div className="border-t border-white/10 p-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-300 to-primary-500 text-sm font-bold text-white">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-500 text-sm font-bold text-white">
             {user?.name?.charAt(0) || 'A'}
           </div>
           {expanded && (
@@ -281,13 +280,13 @@ export default function AdminLayout() {
           <button
             onClick={handleLogout}
             title="Logout"
-            className="shrink-0 text-lg text-primary-200 transition-colors hover:text-white"
+            className="shrink-0 text-lg text-white/70 transition-colors hover:text-white"
           >
             <FiLogOut />
           </button>
         </div>
         {expanded && (
-          <PortalCopyright className="mt-3 px-1 text-primary-100/80" />
+          null
         )}
       </div>
     </div>
@@ -305,7 +304,7 @@ export default function AdminLayout() {
       )}
 
       {/* Desktop Sidebar */}
-      <aside className={`hidden lg:flex flex-col bg-gradient-to-b from-primary-900 via-primary-800 to-slate-900
+      <aside className={`hidden lg:flex flex-col bg-sidebar
         transition-all duration-300 shrink-0
         ${sidebarOpen ? 'w-60' : 'w-16'}`}>
         <SidebarContent
@@ -316,7 +315,7 @@ export default function AdminLayout() {
       </aside>
 
       {/* Mobile Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-30 w-60 bg-gradient-to-b from-primary-900 via-primary-800 to-slate-900
+      <aside className={`fixed inset-y-0 left-0 z-30 w-60 bg-sidebar
         flex flex-col lg:hidden transform transition-transform duration-300
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <SidebarContent
@@ -330,19 +329,19 @@ export default function AdminLayout() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* Top Bar */}
-        <header className="campus-panel mx-4 mt-4 flex shrink-0 items-center gap-3 border border-white/80 px-4 py-3 md:mx-6">
+        <header className="mx-4 mt-4 flex shrink-0 items-center gap-3 rounded-xl border border-border bg-white px-4 py-3 shadow-sm md:mx-6">
           <button
             onClick={() => {
               setSidebarOpen(!sidebarOpen);
               setMobileOpen(!mobileOpen);
             }}
-            className="rounded-xl p-2 text-gray-600 transition-colors hover:bg-slate-100"
+            className="rounded-lg p-2 text-text-secondary transition-colors hover:bg-primary-50"
           >
             <FiMenu />
           </button>
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary-600">College Management System</p>
-            <h1 className="truncate text-sm font-semibold text-slate-800">Academic operations and administration workspace</h1>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-500">College Management System</p>
+            <h1 className="truncate text-sm font-semibold text-primary-500">Academic operations and administration workspace</h1>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <NotificationBell />

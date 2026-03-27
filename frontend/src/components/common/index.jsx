@@ -23,18 +23,18 @@ export const StatusBadge = ({ status }) => {
 };
 
 export const EmptyState = ({ message = 'No data found', icon = <FiInbox /> }) => (
-  <div className="float-in rounded-[28px] border border-dashed border-slate-200 bg-white/70 px-6 py-16 text-center text-slate-400">
-    <div className="mb-4 flex justify-center text-4xl text-slate-300">{icon}</div>
+  <div className="float-in rounded-xl border border-dashed border-border bg-white px-6 py-16 text-center text-text-secondary shadow-sm">
+    <div className="mb-4 flex justify-center text-4xl text-primary-300">{icon}</div>
     <p className="text-sm font-medium">{message}</p>
   </div>
 );
 
 export const PageHeader = ({ title, subtitle, action }) => (
-  <div className="campus-panel soft-grid float-in mb-6 flex flex-wrap items-start justify-between gap-4 px-6 py-5">
+  <div className="campus-panel float-in mb-6 flex flex-wrap items-start justify-between gap-4 px-6 py-5">
     <div className="max-w-3xl">
       <span className="institution-tag mb-3">Academic Workspace</span>
       <h1 className="page-title">{title}</h1>
-      {subtitle && <p className="mt-1.5 max-w-2xl text-sm leading-6 text-slate-500">{subtitle}</p>}
+      {subtitle && <p className="mt-1.5 max-w-2xl text-sm leading-6 text-text-secondary">{subtitle}</p>}
     </div>
     {action && <div className="self-center">{action}</div>}
   </div>
@@ -42,19 +42,19 @@ export const PageHeader = ({ title, subtitle, action }) => (
 
 export const StatCard = ({ icon, label, value, color = 'blue', sub }) => {
   const colors = {
-    blue: 'bg-blue-50 text-blue-600',
-    green: 'bg-green-50 text-green-600',
-    yellow: 'bg-yellow-50 text-yellow-600',
-    red: 'bg-red-50 text-red-600',
-    purple: 'bg-purple-50 text-purple-600',
+    blue: 'bg-primary-50 text-primary-600',
+    green: 'bg-primary-50 text-primary-600',
+    yellow: 'bg-red-50 text-accent',
+    red: 'bg-red-50 text-accent',
+    purple: 'bg-primary-50 text-primary-600',
   };
   return (
     <div className="stat-card">
-      <div className={`h-12 w-12 shrink-0 rounded-2xl flex items-center justify-center text-2xl shadow-inner ${colors[color]}`}>{icon}</div>
+      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-2xl ${colors[color]}`}>{icon}</div>
       <div>
-        <p className="text-2xl font-bold text-gray-900">{value}</p>
-        <p className="text-sm text-gray-500">{label}</p>
-        {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+        <p className="text-2xl font-bold text-text-primary">{value}</p>
+        <p className="text-sm text-text-secondary">{label}</p>
+        {sub && <p className="mt-0.5 text-xs text-text-secondary">{sub}</p>}
       </div>
     </div>
   );
@@ -66,11 +66,11 @@ export const Modal = ({ open, onClose, title, children, size = 'md' }) => {
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-sm" onClick={onClose} />
-        <div className={`relative w-full overflow-hidden rounded-[30px] border border-white/70 bg-white shadow-[0_24px_90px_-28px_rgba(15,23,42,0.45)] ${sizes[size]} z-10`}>
-          <div className="soft-grid flex items-center justify-between border-b border-slate-100 px-6 py-4">
-            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-            <button onClick={onClose} className="text-xl leading-none text-gray-400 transition-colors hover:text-gray-600">
+        <div className="fixed inset-0 bg-slate-900/35" onClick={onClose} />
+        <div className={`relative z-10 w-full overflow-hidden rounded-xl border border-border bg-white shadow-md ${sizes[size]}`}>
+          <div className="flex items-center justify-between border-b border-border px-6 py-4">
+            <h3 className="text-lg font-semibold text-text-primary">{title}</h3>
+            <button onClick={onClose} className="text-xl leading-none text-text-secondary transition-colors hover:text-text-primary">
               <FiX />
             </button>
           </div>
@@ -82,12 +82,12 @@ export const Modal = ({ open, onClose, title, children, size = 'md' }) => {
 };
 
 export const Table = ({ headers, children, empty }) => (
-  <div className="overflow-x-auto rounded-[26px] border border-slate-100 bg-white/95 shadow-[0_16px_40px_-30px_rgba(15,23,42,0.35)]">
+  <div className="overflow-x-auto rounded-xl border border-border bg-white shadow-sm">
     <table className="w-full">
-      <thead className="bg-slate-50/95 border-b border-slate-100">
+      <thead className="border-b border-border bg-primary-50">
         <tr>{headers.map((h, i) => <th key={i} className="table-header">{h}</th>)}</tr>
       </thead>
-      <tbody className="divide-y divide-slate-50">{children}</tbody>
+      <tbody className="divide-y divide-border">{children}</tbody>
     </table>
     {empty}
   </div>
@@ -102,7 +102,7 @@ export const FormField = ({ label, error, children, required }) => (
 );
 
 export const FilterBar = ({ children }) => (
-  <div className="soft-grid mb-4 flex flex-wrap gap-3 rounded-[24px] border border-slate-100 bg-white/85 p-4 shadow-[0_12px_30px_-24px_rgba(15,23,42,0.28)]">{children}</div>
+  <div className="mb-4 flex flex-wrap gap-3 rounded-xl border border-border bg-white p-4 shadow-sm">{children}</div>
 );
 
 export const Pagination = ({ page, pages, onPage }) => {

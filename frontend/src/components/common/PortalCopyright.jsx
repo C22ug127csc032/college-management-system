@@ -1,10 +1,19 @@
 import React from 'react';
 
-export default function PortalCopyright({ className = '', textClassName = '' }) {
+const copyByVariant = {
+  full: '\u00A9 All Rights Reserved. Powered by EMATIX Embedded and Software Solutions Inc.',
+  powered: 'Powered by EMATIX Embedded and Software Solutions Inc.',
+};
+
+export default function PortalCopyright({
+  className = '',
+  textClassName = '',
+  variant = 'full',
+}) {
   return (
-    <p className={`text-center text-xs leading-relaxed text-white/85 sm:text-sm ${className}`.trim()}>
+    <p className={`text-center text-lg leading-relaxed ${className}`.trim()}>
       <span className={textClassName}>
-        &copy; All Rights Reserved. Powered by EMATIX Embedded and Software Solutions Inc.
+        {copyByVariant[variant] || copyByVariant.full}
       </span>
     </p>
   );

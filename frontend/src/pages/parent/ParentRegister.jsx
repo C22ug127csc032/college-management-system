@@ -130,14 +130,14 @@ export default function ParentRegister() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-900 to-green-700 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-sidebar via-primary-dark to-primary-500 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
-          <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-green-700 text-2xl font-bold mx-auto mb-3 shadow-xl">
+          <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center text-primary-500 text-2xl font-bold mx-auto mb-3 shadow-md">
             <FiUser />
           </div>
           <h1 className="text-2xl font-bold text-white">Parent Registration</h1>
-          <p className="text-green-300 text-sm mt-1">
+          <p className="text-primary-100 text-sm mt-1">
             Secure registration with OTP verification
           </p>
         </div>
@@ -148,29 +148,29 @@ export default function ParentRegister() {
               <div className="flex flex-col items-center gap-1">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
                   step > i + 1
-                    ? 'bg-green-400 text-white'
+                    ? 'bg-primary-500 text-white'
                     : step === i + 1
-                      ? 'bg-white text-green-700 ring-2 ring-green-300'
-                      : 'bg-green-800 text-green-400'
+                      ? 'bg-white text-primary-500 ring-2 ring-primary-200'
+                      : 'bg-primary-800 text-primary-100'
                 }`}>
                   {step > i + 1 ? <FiCheckCircle className="text-sm" /> : i + 1}
                 </div>
                 <span className={`text-xs hidden sm:block ${
-                  step === i + 1 ? 'text-white font-medium' : 'text-green-400'
+                  step === i + 1 ? 'text-white font-medium' : 'text-primary-100'
                 }`}>
                   {s}
                 </span>
               </div>
               {i < STEPS.length - 1 && (
                 <div className={`h-0.5 w-12 mx-1 mb-4 transition-all ${
-                  step > i + 1 ? 'bg-green-400' : 'bg-green-800'
+                  step > i + 1 ? 'bg-primary-300' : 'bg-primary-800'
                 }`} />
               )}
             </React.Fragment>
           ))}
         </div>
 
-        <div className="bg-white rounded-2xl shadow-2xl p-6">
+        <div className="bg-white rounded-xl border border-border shadow-md p-6">
           {step === 1 && (
             <form onSubmit={handleSendOTP} className="space-y-4">
               <div className="text-center mb-4">
@@ -185,9 +185,9 @@ export default function ParentRegister() {
                 </p>
               </div>
 
-              <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-xl">
-                <FiLock className="text-blue-500 shrink-0 mt-0.5" />
-                <p className="text-xs text-blue-700">
+              <div className="flex items-start gap-2 p-3 bg-primary-50 border border-primary-100 rounded-xl">
+                <FiLock className="text-primary-500 shrink-0 mt-0.5" />
+                <p className="text-xs text-primary-700">
                   OTP is sent only to the phone number the admin has saved
                   for your child. This prevents unauthorized access.
                 </p>
@@ -209,7 +209,7 @@ export default function ParentRegister() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50"
+                className="btn-primary w-full py-3 disabled:opacity-50"
               >
                 {loading ? 'Sending OTP...' : (
                   <span className="inline-flex items-center gap-2">
@@ -221,7 +221,7 @@ export default function ParentRegister() {
 
               <p className="text-center text-sm text-gray-500">
                 Already registered?{' '}
-                <a href="/parent/login" className="text-green-600 hover:underline font-medium">
+                <a href="/parent/login" className="text-primary-500 hover:underline font-medium">
                   Login here
                 </a>
               </p>
@@ -271,7 +271,7 @@ export default function ParentRegister() {
                     type="button"
                     onClick={handleResendOTP}
                     disabled={loading}
-                    className="text-green-600 hover:underline font-medium"
+                  className="text-primary-500 hover:underline font-medium"
                   >
                     Resend OTP
                   </button>
@@ -281,7 +281,7 @@ export default function ParentRegister() {
               <button
                 type="submit"
                 disabled={loading || otp.length !== 6}
-                className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50"
+                className="btn-primary w-full py-3 disabled:opacity-50"
               >
                 {loading ? 'Verifying...' : (
                   <span className="inline-flex items-center gap-2">
@@ -407,7 +407,7 @@ export default function ParentRegister() {
               <button
                 type="submit"
                 disabled={loading || form.password !== form.confirmPassword || form.password.length < 6}
-                className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50"
+                className="btn-primary w-full py-3 disabled:opacity-50"
               >
                 {loading ? 'Creating Account...' : (
                   <span className="inline-flex items-center gap-2">
@@ -420,7 +420,7 @@ export default function ParentRegister() {
           )}
         </div>
 
-        <p className="text-center text-xs text-green-400 mt-4">
+        <p className="text-center text-xs text-primary-100 mt-4">
           <span className="inline-flex items-center gap-1">
             <FiLock />
             <span>Secured with OTP - only verified parents can register</span>

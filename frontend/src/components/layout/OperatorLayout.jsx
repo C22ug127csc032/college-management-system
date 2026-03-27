@@ -6,7 +6,6 @@ import {
   FiLogOut,
   FiShoppingBag,
 } from '../common/icons';
-import PortalCopyright from '../common/PortalCopyright';
 
 const navByRole = {
   shop_operator: [
@@ -33,48 +32,47 @@ export default function OperatorLayout() {
 
   return (
     <div className="app-shell">
-      <header className="border-b border-amber-200/70 bg-white/85 backdrop-blur">
+      <header className="border-b border-border bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-6">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-700">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary-500">
               College Commerce Desk
             </p>
-            <h1 className="text-lg font-bold text-slate-900">{title}</h1>
-            <p className="mt-1 text-sm text-slate-500">
+            <h1 className="text-lg font-bold text-primary-500">{title}</h1>
+            <p className="mt-1 text-sm text-text-secondary">
               Student-facing shop and canteen operations for campus services
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
-            <div className="hidden rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 sm:block">
+            <div className="hidden rounded-full border border-border bg-primary-50 px-3 py-1 text-xs font-semibold text-primary-500 sm:block">
               {user?.name}
             </div>
             <button
               onClick={handleLogout}
-              className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-amber-50"
+              className="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 text-sm font-semibold text-text-secondary shadow-sm transition duration-200 hover:bg-primary-50 hover:text-primary-500"
             >
               <FiLogOut />
               Logout
             </button>
-            <PortalCopyright className="max-w-xs text-right text-slate-500" />
           </div>
         </div>
       </header>
 
       <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-6 md:px-6 lg:flex-row">
-        <aside className="campus-panel soft-grid w-full p-3 lg:w-72 lg:self-start">
-          <p className="mb-3 px-2 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+        <aside className="w-full rounded-xl border border-sidebar bg-sidebar p-3 shadow-sm lg:w-72 lg:self-start">
+          <p className="mb-3 px-2 text-xs font-semibold uppercase tracking-[0.18em] text-white/60">
             Workspace
           </p>
-          <nav className="space-y-1">
+          <nav className="portal-sidebar-scroll space-y-1 overflow-y-auto">
             {navItems.map(item => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-semibold transition-all duration-200 ${
+                  `flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold transition-all duration-200 ${
                     isActive
-                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-300/40'
-                      : 'text-slate-700 hover:translate-x-1 hover:bg-amber-50'
+                      ? 'bg-primary-500 text-white shadow-sm'
+                      : 'text-white/80 hover:bg-primary-700 hover:text-white'
                   }`
                 }
               >
@@ -83,13 +81,12 @@ export default function OperatorLayout() {
               </NavLink>
             ))}
           </nav>
-          <div className="mt-4 rounded-2xl border border-amber-100 bg-white/90 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">Institution</p>
-            <p className="mt-2 text-sm font-semibold text-slate-800">College Management System</p>
-            <p className="mt-1 text-xs leading-5 text-slate-500">
+          <div className="mt-4 rounded-lg border border-white/10 bg-white/5 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60">Institution</p>
+            <p className="mt-2 text-sm font-semibold text-white">College Management System</p>
+            <p className="mt-1 text-xs leading-5 text-white/70">
               Billing, item issue, and student purchase tracking for campus facilities.
             </p>
-            <PortalCopyright className="mt-3 text-left text-slate-500" />
           </div>
         </aside>
 

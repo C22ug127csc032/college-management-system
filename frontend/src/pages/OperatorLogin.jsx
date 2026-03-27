@@ -38,15 +38,15 @@ export default function OperatorLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-100 via-orange-50 to-white px-4 py-10">
+    <div className="min-h-screen bg-gradient-to-br from-sidebar via-primary-dark to-primary-500 px-4 py-10">
       <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-md items-center">
         <div className="w-full">
-          <div className="rounded-3xl border border-amber-200 bg-white p-8 shadow-xl shadow-amber-100/70">
+          <div className="rounded-xl border border-border bg-white p-8 shadow-md">
             <div className="mb-6">
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-700">
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary-500">
                 Operator Login
               </p>
-              <h2 className="mt-2 text-2xl font-bold text-slate-900">Sign in</h2>
+              <h2 className="mt-2 text-2xl font-bold text-text-primary">Sign in</h2>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -79,13 +79,13 @@ export default function OperatorLogin() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-xl bg-amber-500 px-4 py-3 text-base font-semibold text-white transition-colors hover:bg-amber-600 disabled:opacity-50"
+                className="btn-primary w-full py-3 text-base disabled:opacity-50"
               >
                 {loading ? 'Signing in...' : 'Sign In'}
               </button>
             </form>
           </div>
-          <PortalCopyright className="mt-6 px-4 text-slate-700" />
+          <PortalCopyright variant="full" className="mt-6 px-4 text-lg text-white" />
         </div>
       </div>
     </div>

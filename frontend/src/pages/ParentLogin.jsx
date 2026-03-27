@@ -4,9 +4,17 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { isValidIndianPhone, normalizeIdentifierInput, sanitizePhoneField } from '../utils/phone';
+import AuthSplitLayout from '../components/common/AuthSplitLayout';
 import PortalCopyright from '../components/common/PortalCopyright';
+import { FiLock, FiPhone, FiShield, FiUser } from '../components/common/icons';
 
 const INVALID_LOGIN_MESSAGE = 'Invalid email, phone number, or password';
+
+const InputIcon = ({ icon: Icon }) => (
+  <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-text-secondary">
+    <Icon className="text-base" />
+  </span>
+);
 
 export default function ParentLogin() {
   const { login, completeLogin } = useAuth();
@@ -97,171 +105,172 @@ export default function ParentLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-green-700 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-green-700 text-3xl mx-auto mb-4 shadow-xl">
-            P
+    <AuthSplitLayout
+      badge="Parent Portal"
+      welcomeTitle="Welcome"
+      welcomeDescription="Track fees, view notices, monitor student updates, and stay connected with your child’s college activities."
+      welcomeNote="Parents can sign in using the registered email or mobile number connected to the student account."
+      panelTitle="Sign in"
+      panelSubtitle="Use your registered parent credentials to continue to the college parent dashboard."
+      footer={<PortalCopyright variant="full" className="text-left text-text-secondary" />}
+    >
+      {!showOTP ? (
+        <form onSubmit={handlePasswordLogin} className="space-y-4">
+          <div>
+            <label className="label">Email or Phone Number</label>
+            <div className="relative">
+              <InputIcon icon={FiUser} />
+              <input
+                type="text"
+                name="identifier"
+                autoComplete="username"
+                className="input pl-11"
+                placeholder="Enter your registered email or phone"
+                value={form.phone}
+                onChange={e => {
+                  setForm(prev => ({ ...prev, phone: e.target.value }));
+                  setLoginFailed(false);
+                }}
+                required
+              />
+            </div>
           </div>
-          <h1 className="text-3xl font-bold text-white">Parent Portal</h1>
-          <p className="text-green-300 mt-2">Monitor and manage your child</p>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <div className="flex justify-center mb-6">
-            <span className="px-4 py-1.5 bg-green-50 text-green-700 rounded-full text-sm font-medium border border-green-200">
-              Parents Only
-            </span>
+          <div>
+            <label className="label">Password</label>
+            <div className="relative">
+              <InputIcon icon={FiLock} />
+              <input
+                type="password"
+                name="password"
+                autoComplete="current-password"
+                className="input pl-11"
+                placeholder="Enter password"
+                value={form.password}
+                onChange={e => {
+                  setForm(prev => ({ ...prev, password: e.target.value }));
+                  setLoginFailed(false);
+                }}
+                required
+              />
+            </div>
           </div>
-
-          {!showOTP ? (
-            <form onSubmit={handlePasswordLogin} className="space-y-4">
-              <div>
-                <label className="label">Email or Phone Number</label>
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary w-full py-3 text-base font-semibold disabled:opacity-50"
+          >
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
+        </form>
+      ) : (
+        <form onSubmit={handleOTPLogin} className="space-y-4">
+          <div>
+            <label className="label">Phone Number</label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <InputIcon icon={FiPhone} />
                 <input
-                  type="text"
-                  name="identifier"
-                  autoComplete="username"
-                  className="input"
-                  placeholder="Enter your registered email or phone"
+                  type="tel"
+                  className="input pl-11"
+                  placeholder="Enter your phone number"
                   value={form.phone}
-                  onChange={e => {
-                    setForm(prev => ({ ...prev, phone: e.target.value }));
-                    setLoginFailed(false);
-                  }}
+                  onChange={e => setForm({ ...form, phone: sanitizePhoneField(e.target.value) })}
+                  inputMode="numeric"
+                  maxLength={10}
                   required
                 />
               </div>
-              <div>
-                <label className="label">Password</label>
-                <input
-                  type="password"
-                  name="password"
-                  autoComplete="current-password"
-                  className="input"
-                  placeholder="Enter password"
-                  value={form.password}
-                  onChange={e => {
-                    setForm(prev => ({ ...prev, password: e.target.value }));
-                    setLoginFailed(false);
-                  }}
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg disabled:opacity-50"
-              >
-                {loading ? 'Signing in...' : 'Sign In'}
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleOTPLogin} className="space-y-4">
-              <div>
-                <label className="label">Phone Number</label>
-                <div className="flex gap-2">
-                  <input
-                    type="tel"
-                    className="input flex-1"
-                    placeholder="Enter your phone number"
-                    value={form.phone}
-                    onChange={e => setForm({ ...form, phone: sanitizePhoneField(e.target.value) })}
-                    inputMode="numeric"
-                    maxLength={10}
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={handleSendOTP}
-                    disabled={sendingOTP || otpSent}
-                    className="px-4 py-2 bg-green-50 text-green-700 border border-green-200 rounded-lg text-sm font-medium hover:bg-green-100 disabled:opacity-50 whitespace-nowrap"
-                  >
-                    {sendingOTP ? 'Sending...' : otpSent ? 'Sent' : 'Send OTP'}
-                  </button>
-                </div>
-              </div>
-              {otpSent && (
-                <div>
-                  <label className="label">Enter OTP</label>
-                  <input
-                    type="text"
-                    className="input text-center text-2xl tracking-widest font-bold"
-                    placeholder="------"
-                    maxLength={6}
-                    value={form.otp}
-                    onChange={e => setForm({ ...form, otp: e.target.value })}
-                    required
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Valid for 10 minutes.{` `}
-                    <button
-                      type="button"
-                      onClick={handleSendOTP}
-                      className="text-green-600 hover:underline"
-                    >
-                      Resend
-                    </button>
-                  </p>
-                </div>
-              )}
-              <button
-                type="submit"
-                disabled={loading || !otpSent}
-                className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg disabled:opacity-50"
-              >
-                {loading ? 'Verifying...' : 'Verify & Login'}
-              </button>
               <button
                 type="button"
-                onClick={() => {
-                  setShowOTP(false);
-                  setOtpSent(false);
-                }}
-                className="w-full text-sm text-gray-500 hover:underline"
+                onClick={handleSendOTP}
+                disabled={sendingOTP || otpSent}
+                className="btn-secondary whitespace-nowrap px-4 py-2 text-sm disabled:opacity-50"
               >
-                Back to Password Login
-              </button>
-            </form>
-          )}
-
-          {loginFailed && !showOTP && (
-            <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
-              <div className="flex items-start gap-2 mb-2">
-                <span className="text-yellow-500">Warning</span>
-                <div>
-                  <p className="text-sm font-semibold text-yellow-800">
-                    Wrong password?
-                  </p>
-                  <p className="text-xs text-yellow-600 mt-0.5">
-                    Use OTP to login instead.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  setShowOTP(true);
-                  setLoginFailed(false);
-                  setForm(f => ({ ...f, password: '' }));
-                }}
-                className="w-full py-2 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 border border-yellow-300 rounded-lg text-sm font-semibold transition-colors"
-              >
-                Login with OTP instead
+                {sendingOTP ? 'Sending...' : otpSent ? 'Sent' : 'Send OTP'}
               </button>
             </div>
-          )}
-
-          <div className="mt-4 text-center">
-            <p className="text-sm text-gray-500">
-              New parent?{' '}
-              <a href="/parent/register" className="text-green-600 font-medium hover:underline">
-                Register here
-              </a>
-            </p>
           </div>
+          {otpSent && (
+            <div>
+              <label className="label">Enter OTP</label>
+              <div className="relative">
+                <InputIcon icon={FiShield} />
+                <input
+                  type="text"
+                  className="input pl-11 text-center text-2xl tracking-widest font-bold"
+                  placeholder="------"
+                  maxLength={6}
+                  value={form.otp}
+                  onChange={e => setForm({ ...form, otp: e.target.value })}
+                  required
+                />
+              </div>
+              <p className="mt-1 text-xs text-text-secondary">
+                Valid for 10 minutes.{` `}
+                <button
+                  type="button"
+                  onClick={handleSendOTP}
+                  className="text-primary-600 hover:underline"
+                >
+                  Resend
+                </button>
+              </p>
+            </div>
+          )}
+          <button
+            type="submit"
+            disabled={loading || !otpSent}
+            className="btn-primary w-full py-3 disabled:opacity-50"
+          >
+            {loading ? 'Verifying...' : 'Verify & Login'}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setShowOTP(false);
+              setOtpSent(false);
+            }}
+            className="w-full text-sm text-text-secondary transition hover:text-primary-600 hover:underline"
+          >
+            Back to Password Login
+          </button>
+        </form>
+      )}
+
+      {loginFailed && !showOTP && (
+        <div className="mt-4 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+          <div className="mb-2 flex items-start gap-2">
+            <span className="text-yellow-500">Warning</span>
+            <div>
+              <p className="text-sm font-semibold text-yellow-800">
+                Wrong password?
+              </p>
+              <p className="mt-0.5 text-xs text-yellow-700">
+                Use OTP to login instead.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setShowOTP(true);
+              setLoginFailed(false);
+              setForm(f => ({ ...f, password: '' }));
+            }}
+            className="w-full rounded-lg border border-yellow-300 bg-yellow-100 py-2 text-sm font-semibold text-yellow-800 transition-colors hover:bg-yellow-200"
+          >
+            Login with OTP instead
+          </button>
         </div>
-        <PortalCopyright className="mt-6 px-4" />
+      )}
+
+      <div className="mt-4 text-center">
+        <p className="text-sm text-text-secondary">
+          New parent?{' '}
+          <a href="/parent/register" className="font-medium text-primary-600 hover:underline">
+            Register here
+          </a>
+        </p>
       </div>
-    </div>
+    </AuthSplitLayout>
   );
 }

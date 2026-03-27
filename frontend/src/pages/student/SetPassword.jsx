@@ -65,26 +65,26 @@ export default function SetPassword() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-indigo-800 to-indigo-700 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-sidebar via-primary-dark to-primary-500 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-indigo-700 text-3xl mx-auto mb-4 shadow-xl">
+          <div className="w-16 h-16 bg-white rounded-xl flex items-center justify-center text-primary-500 text-3xl mx-auto mb-4 shadow-md">
             <FiLock />
           </div>
           <h1 className="text-3xl font-bold text-white">Set Your Password</h1>
-          <p className="text-indigo-300 mt-2">
+          <p className="text-primary-100 mt-2">
             Welcome, {user?.name}! Please set a new password to continue.
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <div className="flex items-start gap-3 p-3 bg-indigo-50 border border-indigo-200 rounded-xl mb-6">
-            <FiInfo className="text-indigo-500 text-lg mt-0.5 shrink-0" />
+        <div className="bg-white rounded-xl border border-border shadow-md p-8">
+          <div className="flex items-start gap-3 p-3 bg-primary-50 border border-primary-100 rounded-xl mb-6">
+            <FiInfo className="text-primary-500 text-lg mt-0.5 shrink-0" />
             <div>
-              <p className="text-sm font-semibold text-indigo-800">
+              <p className="text-sm font-semibold text-primary-700">
                 First Login - Password Setup Required
               </p>
-              <p className="text-xs text-indigo-600 mt-0.5">
+              <p className="text-xs text-primary-600 mt-0.5">
                 Your default password was your Admission No.
                 Please set a new secure password that only you know.
               </p>
@@ -167,7 +167,7 @@ export default function SetPassword() {
             <button
               type="submit"
               disabled={loading || form.newPassword.length < 6 || form.newPassword !== form.confirmPassword}
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50"
+              className="btn-primary w-full py-3 disabled:opacity-50"
             >
               {loading ? 'Setting Password...' : (
                 <span className="inline-flex items-center gap-2">

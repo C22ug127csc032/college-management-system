@@ -12,7 +12,6 @@ import {
   FiMenu,
   FiUser,
 } from '../common/icons';
-import PortalCopyright from '../common/PortalCopyright';
 
 const NAV = [
   { to: '/student', label: 'Dashboard', icon: FiHome, exact: true },
@@ -52,26 +51,25 @@ export default function StudentLayout() {
         />
       )}
 
-      <aside className={`fixed inset-y-0 left-0 z-30 w-60 bg-gradient-to-b from-indigo-950 via-indigo-900 to-slate-900 flex flex-col transform transition-transform duration-300 lg:relative lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`fixed inset-y-0 left-0 z-30 w-60 bg-sidebar flex flex-col transform transition-transform duration-300 lg:relative lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="border-b border-white/10 p-5">
           <p className="text-white font-bold">Student Portal</p>
-          <p className="mt-0.5 text-xs uppercase tracking-[0.18em] text-indigo-200">Campus Academic Access</p>
-          <p className="mt-2 truncate text-xs text-indigo-300">{user?.name}</p>
+          <p className="mt-1 truncate text-xs text-white/70">{user?.name}</p>
         </div>
 
-        <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-0.5">
+        <nav className="portal-sidebar-scroll flex-1 overflow-y-auto py-4 px-2 space-y-0.5">
           {NAV.map(item => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.exact}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-200 ${
                   user?.isFirstLogin
-                    ? 'text-indigo-400 cursor-not-allowed opacity-50 pointer-events-none'
+                    ? 'text-white/40 cursor-not-allowed opacity-50 pointer-events-none'
                     : isActive
-                      ? 'bg-white/20 text-white font-medium'
-                      : 'text-indigo-200 hover:bg-white/10 hover:text-white'
+                      ? 'bg-primary-500 text-white font-medium'
+                      : 'text-white/80 hover:bg-primary-700 hover:text-white'
                 }`
               }
               onClick={e => {
@@ -91,26 +89,25 @@ export default function StudentLayout() {
         <div className="border-t border-white/10 p-3">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-indigo-300 transition-colors hover:bg-white/10 hover:text-white"
+            className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-white/80 transition-colors duration-200 hover:bg-primary-700 hover:text-white"
           >
             <FiLogOut className="shrink-0" />
             <span>Logout</span>
           </button>
-          <PortalCopyright className="mt-3 px-1 text-indigo-200" />
         </div>
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="campus-panel mx-4 mt-4 flex shrink-0 items-center gap-3 px-4 py-3 md:mx-6">
+        <header className="mx-4 mt-4 flex shrink-0 items-center gap-3 rounded-xl border border-border bg-white px-4 py-3 shadow-sm md:mx-6">
           <button
             onClick={() => setMobileOpen(true)}
-            className="rounded-xl p-2 hover:bg-gray-100 lg:hidden"
+            className="rounded-lg p-2 hover:bg-primary-50 lg:hidden"
           >
             <FiMenu />
           </button>
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-indigo-600">Student Portal</p>
-            <span className="text-sm font-medium text-gray-700">Academic self-service and student records</span>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-500">Student Portal</p>
+            <span className="text-sm font-medium text-primary-500">Academic self-service and student records</span>
           </div>
 
           {user?.isFirstLogin && (
