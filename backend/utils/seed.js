@@ -1,3 +1,8 @@
+import dns from "dns";
+
+// Force DNS servers
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
+
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 
